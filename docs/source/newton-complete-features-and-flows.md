@@ -50,7 +50,6 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
 ### 4. Asset Management
 - **Truck Management**
   - Add new trucks to database
-  - Unique ID generation for each truck (immutable)
   - QR code scanning for truck identification
   - Registration details capture
   - Active truck tracking
@@ -85,8 +84,9 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
 
 ### 6. Order Management
 - **Order Creation Features**
-  - Auto-generated order numbers
-  - Order type selection
+  - Auto-generated order numbers (default)
+  - Manual order number entry option (with duplicate checking)
+  - Order type selection (Receiving or Dispatching only)
   - Weight allocation
   - Loading date scheduling
   - Dispatch date range selection
@@ -181,13 +181,13 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
 
 ### 13. Asset Deletion & Management
 - **Deletion Controls**
-  - Operator deletion requests
+  - Direct deletion for assets without transactions
   - Reason documentation requirement
-  - Administrator approval workflow
-  - Transaction-based deletion restrictions
+  - Automatic blocking if transactions exist
+  - Primarily for correcting induction errors
 - **Audit Trail**
   - No editing of existing assets (delete and re-add policy)
-  - Full deletion history
+  - Full deletion history with reasons logged
 
 ### 14. Configuration & Settings
 - **Administrator Configuration**
@@ -250,67 +250,59 @@ Dashboard Access → Role-Based View
 Induction Officer Login → Select "Add New Asset" → 
 Select Transporter from Dropdown → 
 Scan QR Code (First Time) → Scan QR Code (Second Time for Verification) → 
-Scan License Disc (First Time) → Scan License Disc (Second Time for Verification) → 
-System Validates Expiry Dates → 
-  If Valid:
-    → Enter Fleet Number (Optional)
-    → Select/Enter Group (Optional)
+Scan License Disc Barcode (First Time) → Scan License Disc Barcode (Second Time for Verification) → 
+System Automatically:
+  - Identifies Asset Type (Truck/Trailer/Driver)
+  - Extracts All Information from License Disc
+  - Validates Expiry Dates
+→ If Valid:
+    → Enter Fleet Number (Optional - Manual Entry)
+    → Select/Enter Group (Optional - Manual Entry)
     → Save Asset
     → Email Notifications Sent to Transporter & Client
     → Confirmation Message
   If Invalid (Expired):
     → Error Notification with Reason
-    → Option to Override (Admin Only)
+    → Process Blocked
     → Return to Start
 ```
 
-#### Flow 4: Asset Deletion Request
+#### Flow 4: Asset Deletion (Induction Error Correction)
 ```
 Operator Login → Navigate to Asset Management → 
 Search/Select Asset → Click Delete → 
-Enter Deletion Reason → Submit Request → 
-System Checks for Transactions → 
-  If No Transactions:
-    → Request Sent to Administrator
-    → Admin Reviews Request
-    → Admin Approves/Denies
-    → Asset Deleted/Request Rejected
-    → Notification to Requester
-  If Transactions Exist:
-    → Deletion Blocked Message
+Enter Deletion Reason → Submit → 
+System Checks for Linked Transactions → 
+  If No Transactions (Typically During Induction):
+    → Asset Deleted Immediately
+    → Deletion Logged with Reason
+    → Confirmation Message
+  If Transactions Exist (99% of Cases):
+    → Deletion Blocked
     → Show Transaction Count
+    → Display "Cannot Delete - Asset Has Transactions"
     → Return to Asset List
-```
-
-#### Flow 5: Fleet Registration (Transporter)
-```
-Transporter Login → Navigate to Fleet Management → 
-Select Asset Type:
-  For Trucks:
-    → Enter Registration Number
-    → Enter VIN Number
-    → Upload Documents
-    → Generate QR Code
-  For Trailers:
-    → Enter Trailer ID
-    → Enter Specifications
-    → Link to Compatible Trucks
-  For Drivers:
-    → Scan Driver License
-    → Auto-Import License Data
-    → Verify Information
-    → Set Expiry Reminders
-→ Create Fleet Groups → Assign Assets to Groups → Save
 ```
 
 ### Order Management Flows
 
-#### Flow 6: Complete Order Creation
+#### Flow 5: Complete Order Creation
 ```
 Logistics Coordinator/Allocation Officer Login → 
 Navigate to Orders → Click "Create New Order" → 
-Fill Order Details:
-  - Select Order Type
+Choose Order Number Method:
+  Option 1: Use Auto-Generated Order Number
+    → System Generates Unique Order Number
+  Option 2: Enter Manual Order Number
+    → Enter Custom Order Number
+    → System Checks for Duplicates
+      If Duplicate Exists:
+        → Error: "Order Number Already Exists"
+        → Prompt to Enter Different Number
+      If Unique:
+        → Proceed
+→ Fill Order Details:
+  - Select Order Type (Receiving or Dispatching)
   - Set Dispatch Date Range (Start & End)
   - Allocate Total Weight
   - Select Loading Dates
@@ -322,32 +314,50 @@ Fill Order Details:
   - Set Daily Truck Limit
   - Set Daily Weight Limit
   - Set Monthly Limits
-→ Review Order Summary → Submit Order → 
-System Generates Order Number → 
-Order Saved to Database → Confirmation Screen
-```
-
-#### Flow 7: Order Allocation Process
-```
-Allocation Officer Login → View Pending Orders → 
-Select Order(s) for Allocation → 
-Review Order Details → Check Assignment Type:
-  If Logistics Coordinator Assignment:
+→ Choose Allocation Method:
+  Option 1: Assign to Logistics Coordinator
     → Select Logistics Coordinator
-    → Assign Order
-    → LC Receives Notification
-    → LC Can:
-      - Redistribute to Multiple Transporters
-      - Adjust Weights (Within Limits)
-      - Set Transporter-Specific Requirements
-  If Direct Transporter Assignment:
-    → Select Transporter
-    → Assign Order
-    → Transporter Receives Notification
-→ Update Order Status → Confirmation
+    → LC Will Handle Weight Distribution Later
+  Option 2: Assign to Transporter(s)
+    → Select Multiple Transporters
+    → Allocate Weight to Each Transporter
+    → System Validates Total Weight = Sum of Allocations
+      If Mismatch:
+        → Error: "Weight allocation doesn't match total"
+        → Adjust Allocations
+      If Match:
+        → Proceed
+→ Review Order Summary → Submit Order → 
+Order Saved to Database → 
+Send Notifications and Emails:
+  - If Assigned to LC: Notify Logistics Coordinator
+  - If Assigned to Transporters: Notify All Selected Transporters
+  - Notify Other Relevant Parties
+→ Confirmation Screen
 ```
 
-#### Flow 8: Pre-Booking Process
+#### Flow 6: Order Allocation Process (Post-Creation)
+```
+Logistics Coordinator Login → View Orders Assigned to Me → 
+Select Order for Distribution → 
+Review Total Weight Available → 
+Redistribute Weight:
+  → Select Multiple Transporters
+  → Allocate Weight to Each Transporter
+  → Ensure Total = Original Allocation
+  → Set Transporter-Specific Requirements
+→ Submit Distribution → 
+Send Notifications and Emails:
+  - Notify All Selected Transporters
+  - Notify Other Relevant Parties
+→ Update Order Status → Confirmation
+
+Note: This flow only applies when orders were assigned to 
+Logistics Coordinator during creation. Orders directly 
+assigned to transporters skip this step.
+```
+
+#### Flow 7: Pre-Booking Process
 ```
 Logistics Coordinator Login → View Active Orders → 
 Select Order for Pre-Booking → 
@@ -360,16 +370,15 @@ Search Available Trucks →
 → Select Trucks → Link to Order → 
 Set Collection Time → Add Special Instructions → 
 Submit Pre-Booking → 
-System Sends Notifications to:
+Send Notifications and Emails to:
   - Selected Transporters
-  - Security Checkpoints
-  - Weighbridge Operators
+  - Other Relevant Parties
 → Booking Confirmation
 ```
 
 ### Weighbridge Operation Flows
 
-#### Flow 9: Complete Weighbridge Process (Inbound)
+#### Flow 8: Complete Weighbridge Process (Inbound)
 ```
 Truck Arrives at Security In → 
 Security Personnel:
@@ -389,7 +398,7 @@ Weighbridge Operator:
 → Truck Proceeds to Loading Point
 ```
 
-#### Flow 10: Complete Weighbridge Process (Outbound)
+#### Flow 9: Complete Weighbridge Process (Outbound)
 ```
 Loaded Truck Returns to Weighbridge → 
 Weighbridge Operator:
@@ -417,7 +426,7 @@ Security Personnel:
 → Truck Exits Facility
 ```
 
-#### Flow 11: Weighbridge Calibration
+#### Flow 10: Weighbridge Calibration
 ```
 Weighbridge Supervisor Login → 
 Navigate to Calibration Tools → 
@@ -440,7 +449,7 @@ Set Next Calibration Date → Complete
 
 ### Multi-Point Process Flows
 
-#### Flow 12: Complete Transportation Cycle
+#### Flow 11: Complete Transportation Cycle
 ```
 Day Before:
   Logistics Coordinator → Pre-Books Trucks → Notifications Sent
@@ -464,7 +473,7 @@ Day Of Operation:
 
 ### Administrative Flows
 
-#### Flow 13: System Configuration (Newton Administrator)
+#### Flow 12: System Configuration (Newton Administrator)
 ```
 Newton Admin Login → System Settings → 
 Select Configuration Area:
@@ -480,6 +489,9 @@ Select Configuration Area:
     → Add Products
     → Set Specifications
     → Configure Categories
+  Order Types:
+    → Configure Receiving Orders
+    → Configure Dispatching Orders
   Location Management:
     → Add Collection Points
     → Add Destinations
@@ -492,7 +504,7 @@ Select Configuration Area:
 Deploy to Production → Notify Affected Users
 ```
 
-#### Flow 14: Report Generation
+#### Flow 13: Report Generation
 ```
 User Login → Navigate to Reports → 
 Select Report Type:
@@ -516,7 +528,7 @@ View/Export Options:
 
 ### Error Handling Flows
 
-#### Flow 15: Invalid Driver at Checkpoint
+#### Flow 14: Invalid Driver at Checkpoint
 ```
 Driver Scanned at Security → 
 System Detects Invalid/Expired License → 
@@ -538,30 +550,33 @@ Process Continues or Terminated
 
 ### Critical Business Rules
 
-1. **Weight Management**
+1. **Order Types**
+   - Orders can only be of two types: Receiving or Dispatching
+   - No other order types are permitted in the system
+
+2. **Weight Management**
    - Orders cannot exceed original weight allocation when redistributed
    - Weight adjustments permitted but cannot exceed order total
    - Overload detection triggers mandatory alerts
    - Daily and monthly limits must be enforced
 
-2. **Time Constraints**
+3. **Time Constraints**
    - 24-hour timer starts upon order acceptance by transporter
    - Fleet allocation must be completed within timer period
    - Pre-booking must be done at least 24 hours in advance
 
-3. **Access Control**
+4. **Access Control**
    - Role-based visibility strictly enforced
    - Transporters can only see their assigned orders
-   - Deletion requests require administrator approval
+   - Asset deletion allowed only when no transactions exist
    - Dual role (Logistics Coordinator as Transporter) requires special flag
 
-4. **Data Integrity**
+5. **Data Integrity**
    - No editing of existing assets (delete and re-add only)
    - All deletions require reason documentation
-   - Unique IDs for assets cannot be changed
    - QR codes are permanently linked to assets
 
-5. **Verification Requirements**
+6. **Verification Requirements**
    - Dual scanning required for critical operations
    - License expiry validation mandatory
    - Seal numbers must match order specifications
