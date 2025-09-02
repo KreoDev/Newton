@@ -40,9 +40,8 @@
    - No editing of existing assets; deletion and re-adding is required.
    - Restrictions on deletion if there are transactions associated with the asset.
 
-7. **Reporting and Analytics:**
+7. **Alerts:**
 
-   - Generate reports based on asset usage, errors, and other metrics.
    - Alerts for specific events (e.g., overloads, underloads) based on asset data.
 
 8. **Configuration Settings:**
@@ -52,13 +51,17 @@
 
 9. **User-Friendly Interface:**
    - Simple and intuitive interface for operators and induction officers.
-   - Predictive text and dropdowns for fleet numbers and groups to minimise errors.
+   - Predictive text and dropdowns for fleet numbers and groups to minimize errors.
 
 #### Basic User Flows:
+
+> **Flow Entry Point:** After a successful login, users land on the **Dashboard**. Each flow below begins from the Dashboard.
 
 1. **Adding a New Asset:**
 
    - **Login:** User logs into the system.
+   - **Dashboard:** User lands on the Dashboard.
+   - **Start Add:** User clicks **Add New Asset** on the Dashboard.
    - **Select Transporter:** User selects the transporter from a dropdown list.
    - **Scan QR Code:** User scans the asset's QR code twice for verification.
    - **Scan Licence Disc:** User scans the licence disc twice for verification.
@@ -69,22 +72,9 @@
 2. **Requesting Asset Deletion:**
 
    - **Login:** User logs into the system.
-   - **Locate Asset:** User searches for the asset they wish to delete.
-   - **Request Deletion:** User clicks on the delete option and provides a reason for deletion.
-   - **Confirmation:** System confirms the deletion request and notifies the administrator.
-
-3. **Handling Errors During Induction:**
-
-   - **Induction Process:** User follows the asset induction steps.
-   - **Error Notification:** If an error occurs (e.g., expired licence), a pop-up appears explaining the issue.
-   - **Resolution:** User can either correct the issue (if possible) or request deletion of the asset to start over.
-
-4. **Generating Reports:**
-   - **Login:** User logs into the system.
-   - **Select Report Type:** User selects the type of report they wish to generate (e.g., asset usage, errors).
-   - **Specify Parameters:** User specifies any parameters for the report (e.g., date range).
-   - **Generate Report:** User clicks to generate the report, which is then displayed or emailed as required.
-
-## These features and user flows are designed to streamline the weighbridge system's operations, ensuring efficiency, accuracy, and user satisfaction.
-
-https://app.fireflies.ai/view/Aug-14-10-25-AM::01K2KTXTV6HGBZZZ5HSHBJMPRZ?utm_source=AskFredResponseCopied
+   - **Dashboard:** User lands on the Dashboard.
+   - **Go to Assets:** From the Dashboard, the user navigates to **Assets**.
+   - **Locate Asset:** User searches for or selects the asset to delete.
+   - **Check Asset Usage:** The system verifies if the asset is currently in use or has any associated transactions. If it is, deletion is blocked and a clear notification is displayed.
+   - **Request Deletion:** If the asset is not in use, the user clicks on the delete option and provides a reason for deletion.
+   - **Confirmation:** The system confirms the deletion request (if permitted) and notifies the administrator.
