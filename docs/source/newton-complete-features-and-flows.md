@@ -220,6 +220,8 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Feature enable/disable options
   - Company-specific requirements
   - System-wide settings
+  - Pre-booking requirement setting (Compulsory/Optional)
+  - Overload handling policy (Allow with Penalty/Deny Exit)
 - **User Interface Customization**
   - Predictive text for fleet numbers
   - Dropdown customization for groups
@@ -286,7 +288,8 @@ System Automatically:
   - Identifies Asset Type (Truck/Trailer/Driver)
   - Extracts All Information from License Disc
   - Validates Expiry Dates
-→ If Valid:
+→ Check Validation Results:
+  If Valid:
     → Enter Fleet Number (Optional - Manual Entry)
     → Select/Enter Group (Optional - Manual Entry)
     → Save Asset
@@ -304,7 +307,7 @@ System Automatically:
 Operator Login → Navigate to Asset Management →
 Search/Select Asset → Click Delete →
 Enter Deletion Reason → Submit →
-System Checks for Linked Transactions →
+System Checks for Linked Transactions:
   If No Transactions (Typically During Induction):
     → Asset Deleted Immediately
     → Deletion Logged with Reason
@@ -313,7 +316,7 @@ System Checks for Linked Transactions →
     → Deletion Blocked
     → Show Transaction Count
     → Display "Cannot Delete - Asset Has Transactions"
-    → Offer "Mark as Inactive" Option
+    → Offer "Mark as Inactive" Option:
       If Selected:
         → Confirm Inactivation
         → Flag Asset as Inactive
@@ -351,10 +354,10 @@ Choose Order Number Method:
   - Set Daily Truck Limit
   - Set Daily Weight Limit
   - Set Trip Limits:
-    Option 1: Set Maximum Trips Per Day
+    Option 1: Set Maximum Trips Per Day:
       → Enter number of trips allowed per day
       → System applies limit across all order days
-    Option 2: Set Trip Duration
+    Option 2: Set Trip Duration:
       → Enter trip duration in hours
       → System calculates possible trips based on:
         - 24-hour day availability
@@ -365,13 +368,13 @@ Choose Order Number Method:
         - Shows trips spanning multiple days
   - Set Monthly Limits
 → Choose Allocation Method:
-  Option 1: Assign to Logistics Coordinator
+  Option 1: Assign to Logistics Coordinator:
     → Select Logistics Coordinator
     → LC Will Handle Weight Distribution Later
-  Option 2: Assign to Transporter(s)
+  Option 2: Assign to Transporter(s):
     → Select Multiple Transporters
     → Allocate Weight to Each Transporter
-    → System Validates Total Weight = Sum of Allocations
+    → System Validates Total Weight = Sum of Allocations:
       If Mismatch:
         → Error: "Weight allocation doesn't match total"
         → Adjust Allocations
@@ -414,7 +417,7 @@ assigned to transporters skip this step.
 Logistics Coordinator Login → View Active Orders →
 Select Order for Pre-Booking →
 View Available Dates/Slots → Select Date →
-Search Available Trucks →
+Search Available Trucks:
   Filter by:
     - Transporter
     - Truck Type
@@ -434,28 +437,55 @@ Send Notifications and Emails to:
 
 ### Weighbridge Operation Flows
 
-#### Flow 8: Complete Weighbridge Process (Inbound)
+#### Flow 8: Security In Process
 
 ```text
 Truck Arrives at Security In →
 Security Personnel:
   - Scan Truck QR Code
   - Scan Driver ID
-  - Verify Against Pre-Booking
-  - Check Order Details
-  If Valid → Allow Entry
-  If Invalid → Send Alert to Logistics Coordinator
-→ Truck Proceeds to Weighbridge →
+  - System Checks Pre-Booking Configuration:
+    If Pre-Booking is Compulsory:
+      → Verify truck has orders for today
+      → Check order details match
+      If No Valid Orders for Today:
+        → Deny Entry
+        → Send Alert to Logistics Coordinator
+        → Log Rejection Reason
+      If Valid Orders Exist:
+        → Allow Entry
+    If Pre-Booking is Optional:
+      → Verify truck/driver exists in system
+      If Registered in System:
+        → Allow Entry (even without pre-booking)
+      If Not Registered:
+        → Deny Entry
+        → Alert Security Supervisor
+→ Truck Proceeds to Weighbridge
+```
+
+#### Flow 9: Weighbridge Tare Weight (Inbound)
+
+```text
+Truck Arrives at Weighbridge (Empty) →
 Weighbridge Operator:
   - Scan Truck QR Code
-  - System Auto-Retrieves Order
+  - Order Retrieval Process:
+    If Pre-Booking is Compulsory:
+      → System Auto-Retrieves Order
+    If Pre-Booking is Optional:
+      If Truck Has Pre-Booking:
+        → System Auto-Retrieves Order
+      If No Pre-Booking:
+        → Manual Order Selection Required
+        → Operator Links Truck to Available Order
   - Capture Tare Weight
   - Check for Weight Limits
   - Print Tare Weight Ticket
 → Truck Proceeds to Loading Point
 ```
 
-#### Flow 9: Complete Weighbridge Process (Outbound)
+#### Flow 10: Weighbridge Gross Weight (Outbound)
 
 ```text
 Loaded Truck Returns to Weighbridge →
@@ -463,28 +493,49 @@ Weighbridge Operator:
   - Scan Truck QR Code
   - Capture Gross Weight
   - Calculate Net Weight (Gross - Tare)
-  - Check for Overload
+  - Check for Overload:
     If Overloaded:
       → Alert Generated
       → Notify Logistics Coordinator
       → Document Overload
-      → Decide Action (Offload/Proceed with Penalty)
+      → System Checks Overload Policy Setting:
+        If "Allow Overload with Penalty" is Enabled:
+          → Apply Penalty Fee
+          → Document Penalty
+          → Generate Weight Ticket with Overload Flag
+          → Allow Proceed to Security Out
+        If "Deny Overload Exit" is Enabled:
+          → Block Exit Permission
+          → Force Return for Offload
+          → Truck Must Return to Loading Point
+          → Adjust Load Weight
+          → Return to Weighbridge for Re-weighing
     If Within Limits:
       → Proceed
   - Scan Seal Numbers
   - Verify Seals Match Order
   - Generate Final Weight Ticket
   - Print Documents with Seal Numbers
-→ Truck Proceeds to Security Out →
+→ Truck Proceeds to Security Out
+```
+
+#### Flow 11: Security Out Process
+
+```text
+Truck Arrives at Security Out →
 Security Personnel:
   - Verify Documents
+  - Check for Overload Permission Flag:
+    If Overload Denied Flag Present:
+      → Deny Exit
+      → Direct Back to Loading Area
   - Check Seal Integrity
   - Scan Seals for Final Verification
   - Record Exit Time
 → Truck Exits Facility
 ```
 
-#### Flow 10: Weighbridge Calibration
+#### Flow 12: Weighbridge Calibration
 
 ```text
 Weighbridge Supervisor Login →
@@ -506,34 +557,9 @@ Access Serial Port Configuration →
 Set Next Calibration Date → Complete
 ```
 
-### Multi-Point Process Flows
-
-#### Flow 11: Complete Transportation Cycle
-
-```text
-Day Before:
-  Logistics Coordinator → Pre-Books Trucks → Notifications Sent
-
-Day Of Operation:
-  Driver Arrives → Security In Process →
-  First Weighbridge (Tare) → Loading →
-  Second Weighbridge (Gross) → Seal Application →
-  Documentation → Security Out →
-
-  Transport to Destination →
-
-  At Destination:
-    → Arrival Scan
-    → Weight Verification (if applicable)
-    → Seal Verification
-    → Unloading
-    → Confirmation of Delivery
-    → Update System Status
-```
-
 ### Administrative Flows
 
-#### Flow 12: System Configuration (Newton Administrator)
+#### Flow 13: System Configuration (Newton Administrator)
 
 ```text
 Newton Admin Login → System Settings →
@@ -565,50 +591,6 @@ Select Configuration Area:
 Deploy to Production → Notify Affected Users
 ```
 
-#### Flow 13: Report Generation
-
-```text
-User Login → Navigate to Reports →
-Select Report Type:
-  - Turnaround Time Report
-  - Weight Summary Report
-  - Transaction History
-  - Asset Utilization
-  - Calibration History
-→ Set Parameters:
-  - Date Range
-  - Specific Assets/Orders
-  - Grouping Options
-→ Generate Report →
-View/Export Options:
-  - View Online
-  - Export PDF
-  - Export Excel
-  - Email Report
-→ Save Report Settings (Optional)
-```
-
-### Error Handling Flows
-
-#### Flow 14: Invalid Driver at Checkpoint
-
-```text
-Driver Scanned at Security →
-System Detects Invalid/Expired License →
-Alert Generated →
-  Notifications Sent to:
-    - Security Supervisor
-    - Logistics Coordinator
-    - Transporter
-→ Driver Detained →
-Options:
-  - Replace Driver
-  - Update License Information
-  - Cancel Trip
-→ Resolution Logged →
-Process Continues or Terminated
-```
-
 ## Business Rules Summary
 
 ### Critical Business Rules
@@ -623,6 +605,7 @@ Process Continues or Terminated
    - Orders cannot exceed original weight allocation when redistributed
    - Weight adjustments permitted but cannot exceed order total
    - Overload detection triggers mandatory alerts
+   - Overload handling configurable (allow with penalty or deny exit)
    - Daily and monthly limits must be enforced
 
 3. **Time Constraints**
@@ -639,6 +622,7 @@ Process Continues or Terminated
    - Transporters can only see their assigned orders
    - Asset deletion allowed only when no transactions exist
    - Dual role (Logistics Coordinator as Transporter) requires special flag
+   - Pre-booking enforcement configurable (compulsory vs optional)
 
 5. **Data Integrity**
 
@@ -652,41 +636,6 @@ Process Continues or Terminated
    - Seal numbers must match order specifications
    - Driver verification required at all checkpoints
 
-## Integration Requirements
-
-### Required Integrations
-
-- Weighbridge hardware systems
-- License verification systems
-- Email notification service
-- QR code generation and scanning systems
-
-### Optional Integrations
-
-- Facial recognition systems
-- MOX systems
-- Client management systems
-- ERP systems
-- GPS tracking systems
-
-## Security & Compliance
-
-### Security Features
-
-- Two-factor authentication
-- Role-based access control
-- Audit trail for all transactions
-- Encrypted data transmission
-- Session management
-
-### Compliance Requirements
-
-- Data retention policies
-- Privacy protection for driver information
-- Weight certification standards
-- Calibration compliance tracking
-- Regulatory reporting capabilities
-
 ## User Interface Requirements
 
 ### Design Principles
@@ -697,30 +646,3 @@ Process Continues or Terminated
 - Clear error messages
 - Visual status indicators
 
-### Accessibility Features
-
-- Screen reader compatibility
-- Keyboard navigation
-- High contrast mode options
-- Multi-language support
-
-## Performance Requirements
-
-### System Performance
-
-- Real-time weight capture
-- Instant notification delivery
-- Sub-second response times for queries
-- Support for concurrent users
-- Offline capability for critical operations
-
-### Scalability
-
-- Multi-company support
-- Unlimited users per company
-- High transaction volume handling
-- Distributed weighbridge support
-
-## Conclusion
-
-The Newton Portal provides a comprehensive solution for weighbridge and logistics management with robust features for asset management, order processing, real-time tracking, and compliance management. The system's modular design allows for flexible deployment and customization based on specific client requirements while maintaining core functionality across all implementations.
