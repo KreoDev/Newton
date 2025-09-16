@@ -194,6 +194,10 @@ Security Personnel:
   - Scan Driver License
   - Scan Truck QR Code
   - Scan Truck Vehicle Disk
+  - Scan Trailer 1 QR Code
+  - Scan Trailer 1 Vehicle Disk
+  - Scan Trailer 2 QR Code
+  - Scan Trailer 2 Vehicle Disk
   - System Validates All Scanned Documents
   - System Checks Pre-Booking Configuration:
     If Pre-Booking is Compulsory:
@@ -247,7 +251,7 @@ Weighbridge Operator:
 ```text
 Loaded Truck Returns to Weighbridge →
 Weighbridge Operator:
-  - Scan Truck QR Code
+  - Scan Truck Vehicle Disk
   - Capture Gross Weight
   - Calculate Net Weight (Gross - Tare)
   - Check for Weight Violations:
@@ -255,18 +259,11 @@ Weighbridge Operator:
       → Alert Generated
       → Send Notification to Users with "Overload Detected" Enabled
       → Document Overload
-      → System Checks Overload Policy Setting:
-        If "Allow Overload with Penalty" is Enabled:
-          → Apply Penalty Fee
-          → Document Penalty
-          → Generate Weight Ticket with Overload Flag
-          → Allow Proceed to Security Out
-        If "Deny Overload Exit" is Enabled:
-          → Block Exit Permission
-          → Force Return for Offload
-          → Truck Must Return to Loading Point
-          → Adjust Load Weight
-          → Return to Weighbridge for Re-weighing
+      → Block Exit Permission
+      → Force Return for Offload
+      → Truck Must Return to Loading Point
+      → Adjust Load Weight
+      → Return to Weighbridge for Re-weighing
     If Underloaded:
       → Alert Generated
       → Send Notification to Users with "Underload Detected" Enabled
@@ -275,10 +272,6 @@ Weighbridge Operator:
     If Within Limits:
       → Proceed
   - Scan Seal Numbers
-  - Verify Seals Match Order:
-    If Seals Don't Match:
-      → Send Notification to Users with "Incorrect Seals" Enabled
-      → Document Seal Mismatch
   - Generate Final Weight Ticket
   - Print Documents with Seal Numbers
 → Truck Proceeds to Security Out
@@ -289,13 +282,32 @@ Weighbridge Operator:
 ```text
 Truck Arrives at Security Out →
 Security Personnel:
-  - Verify Documents
-  - Check for Overload Permission Flag:
-    If Overload Denied Flag Present:
+  - Scan Driver QR Code
+  - Scan Driver License
+  - Scan Truck QR Code
+  - Scan Truck Vehicle Disk
+  - Scan Trailer 1 QR Code
+  - Scan Trailer 1 Vehicle Disk
+  - Scan Trailer 2 QR Code
+  - Scan Trailer 2 Vehicle Disk
+  - System Verifies All Scanned Items:
+    If Any Verification Fails:
       → Deny Exit
-      → Direct Back to Loading Area
+      → Display "Exit Denied" (No Reason Given)
+      → Send Silent Notification to Configured Security Alert Contacts
+      → Wait for Inspection Resolution
+    If All Verifications Pass:
+      → Continue Process
   - Check Seal Integrity
-  - Scan Seals for Final Verification
+  - Scan Seals for Final Verification:
+    If Seal Verification Fails:
+      → Deny Exit
+      → Display "Exit Denied" (No Reason Given)
+      → Send Silent Notification to Configured Security Alert Contacts
+      → Document Seal Issue Internally
+      → Wait for Inspection Resolution
+    If Seal Verification Passes:
+      → Continue Process
   - Record Exit Time
 → Truck Exits Facility
 ```
@@ -586,9 +598,9 @@ Configure Weighbridge Settings:
     → Configure Weight Limits
     → Set Tare Weight Rules
   - Overload Policy:
-    → Set as "Allow with Penalty" or "Deny Exit"
-    → Configure Penalty Fees (if applicable)
-    → Set Overload Alert Recipients
+    → System enforces mandatory offload for overweight trucks
+    → Configure Overload Alert Recipients
+    → Set Overload Threshold (e.g., >5% over limit)
   - Calibration Settings:
     → Set Calibration Schedule
     → Configure Load Cell Parameters
@@ -615,7 +627,7 @@ Configure System-Wide Notification Settings:
     → Order Created Template
     → Order Allocated Template
     → Order Cancelled Template
-    → Overload Alert Template
+    → Overload Alert Template (Mandatory Offload Required)
     → Underload Alert Template
     → License Expiry Warning Template
     → Pre-Booking Confirmation Template
@@ -636,7 +648,8 @@ Configure System-Wide Notification Settings:
     → Define When Each Notification Type is Sent
     → Set Escalation Rules for Critical Alerts
     → Configure Warning Periods (Days Before Expiry)
-    → Set Default Overload/Underload Thresholds (e.g., >5% / <10%)
+    → Set Default Overload Threshold (e.g., >5% requires mandatory offload)
+    → Set Default Underload Threshold (e.g., <10% triggers warning)
 → Test Email Templates:
   - Send Test Email for Each Template
   - Preview with Sample Data
@@ -663,4 +676,36 @@ Configure Global Settings:
     → Configure Dashboard Views per Role
 → Save System Settings →
 Apply System-Wide → Restart Services if Required
+```
+
+#### Flow 23: Security Alert Configuration
+
+```text
+Newton Admin Login → System Settings →
+Select Security Alert Configuration →
+Configure Security Exit Verification Alerts:
+  - Exit Verification Failure Contacts:
+    → Add Primary Contact from Existing Users
+    → Add Secondary Contacts from Existing Users
+    → Set Contact Priority Order
+    → System Validates Contact Information:
+      If Contact Missing Phone Number:
+        → Prompt: "Contact requires phone number for security alerts"
+        → Enter Phone Number for Contact
+        → Update User Profile with Phone Number
+  - Alert Settings:
+    → Set Alert Method (Email/SMS/Both)
+    → Configure Escalation Time (minutes before alerting next contact)
+    → Set Alert Severity Levels
+  - Verification Failure Types:
+    → QR Code Mismatch Alert Recipients
+    → Document Verification Failure Alert Recipients
+    → Seal Discrepancy Alert Recipients
+    → General Security Breach Alert Recipients
+  - Response Requirements:
+    → Set Required Response Time
+    → Configure Auto-Escalation Rules
+    → Define Emergency Override Procedures
+→ Save Security Alert Configuration →
+Apply to All Security Checkpoints → Test Alert System
 ```
