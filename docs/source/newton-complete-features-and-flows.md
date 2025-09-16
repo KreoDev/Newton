@@ -59,8 +59,9 @@ System Checks for Linked Transactions:
     → Display "Cannot Delete - Asset Has Transactions"
     → Offer "Mark as Inactive" Option:
       If Selected:
+        → Enter Reason for Inactivation
         → Confirm Inactivation
-        → Flag Asset as Inactive
+        → Flag Asset as Inactive with Reason
         → Send Notification to Users with "Asset Made Inactive" Enabled
     → Return to Asset List
 ```
