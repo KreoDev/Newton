@@ -29,8 +29,8 @@ System Automatically:
   - Validates Expiry Dates
 → Check Validation Results:
   If Valid:
-    → Enter Fleet Number (Optional - Manual Entry)
-    → Select/Enter Group (Optional - Manual Entry)
+    → Enter Fleet Number (Optional)
+    → Select/Enter Group (Optional)
     → Save Asset
     → Email Notifications
     → Confirmation Message
@@ -558,20 +558,12 @@ Newton Admin Login → System Settings →
 Select System Configuration →
 Configure Global Settings:
   - Fleet Management:
-    → Enable/Disable Fleet Number Requirements
-    → Configure Fleet Number Format
-    → Enable Predictive Text for Fleet Numbers
-    → Set 24-Hour Timer for Fleet Allocation
+    → Enable/Disable Fleet Number
+    → Customize Fleet Number label
   - Group Management:
-    → Enable/Disable Group Requirements
-    → Create Transporter Groups
+    → Enable/Disable Transporter Group
+    → Customize Transporter Group label
     → Configure Group Dropdown Options
-  - Asset Management:
-    → Set Asset Deletion Rules (No Deletion if Transactions Exist)
-    → Configure Induction Requirements
-    → Set QR Code Configuration (Permanent Linking to Assets)
-    → Enable/Disable Dual Scanning
-    → Enforce No-Edit Policy (Delete and Re-add Only)
   - Interface Settings:
     → Enable/Disable Features
     → Set UI Simplification Options
