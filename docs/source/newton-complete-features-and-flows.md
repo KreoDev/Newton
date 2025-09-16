@@ -32,10 +32,11 @@ System Automatically:
     → Enter Fleet Number (Optional - Manual Entry)
     → Select/Enter Group (Optional - Manual Entry)
     → Save Asset
-    → Email Notifications Sent to Transporter & Client
+    → Email Notifications
     → Confirmation Message
   If Invalid (Expired):
     → Error Notification with Reason
+    → Send Notification to Users with "Invalid/Expired License" Enabled
     → Process Blocked
     → Return to Start
 ```
@@ -50,6 +51,7 @@ System Checks for Linked Transactions:
   If No Transactions (Typically During Induction):
     → Asset Deleted Immediately
     → Deletion Logged with Reason
+    → Send Notification to Users with "Asset Deleted" Enabled
     → Confirmation Message
   If Transactions Exist (99% of Cases):
     → Deletion Blocked
@@ -59,6 +61,7 @@ System Checks for Linked Transactions:
       If Selected:
         → Confirm Inactivation
         → Flag Asset as Inactive
+        → Send Notification to Users with "Asset Made Inactive" Enabled
     → Return to Asset List
 ```
 
@@ -121,10 +124,10 @@ Choose Order Number Method:
         → Proceed
 → Review Order Summary → Submit Order →
 Order Saved to Database →
-Send Notifications and Emails:
-  - If Assigned to LC: Notify Logistics Coordinator
-  - If Assigned to Transporters: Notify All Selected Transporters
-  - Notify Other Relevant Parties
+Send Notification to Users with "Order Created" Enabled →
+If Order Allocated to Specific Users:
+  → Send Notification to Those Users (Always Sent)
+  → Send Notification to Users with "Order Allocated" Enabled
 → Confirmation Screen
 ```
 
@@ -140,9 +143,9 @@ Redistribute Weight:
   → Ensure Total = Original Allocation
   → Set Transporter-Specific Requirements
 → Submit Distribution →
-Send Notifications and Emails:
-  - Notify All Selected Transporters
-  - Notify Other Relevant Parties
+Send Notification to Allocated Transporters (Always Sent) →
+Send Notification to Users with "Order Allocated" Enabled →
+Send Notification to Users with "Order Modified" Enabled →
 → Update Order Status → Confirmation
 
 Note: This flow only applies when orders were assigned to
@@ -168,9 +171,10 @@ Set Trip Configuration for Each Truck:
   - Shows total capacity based on trips
 → Add Special Instructions →
 Submit Pre-Booking →
-Send Notifications and Emails to:
-  - Selected Transporters
-  - Other Relevant Parties
+For New Pre-Bookings:
+  → Send Notification to Users with "Pre-Booking Created" Enabled
+For Modified Pre-Bookings:
+  → Send Notification to Users with "Pre-Booking Modified" Enabled
 → Booking Confirmation
 ```
 
@@ -189,7 +193,7 @@ Security Personnel:
       → Check order details match
       If No Valid Orders for Today:
         → Deny Entry
-        → Send Alert to Logistics Coordinator
+        → Send Notification to Users with "Unbooked Truck Arrival" Enabled
         → Log Rejection Reason
       If Valid Orders Exist:
         → Allow Entry
@@ -232,10 +236,10 @@ Weighbridge Operator:
   - Scan Truck QR Code
   - Capture Gross Weight
   - Calculate Net Weight (Gross - Tare)
-  - Check for Overload:
+  - Check for Weight Violations:
     If Overloaded:
       → Alert Generated
-      → Notify Logistics Coordinator
+      → Send Notification to Users with "Overload Detected" Enabled
       → Document Overload
       → System Checks Overload Policy Setting:
         If "Allow Overload with Penalty" is Enabled:
@@ -249,10 +253,18 @@ Weighbridge Operator:
           → Truck Must Return to Loading Point
           → Adjust Load Weight
           → Return to Weighbridge for Re-weighing
+    If Underloaded:
+      → Alert Generated
+      → Send Notification to Users with "Underload Detected" Enabled
+      → Document Underload
+      → Proceed with Warning Flag
     If Within Limits:
       → Proceed
   - Scan Seal Numbers
-  - Verify Seals Match Order
+  - Verify Seals Match Order:
+    If Seals Don't Match:
+      → Send Notification to Users with "Incorrect Seals" Enabled
+      → Document Seal Mismatch
   - Generate Final Weight Ticket
   - Print Documents with Seal Numbers
 → Truck Proceeds to Security Out
@@ -293,7 +305,9 @@ Access Serial Port Configuration →
     → Compare Against Standards
     → Generate Calibration Certificate
 → Log Calibration Activity →
-Set Next Calibration Date → Complete
+Set Next Calibration Date →
+System Will Send Notification to Users with "Calibration Due" Enabled When Date Approaches →
+Complete
 ```
 
 ### Administrative Flows
@@ -352,6 +366,36 @@ Configure User Settings:
     → Feature Access Control
     → Configure Transporter View (Only See Assigned Orders)
     → Set Role-Based Visibility Rules
+  - Notification Settings (Per User):
+    → Asset Notifications:
+      • Asset Added - Enable/Disable
+      • Asset Made Inactive - Enable/Disable
+      • Asset Edited - Enable/Disable
+      • Asset Deleted - Enable/Disable
+    → Order Notifications:
+      • Order Created - Enable/Disable
+      • Order Allocated - Enable/Disable
+      • Order Modified - Enable/Disable
+      • Order Cancelled - Enable/Disable
+      Note: Users always receive notifications when orders are allocated directly to them
+    → Weighbridge Notifications:
+      • Overload Detected - Enable/Disable
+      • Underload Detected - Enable/Disable
+      • Weight Limit Violations - Enable/Disable
+    → Security Notifications:
+      • Invalid/Expired License - Enable/Disable
+      • Unbooked Truck Arrival - Enable/Disable
+      • Unfulfilled Orders - Enable/Disable
+      • Incorrect Seals - Enable/Disable
+    → Pre-Booking Notifications:
+      • Pre-Booking Created - Enable/Disable
+      • Pre-Booking Modified - Enable/Disable
+    → System Notifications:
+      • Calibration Due - Enable/Disable
+      • License Expiring Soon - Enable/Disable
+    → Notification Delivery Preferences:
+      • Preferred Email Address
+      • Set Quiet Hours (No Notifications Between X and Y)
 → Save User Configuration →
 Send Welcome Emails → Activate User Accounts
 ```
@@ -464,84 +508,47 @@ Configure Weighbridge Settings:
 Test Configuration → Deploy to All Weighbridges
 ```
 
-#### Flow 18: Notification System Configuration
+#### Flow 18: Notification System Infrastructure
 
 ```text
 Newton Admin Login → System Settings →
-Select Notification Configuration →
-Configure Notification Triggers and Recipients:
-  - Asset Management Notifications:
-    → Asset Added:
-      • Enable/Disable Notification
-      • Select Recipients: Transporter, Client, Site Admin, Custom List
-      • Set Email Template
-    → Asset Made Inactive:
-      • Enable/Disable Notification
-      • Select Recipients: Transporter, Asset Owner, Site Admin
-      • Set Email Template
-    → Asset Edited/Modified:
-      • Enable/Disable Notification
-      • Select Recipients: Transporter, Previous Owner, New Owner
-      • Set Email Template
-    → Asset Deleted:
-      • Enable/Disable Notification
-      • Select Recipients: Transporter, Site Admin, Audit Team
-      • Include Deletion Reason in Email
-  - Order Management Notifications:
-    → Order Created:
-      • Select Recipients: Logistics Coordinator, Transporters, Client
-    → Order Allocated/Redistributed:
-      • Select Recipients: Affected Transporters, Logistics Coordinator
-    → Order Cancelled:
-      • Select Recipients: All Assigned Parties
-  - Weighbridge Notifications:
-    → Overload Detected:
-      • Select Recipients: Logistics Coordinator, Site Supervisor, Driver
-      • Set Severity Levels and Escalation
-    → Underload Detected:
-      • Select Recipients: Logistics Coordinator, Quality Control
-    → Weight Limit Violations:
-      • Select Recipients: Site Admin, Security, Transporter
-  - Security & Compliance Notifications:
-    → Invalid/Expired License:
-      • Select Recipients: Security Supervisor, Transporter, Driver
-    → Unbooked Truck Arrival:
-      • Select Recipients: Logistics Coordinator, Security
-    → Missing Orders:
-      • Select Recipients: Logistics Coordinator, Allocation Officer
-    → Incorrect Seals:
-      • Select Recipients: Security, Quality Control, Client
-  - Pre-Booking Notifications:
-    → Pre-Booking Created:
-      • Select Recipients: Transporter, Driver, Loading Team
-    → Pre-Booking Modified:
-      • Select Recipients: All Affected Parties
-    → 24-Hour Advance Reminder:
-      • Select Recipients: Transporter, Driver
-  - System Alerts:
-    → Calibration Due:
-      • Select Recipients: Weighbridge Supervisor, Maintenance Team
-    → Document Expiry Warning:
-      • Select Recipients: Asset Owner, Compliance Officer
-      • Set Warning Period (Days Before Expiry)
-  - Email Configuration:
-    → Email Templates:
-      • Create/Edit Templates per Notification Type
-      • Set Subject Lines
-      • Include Dynamic Fields (Names, Dates, Numbers)
-    → Recipient Lists:
-      • Create Custom Recipient Groups
-      • Set Primary and CC Recipients
-      • Configure Escalation Chains
-    → Delivery Settings:
-      • Immediate vs. Batched Notifications
-      • Set Quiet Hours (No Notifications)
-      • Configure Retry on Failure
-→ Test Notification Configuration:
-  - Send Test Email for Each Type
-  - Verify Recipient Delivery
-→ Save Notification Settings →
-Apply to All Active Processes → Confirmation
+Select Notification Infrastructure →
+Configure System-Wide Notification Settings:
+  - Email Templates:
+    → Asset Added Template
+    → Asset Inactive Template
+    → Asset Edited Template
+    → Asset Deleted Template (Include Reason Field)
+    → Order Created Template
+    → Order Allocated Template
+    → Order Cancelled Template
+    → Overload Alert Template
+    → Underload Alert Template
+    → License Expiry Warning Template
+    → Pre-Booking Confirmation Template
+    → 24-Hour Reminder Template
+    → System Alert Templates
+  - Template Configuration:
+    → Edit Subject Lines
+    → Customize Email Body
+    → Add Company Logo
+    → Include Dynamic Fields:
+      • User Name
+      • Asset Details
+      • Order Numbers
+      • Weights
+      • Dates and Times
+      • Reason Fields
+  - Notification Triggers:
+    → Define When Each Notification Type is Sent
+    → Set Escalation Rules for Critical Alerts
+    → Configure Warning Periods (Days Before Expiry)
+    → Set Overload/Underload Thresholds
+→ Test Email Templates:
+  - Send Test Email for Each Template
+  - Preview with Sample Data
+→ Save Infrastructure Settings →
+Apply System-Wide → Restart Notification Service
 ```
 
 #### Flow 19: System-Wide Settings Configuration
