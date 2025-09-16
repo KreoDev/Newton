@@ -304,6 +304,10 @@ System Checks for Linked Transactions →
     → Deletion Blocked
     → Show Transaction Count
     → Display "Cannot Delete - Asset Has Transactions"
+    → Offer "Mark as Inactive" Option
+      If Selected:
+        → Confirm Inactivation
+        → Flag Asset as Inactive
     → Return to Asset List
 ```
 
