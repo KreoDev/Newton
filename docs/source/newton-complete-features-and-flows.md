@@ -154,7 +154,6 @@ Redistribute Weight:
 → Submit Distribution →
 Send Notification to Allocated Transporters (Always Sent) →
 Send Notification to Users with "Order Allocated" Enabled →
-Send Notification to Users with "Order Modified" Enabled →
 → Update Order Status → Confirmation
 
 Note: This flow only applies when orders were assigned to
@@ -433,7 +432,6 @@ Configure User Settings:
     → Order Notifications:
       - Order Created - Enable/Disable
       - Order Allocated - Enable/Disable
-      - Order Modified - Enable/Disable
       - Order Cancelled - Enable/Disable
       Note: Users always receive notifications when orders are allocated directly to them
     → Weighbridge Notifications:
