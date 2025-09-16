@@ -430,24 +430,32 @@ Configure User Settings:
       - Order Created - Enable/Disable
       - Order Allocated - Enable/Disable
       - Order Cancelled - Enable/Disable
+      - Order Completed - Enable/Disable
+      - Order Expiring Soon - Enable/Disable
       Note: Users always receive notifications when orders are allocated directly to them
     → Weighbridge Notifications:
       - Overload Detected - Enable/Disable
       - Underload Detected - Enable/Disable
       - Weight Limit Violations - Enable/Disable
-    → Security Notifications:
+      - Manual Weight Override Used - Enable/Disable
+    → Pre-Booking & Scheduling Notifications:
+      - Pre-Booking Created - Enable/Disable
+      - Pre-Booking Late Arrival (24+ hours) - Enable/Disable
+    → Security & Compliance Notifications:
       - Invalid/Expired License - Enable/Disable
       - Unbooked Truck Arrival - Enable/Disable
-      - Unfulfilled Orders - Enable/Disable
       - Incorrect Seals - Enable/Disable
-    → Pre-Booking Notifications:
-      - Pre-Booking Created - Enable/Disable
+      - Seal Number Mismatch - Enable/Disable
+      - Unregistered Asset Attempting Entry - Enable/Disable
+      - Inactive Entity Attempted Entry - Enable/Disable
+      - Truck Left Without Completing Process - Enable/Disable
+    → Asset & Driver Alerts:
+      - Driver License Expiring (7 days) - Enable/Disable
+      - Driver License Expiring (30 days) - Enable/Disable
     → System Notifications:
       - Calibration Due - Enable/Disable
-      - License Expiring Soon - Enable/Disable
     → Notification Delivery Preferences:
       - Preferred Email Address
-      - Set Quiet Hours (No Notifications Between X and Y)
 → Save User Configuration →
 Send Welcome Emails → Activate User Accounts
 ```
