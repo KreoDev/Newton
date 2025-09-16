@@ -179,10 +179,7 @@ Set Trip Configuration for Each Truck:
   - Shows total capacity based on trips
 → Add Special Instructions →
 Submit Pre-Booking →
-For New Pre-Bookings:
-  → Send Notification to Users with "Pre-Booking Created" Enabled
-For Modified Pre-Bookings:
-  → Send Notification to Users with "Pre-Booking Modified" Enabled
+Send Notification to Users with "Pre-Booking Created" Enabled →
 → Booking Confirmation
 ```
 
@@ -445,7 +442,6 @@ Configure User Settings:
       - Incorrect Seals - Enable/Disable
     → Pre-Booking Notifications:
       - Pre-Booking Created - Enable/Disable
-      - Pre-Booking Modified - Enable/Disable
     → System Notifications:
       - Calibration Due - Enable/Disable
       - License Expiring Soon - Enable/Disable
