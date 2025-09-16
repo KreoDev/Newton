@@ -226,7 +226,7 @@ Security Personnel:
 ```text
 Truck Arrives at Weighbridge (Empty) →
 Weighbridge Operator:
-  - Scan Truck QR Code
+  - Scan Truck Vehicle Disk
   - Order Retrieval Process:
     If Pre-Booking is Compulsory:
       → System Auto-Retrieves Order
