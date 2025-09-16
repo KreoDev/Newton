@@ -1,283 +1,22 @@
 <!-- cSpell:words Underload underload -->
 
-# Newton Portal - Complete Features and User Flows
+# Newton Weighbridge System
 
-## Overview
-
-Newton Web Portal is a comprehensive weighbridge and logistics management system designed to streamline operations in mining and transportation sectors. The system provides end-to-end management of assets, orders, weighbridge operations, and logistics coordination with real-time notifications and tracking capabilities.
-
-## Complete Feature List
-
-### 1. Authentication & Security
-
-- **Two-Factor Authentication (2FA)** for secure login
-- **Facial Recognition** for user verification
-- **Role-Based Access Control** with specific permissions per role
-- **Credential Management** for portal access
-
-### 2. Company & Organization Management
-
-- **Company Profile Management**
-  - Company name and registration number
-  - VAT number management
-  - Physical address tracking
-  - Contact person management with full contact information
-- **Branch/Site Management**
-  - Multiple branches or sites per company
-  - Contact person assignment per branch/site
-  - Location tracking
-  - Batch number management
-- **Special Role Flags**
-  - Option to flag Logistics Coordinator as Transporter (dual role functionality)
-
-### 3. User & Role Management
-
-- **User Profile Features**
-  - Name and surname management
-  - Contact number and email address
-  - Profile picture upload
-  - Credential management for portal access
-- **Available Role Types**
-  - Newton Administrator
-  - Site Administrator
-  - Logistics Coordinator (Company)
-  - Allocation Officer
-  - Transporter
-  - Induction Officer
-  - Weighbridge Supervisor
-  - Weighbridge Operator
-  - Security Personnel
-- **Permission Management**
-  - Role-based access control
-  - View restrictions based on role
-  - Feature access control per role
-
-### 4. Asset Management
-
-- **Truck Management**
-  - Add new trucks to database
-  - QR code scanning for truck identification
-  - Registration details capture
-  - Active truck tracking
-- **Trailer Management**
-  - Trailer registration with specifications
-  - QR code assignment
-  - Linking to trucks
-- **Driver Management**
-  - Driver registration with license data import
-  - License disc scanning and validation
-  - Driver verification at checkpoints
-  - Perishable data capture (e.g., license disc expiry)
-  - Non-perishable data capture (e.g., ID number)
-- **Fleet Organization**
-  - Fleet number assignment
-  - Group creation and management
-  - Transporter groups creation
-  - Fleet allocation with 24-hour timer
-
-### 5. Induction Process
-
-- **Step-by-Step Asset Induction**
-  - User authentication
-  - Transporter selection
-  - Dual QR code scanning for verification
-  - Dual license disc scanning for verification
-  - Optional fleet number and group entry
-  - Asset saving with automatic notifications
-- **Error Handling**
-  - Expired license disc notifications
-  - Clear error explanations
-  - Validation feedback
-
-### 6. Order Management
-
-- **Order Creation Features**
-  - Auto-generated order numbers (default)
-  - Manual order number entry option (with duplicate checking)
-  - Order type selection (Receiving or Dispatching only)
-  - Weight allocation
-  - Loading date scheduling
-  - Dispatch date range selection
-  - Collection point selection
-  - Destination selection
-  - Product selection
-  - Seal requirements specification
-  - Client selection
-- **Order Limits & Controls**
-  - Daily truck limits
-  - Daily weight limits
-  - Trip limit configuration:
-    - Manual trip count per day setting
-    - Automatic trip calculation based on duration
-    - Multi-day trip support (trips spanning >24 hours)
-    - Dynamic adjustment based on order date range
-  - Monthly limits
-  - Weight adjustment within limits
-- **Order Allocation**
-  - Assignment to Logistics Coordinators or Transporters
-  - Order redistribution capabilities
-  - Weight adjustment (within order limits)
-  - Multiple transporter linking
-  - Multiple source linking
-
-### 7. Pre-Booking System
-
-- **Logistics Coordinator Pre-Booking**
-  - Pre-book trucks for specific orders
-  - Selection of active orders linked to user
-  - Truck-to-order linking during pre-booking
-  - Trip allocation per truck:
-    - Set daily trips for each truck
-    - Validation against order trip limits
-    - Capacity calculation based on trips
-  - 24-hour advance booking capability
-
-### 8. Weighbridge Operations
-
-- **Weight Management**
-  - Integration with weighbridge hardware
-  - Axle weight measurement
-  - Main weight measurement
-  - Weight data capture and validation
-  - Overload detection and alerts
-  - Underload detection and alerts
-- **Calibration Features**
-  - Weighbridge calibration tools
-  - Load cell configuration
-  - Calibration data input
-  - Ongoing weight verification
-  - Calibration reports generation
-- **Configuration Options**
-  - Single axle weighbridge setup
-  - Multiple axle weighbridge setup
-  - Serial port access for system configuration
-  - Input string decoding from weighbridge data
-
-### 9. Scanning & Verification
-
-- **Multi-Point Scanning**
-  - Security in checkpoint scanning
-  - Weighbridge scanning
-  - Security out checkpoint scanning
-- **Verification Types**
-  - Driver verification
-  - Truck verification
-  - Trailer verification
-  - Seal verification and matching
-  - Order verification
-
-### 10. Notification System
-
-- **Email Notifications**
-  - Automatic notifications on asset addition
-  - Customizable email recipients per transporter/client
-  - Issue alerts (invalid drivers, missing orders, incorrect seals)
-  - Overload/underload notifications
-- **Real-Time Alerts**
-  - Logistics coordinator alerts for unbooked trucks
-  - Security checkpoint alerts
-  - Weight limit violations
-  - Expired document warnings
-
-### 11. Location & Product Management
-
-- **Location Management**
-  - Collection points/loading places
-  - Destinations with contact information
-  - Route linking capabilities
-- **Product Catalog**
-  - Product management
-  - Product selection for orders
-  - Product specifications
-
-### 12. Reporting & Analytics
-
-- **Performance Tracking**
-  - Turnaround time tracking
-  - Delay identification and analysis
-  - Workflow efficiency reports
-- **Data Reports**
-  - Weight tickets generation
-  - Transaction history
-  - Calibration reports
-  - Asset utilization reports
-
-### 13. Asset Deletion & Management
-
-- **Deletion Controls**
-  - Direct deletion for assets without transactions
-  - Reason documentation requirement
-  - Automatic blocking if transactions exist
-  - Primarily for correcting induction errors
-- **Audit Trail**
-  - No editing of existing assets (delete and re-add policy)
-  - Full deletion history with reasons logged
-
-### 14. Configuration & Settings
-
-- **Administrator Configuration**
-  - Additional field configuration (fleet number, group)
-  - Feature enable/disable options
-  - Company-specific requirements
-  - System-wide settings
-  - Pre-booking requirement setting (Compulsory/Optional)
-  - Overload handling policy (Allow with Penalty/Deny Exit)
-- **User Interface Customization**
-  - Predictive text for fleet numbers
-  - Dropdown customization for groups
-  - Interface simplification options
-
-### 15. Integration Capabilities
-
-- **External System Integration**
-  - Weighbridge hardware integration
-  - License verification system connection
-  - Client management system integration
-  - Facial recognition system compatibility
-  - MOX system integration potential
-- **Data Exchange**
-  - Serial port communication
-  - API endpoints for third-party systems
-
-### 16. Multi-Client Support
-
-- **Client Management**
-  - Multiple client support
-  - Client-specific order management
-  - Cross-client linking capabilities
-  - Client-specific rules and limits
-
-### 17. Sales & Marketing Tools
-
-- **Demonstration Features**
-  - Comprehensive data presentation capabilities
-  - System versatility showcase
-  - Client presentation tools
-  - Feature demonstration mode
-
-## Complete User Flows
+## User Flows
 
 ### Authentication Flows
 
-#### Flow 1: User Login with 2FA
+#### Flow 1: User Login
 
 ```text
-Start → Enter Username/Email → Enter Password →
-Receive 2FA Code → Enter 2FA Code →
-Dashboard Access → Role-Based View
-```
-
-#### Flow 2: User Login with Facial Recognition
-
-```text
-Start → Enter Username/Email →
-Initiate Facial Scan → Face Verification →
+Start → Enter Email → Enter Password →
+System Validates Credentials →
 Dashboard Access → Role-Based View
 ```
 
 ### Asset Management Flows
 
-#### Flow 3: Complete Asset Induction Process
+#### Flow 2: Complete Asset Induction Process
 
 ```text
 Induction Officer Login → Select "Add New Asset" →
@@ -301,7 +40,7 @@ System Automatically:
     → Return to Start
 ```
 
-#### Flow 4: Asset Deletion (Induction Error Correction)
+#### Flow 3: Asset Deletion (Induction Error Correction)
 
 ```text
 Operator Login → Navigate to Asset Management →
@@ -325,7 +64,7 @@ System Checks for Linked Transactions:
 
 ### Order Management Flows
 
-#### Flow 5: Order Creation
+#### Flow 4: Order Creation
 
 ```text
 Logistics Coordinator/Allocation Officer Login →
@@ -389,7 +128,7 @@ Send Notifications and Emails:
 → Confirmation Screen
 ```
 
-#### Flow 6: Order Allocation Process (Post-Creation)
+#### Flow 5: Order Allocation Process (Post-Creation)
 
 ```text
 Logistics Coordinator Login → View Orders Assigned to Me →
@@ -411,7 +150,7 @@ Logistics Coordinator during creation. Orders directly
 assigned to transporters skip this step.
 ```
 
-#### Flow 7: Pre-Booking Process
+#### Flow 6: Pre-Booking Process
 
 ```text
 Logistics Coordinator Login → View Active Orders →
@@ -437,7 +176,7 @@ Send Notifications and Emails to:
 
 ### Weighbridge Operation Flows
 
-#### Flow 8: Security In Process
+#### Flow 7: Security In Process
 
 ```text
 Truck Arrives at Security In →
@@ -464,7 +203,7 @@ Security Personnel:
 → Truck Proceeds to Weighbridge
 ```
 
-#### Flow 9: Weighbridge Tare Weight (Inbound)
+#### Flow 8: Weighbridge Tare Weight (Inbound)
 
 ```text
 Truck Arrives at Weighbridge (Empty) →
@@ -485,7 +224,7 @@ Weighbridge Operator:
 → Truck Proceeds to Loading Point
 ```
 
-#### Flow 10: Weighbridge Gross Weight (Outbound)
+#### Flow 9: Weighbridge Gross Weight (Outbound)
 
 ```text
 Loaded Truck Returns to Weighbridge →
@@ -519,7 +258,7 @@ Weighbridge Operator:
 → Truck Proceeds to Security Out
 ```
 
-#### Flow 11: Security Out Process
+#### Flow 10: Security Out Process
 
 ```text
 Truck Arrives at Security Out →
@@ -535,7 +274,7 @@ Security Personnel:
 → Truck Exits Facility
 ```
 
-#### Flow 12: Weighbridge Calibration
+#### Flow 11: Weighbridge Calibration
 
 ```text
 Weighbridge Supervisor Login →
@@ -559,90 +298,277 @@ Set Next Calibration Date → Complete
 
 ### Administrative Flows
 
-#### Flow 13: System Configuration (Newton Administrator)
+#### Flow 12: Company Settings Configuration
 
 ```text
 Newton Admin Login → System Settings →
-Select Configuration Area:
-  Company Settings:
-    → Add/Edit Companies
-    → Configure Branches
-    → Set Company Limits
-  User Management:
-    → Create Users
-    → Assign Roles
-    → Set Permissions
-  Product Management:
-    → Add Products
-    → Set Specifications
-    → Configure Categories
-  Order Types:
-    → Configure Receiving Orders
-    → Configure Dispatching Orders
-  Location Management:
-    → Add Collection Points
-    → Add Destinations
-    → Set Route Rules
-  Weighbridge Settings:
-    → Configure Bridges
-    → Set Tolerance Levels
-    → Configure Alerts
-→ Apply Changes → Test Configuration →
-Deploy to Production → Notify Affected Users
+Select Company Settings →
+Configure Company Details:
+  - Add/Edit Companies:
+    → Enter Company Name
+    → Enter Registration Number
+    → Enter VAT Number
+    → Enter Physical Address
+    → Add Contact Person with Full Details
+  - Configure Branches/Sites:
+    → Add Multiple Branches per Company
+    → Assign Contact Person per Branch
+    → Set Batch Number Management Rules
+  - Set Company Limits:
+    → Daily Truck Limits
+    → Daily Weight Limits
+    → Monthly Limits
+  - Special Role Configuration:
+    → Flag Logistics Coordinator as Transporter (if needed)
+→ Save Company Settings →
+Confirm Changes → Notify Affected Users
 ```
 
-## Business Rules Summary
+#### Flow 13: User Management Configuration
 
-### Critical Business Rules
+```text
+Newton Admin Login → System Settings →
+Select User Management →
+Configure User Settings:
+  - Create New Users:
+    → Enter Name and Surname
+    → Enter Contact Number
+    → Enter Email Address
+    → Upload Profile Picture
+    → Set Login Credentials
+  - Assign Roles:
+    → Newton Administrator
+    → Site Administrator
+    → Logistics Coordinator (Company)
+    → Allocation Officer
+    → Transporter
+    → Induction Officer
+    → Weighbridge Supervisor
+    → Weighbridge Operator
+    → Security Personnel
+  - Set Permissions:
+    → Role-Based Access Control
+    → View Restrictions per Role
+    → Feature Access Control
+    → Configure Transporter View (Only See Assigned Orders)
+    → Set Role-Based Visibility Rules
+→ Save User Configuration →
+Send Welcome Emails → Activate User Accounts
+```
 
-1. **Order Types**
+#### Flow 14: Product Management Configuration
 
-   - Orders can only be of two types: Receiving or Dispatching
-   - No other order types are permitted in the system
+```text
+Newton Admin Login → System Settings →
+Select Product Management →
+Configure Product Settings:
+  - Add New Products:
+    → Enter Product Name
+    → Enter Product Code
+    → Set Product Specifications
+    → Define Product Categories
+  - Configure Categories:
+    → Create Product Categories
+    → Set Category Rules
+    → Define Category Hierarchies
+  - Product Linking:
+    → Link Products to Order Types
+    → Set Product Availability per Site
+→ Save Product Configuration →
+Update Product Catalog → Notify Relevant Users
+```
 
-2. **Weight Management**
+#### Flow 15: Order Settings Configuration
 
-   - Orders cannot exceed original weight allocation when redistributed
-   - Weight adjustments permitted but cannot exceed order total
-   - Overload detection triggers mandatory alerts
-   - Overload handling configurable (allow with penalty or deny exit)
-   - Daily and monthly limits must be enforced
+```text
+Newton Admin Login → System Settings →
+Select Order Configuration →
+Configure Order Settings:
+  - Order Types:
+    → Configure Receiving Orders
+    → Configure Dispatching Orders
+  - Order Limits:
+    → Set Daily Truck Limits
+    → Set Daily Weight Limits
+    → Set Monthly Limits
+    → Enforce Weight Redistribution Rules (Cannot Exceed Original Allocation)
+    → Set Weight Adjustment Rules (Cannot Exceed Order Total)
+  - Trip Configuration:
+    → Enable Manual Trip Count Setting
+    → Enable Automatic Trip Calculation
+    → Set Multi-Day Trip Rules
+    → Configure Trip Duration Parameters
+  - Pre-Booking Settings:
+    → Set Pre-Booking as Compulsory or Optional
+    → Configure 24-Hour Advance Booking Rule
+  - Seal Requirements:
+    → Configure Seal Verification Rules
+    → Set Seal Number Requirements
+→ Save Order Settings →
+Apply to All Active Orders → Notify Logistics Coordinators
+```
 
-3. **Time Constraints**
+#### Flow 16: Location Management Configuration
 
-   - 24-hour timer starts upon order acceptance by transporter
-   - Fleet allocation must be completed within timer period
-   - Pre-booking must be done at least 24 hours in advance
-   - Trip duration calculations respect 24-hour day cycles
-   - Multi-day trips automatically adjust daily capacity limits
+```text
+Newton Admin Login → System Settings →
+Select Location Management →
+Configure Location Settings:
+  - Collection Points/Loading Places:
+    → Add Collection Point Name
+    → Enter Physical Address
+    → Add Contact Information
+    → Set Operating Hours
+  - Destinations:
+    → Add Destination Name
+    → Enter Physical Address
+    → Add Contact Person Details
+    → Set Delivery Requirements
+  - Route Configuration:
+    → Link Collection Points to Destinations
+    → Set Route Rules
+    → Define Distance/Duration
+    → Configure Route Restrictions
+→ Save Location Settings →
+Update Route Database → Notify Transportation Teams
+```
 
-4. **Access Control**
+#### Flow 17: Weighbridge Settings Configuration
 
-   - Role-based visibility strictly enforced
-   - Transporters can only see their assigned orders
-   - Asset deletion allowed only when no transactions exist
-   - Dual role (Logistics Coordinator as Transporter) requires special flag
-   - Pre-booking enforcement configurable (compulsory vs optional)
+```text
+Newton Admin Login → System Settings →
+Select Weighbridge Configuration →
+Configure Weighbridge Settings:
+  - Bridge Configuration:
+    → Add/Configure Weighbridge Stations
+    → Set Single or Multiple Axle Setup
+    → Configure Serial Port Access
+    → Set Input String Decoding Rules
+  - Weight Settings:
+    → Set Tolerance Levels
+    → Configure Weight Limits
+    → Set Tare Weight Rules
+  - Overload Policy:
+    → Set as "Allow with Penalty" or "Deny Exit"
+    → Configure Penalty Fees (if applicable)
+    → Set Overload Alert Recipients
+  - Calibration Settings:
+    → Set Calibration Schedule
+    → Configure Load Cell Parameters
+    → Set Verification Standards
+  - Alert Configuration:
+    → Configure Overload/Underload Alerts
+    → Set Weight Violation Notifications
+    → Define Alert Recipients
+→ Save Weighbridge Settings →
+Test Configuration → Deploy to All Weighbridges
+```
 
-5. **Data Integrity**
+#### Flow 18: Notification System Configuration
 
-   - No editing of existing assets (delete and re-add only)
-   - All deletions require reason documentation
-   - QR codes are permanently linked to assets
+```text
+Newton Admin Login → System Settings →
+Select Notification Configuration →
+Configure Notification Triggers and Recipients:
+  - Asset Management Notifications:
+    → Asset Added:
+      • Enable/Disable Notification
+      • Select Recipients: Transporter, Client, Site Admin, Custom List
+      • Set Email Template
+    → Asset Made Inactive:
+      • Enable/Disable Notification
+      • Select Recipients: Transporter, Asset Owner, Site Admin
+      • Set Email Template
+    → Asset Edited/Modified:
+      • Enable/Disable Notification
+      • Select Recipients: Transporter, Previous Owner, New Owner
+      • Set Email Template
+    → Asset Deleted:
+      • Enable/Disable Notification
+      • Select Recipients: Transporter, Site Admin, Audit Team
+      • Include Deletion Reason in Email
+  - Order Management Notifications:
+    → Order Created:
+      • Select Recipients: Logistics Coordinator, Transporters, Client
+    → Order Allocated/Redistributed:
+      • Select Recipients: Affected Transporters, Logistics Coordinator
+    → Order Cancelled:
+      • Select Recipients: All Assigned Parties
+  - Weighbridge Notifications:
+    → Overload Detected:
+      • Select Recipients: Logistics Coordinator, Site Supervisor, Driver
+      • Set Severity Levels and Escalation
+    → Underload Detected:
+      • Select Recipients: Logistics Coordinator, Quality Control
+    → Weight Limit Violations:
+      • Select Recipients: Site Admin, Security, Transporter
+  - Security & Compliance Notifications:
+    → Invalid/Expired License:
+      • Select Recipients: Security Supervisor, Transporter, Driver
+    → Unbooked Truck Arrival:
+      • Select Recipients: Logistics Coordinator, Security
+    → Missing Orders:
+      • Select Recipients: Logistics Coordinator, Allocation Officer
+    → Incorrect Seals:
+      • Select Recipients: Security, Quality Control, Client
+  - Pre-Booking Notifications:
+    → Pre-Booking Created:
+      • Select Recipients: Transporter, Driver, Loading Team
+    → Pre-Booking Modified:
+      • Select Recipients: All Affected Parties
+    → 24-Hour Advance Reminder:
+      • Select Recipients: Transporter, Driver
+  - System Alerts:
+    → Calibration Due:
+      • Select Recipients: Weighbridge Supervisor, Maintenance Team
+    → Document Expiry Warning:
+      • Select Recipients: Asset Owner, Compliance Officer
+      • Set Warning Period (Days Before Expiry)
+  - Email Configuration:
+    → Email Templates:
+      • Create/Edit Templates per Notification Type
+      • Set Subject Lines
+      • Include Dynamic Fields (Names, Dates, Numbers)
+    → Recipient Lists:
+      • Create Custom Recipient Groups
+      • Set Primary and CC Recipients
+      • Configure Escalation Chains
+    → Delivery Settings:
+      • Immediate vs. Batched Notifications
+      • Set Quiet Hours (No Notifications)
+      • Configure Retry on Failure
+→ Test Notification Configuration:
+  - Send Test Email for Each Type
+  - Verify Recipient Delivery
+→ Save Notification Settings →
+Apply to All Active Processes → Confirmation
+```
 
-6. **Verification Requirements**
-   - Dual scanning required for critical operations
-   - License expiry validation mandatory
-   - Seal numbers must match order specifications
-   - Driver verification required at all checkpoints
+#### Flow 19: System-Wide Settings Configuration
 
-## User Interface Requirements
-
-### Design Principles
-
-- Simple and intuitive interface
-- Mobile-responsive design
-- Predictive text and smart dropdowns
-- Clear error messages
-- Visual status indicators
-
+```text
+Newton Admin Login → System Settings →
+Select System Configuration →
+Configure Global Settings:
+  - Fleet Management:
+    → Enable/Disable Fleet Number Requirements
+    → Configure Fleet Number Format
+    → Enable Predictive Text for Fleet Numbers
+    → Set 24-Hour Timer for Fleet Allocation
+  - Group Management:
+    → Enable/Disable Group Requirements
+    → Create Transporter Groups
+    → Configure Group Dropdown Options
+  - Asset Management:
+    → Set Asset Deletion Rules (No Deletion if Transactions Exist)
+    → Configure Induction Requirements
+    → Set QR Code Configuration (Permanent Linking to Assets)
+    → Enable/Disable Dual Scanning
+    → Enforce No-Edit Policy (Delete and Re-add Only)
+  - Interface Settings:
+    → Enable/Disable Features
+    → Set UI Simplification Options
+    → Configure Dashboard Views per Role
+→ Save System Settings →
+Apply System-Wide → Restart Services if Required
+```
