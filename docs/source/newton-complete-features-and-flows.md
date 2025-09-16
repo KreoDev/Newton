@@ -435,12 +435,35 @@ Configure User Settings:
     → Weighbridge Supervisor
     → Weighbridge Operator
     → Security Personnel
-  - Set Permissions:
-    → Role-Based Access Control
-    → View Restrictions per Role
-    → Feature Access Control
-    → Configure Transporter View (Only See Assigned Orders)
-    → Set Role-Based Visibility Rules
+  - Set Granular Permissions (Per User):
+    → Asset Management:
+      - No Access / View Only / Add & Edit / Full Access (Add, Edit, Delete)
+    → Order Management:
+      - No Access / View Only / Create Orders / Allocate Orders / Full Access
+    → Pre-Booking Management:
+      - No Access / View Only / Create & Edit / Full Access
+    → Operational Flow Permissions:
+      - Security In - Enable/Disable
+      - Security Out - Enable/Disable
+      - Weighbridge Tare Weight - Enable/Disable
+      - Weighbridge Gross Weight - Enable/Disable
+      - Weighbridge Calibration - Enable/Disable
+    → Administrative Permissions:
+      - Company (Mine) Configuration - No Access / View Only / Full Access
+      - Transporter Configuration - No Access / View Only / Full Access
+      - Logistics Coordinator Configuration - No Access / View Only / Full Access
+      - User Management - No Access / View Only / Full Access
+      - Product Management - No Access / View Only / Full Access
+      - Order Settings - No Access / View Only / Full Access
+      - Client Management - No Access / View Only / Full Access
+      - Collection Point/Destination Management - No Access / View Only / Full Access
+      - Weighbridge Configuration - No Access / View Only / Full Access
+      - Notification Infrastructure - No Access / View Only / Full Access
+      - System-Wide Settings - No Access / View Only / Full Access
+      - Security Alert Configuration - No Access / View Only / Full Access
+    → Transporter-Specific Settings:
+      - View Only Assigned Orders - Enable/Disable
+      - View Other Transporters' Data - Enable/Disable
   - Notification Settings (Per User):
     → Asset Notifications:
       - Asset Added - Enable/Disable
@@ -516,17 +539,13 @@ Configure Order Settings:
       - Manual Entry Allowed (User Can Choose)
     → If Auto-Generated: Configure Number Format/Prefix
     → If Manual Allowed: Set Validation Rules
-  - Order Types:
-    → Configure Receiving Orders
-    → Configure Dispatching Orders
   - Order Limits:
     → Set Default Daily Truck Limit
     → Set Default Daily Weight Limit
     → Set Default Monthly Limits
     → Set Default Trip Limit (Default: 1 trip per operating day)
     Note: Trip calculations will consider Collection Point operating hours
-    → Enforce Weight Redistribution Rules (Cannot Exceed Original Allocation)
-    → Set Weight Adjustment Rules (Cannot Exceed Order Total)
+    → Set Default Weight per Truck
     Note: These defaults will pre-populate in order creation but can be overridden per order
   - Pre-Booking Settings:
     → Set Pre-Booking as Compulsory or Optional
@@ -571,12 +590,22 @@ Configure Location Settings:
   - Collection Points/Loading Places:
     → Add Collection Point Name
     → Enter Physical Address
-    → Add Contact Information
+    → Select Contact Person from Existing Users
+    → System Validates Contact Information:
+      If Contact Missing Phone Number:
+        → Prompt: "Contact requires phone number for notifications"
+        → Enter Phone Number for Contact
+        → Update User Profile with Phone Number
     → Set Operating Hours (Default: 06:00-18:00)
   - Destinations:
     → Add Destination Name
     → Enter Physical Address
-    → Add Contact Person Details
+    → Select Contact Person from Existing Users
+    → System Validates Contact Information:
+      If Contact Missing Phone Number:
+        → Prompt: "Contact requires phone number for notifications"
+        → Enter Phone Number for Contact
+        → Update User Profile with Phone Number
     → Set Delivery Requirements
 → Save Location Settings →
 Update Route Database → Notify Transportation Teams
@@ -694,7 +723,6 @@ Configure Security Exit Verification Alerts:
         → Enter Phone Number for Contact
         → Update User Profile with Phone Number
   - Alert Settings:
-    → Set Alert Method (Email/SMS/Both)
     → Configure Escalation Time (minutes before alerting next contact)
     → Set Alert Severity Levels
   - Verification Failure Types:
