@@ -106,6 +106,11 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
 - **Order Limits & Controls**
   - Daily truck limits
   - Daily weight limits
+  - Trip limit configuration:
+    - Manual trip count per day setting
+    - Automatic trip calculation based on duration
+    - Multi-day trip support (trips spanning >24 hours)
+    - Dynamic adjustment based on order date range
   - Monthly limits
   - Weight adjustment within limits
 - **Order Allocation**
@@ -121,6 +126,10 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Pre-book trucks for specific orders
   - Selection of active orders linked to user
   - Truck-to-order linking during pre-booking
+  - Trip allocation per truck:
+    - Set daily trips for each truck
+    - Validation against order trip limits
+    - Capacity calculation based on trips
   - 24-hour advance booking capability
 
 ### 8. Weighbridge Operations
@@ -341,6 +350,19 @@ Choose Order Number Method:
   - Select Client
   - Set Daily Truck Limit
   - Set Daily Weight Limit
+  - Set Trip Limits:
+    Option 1: Set Maximum Trips Per Day
+      → Enter number of trips allowed per day
+      → System applies limit across all order days
+    Option 2: Set Trip Duration
+      → Enter trip duration in hours
+      → System calculates possible trips based on:
+        - 24-hour day availability
+        - Order date range (single or multi-day)
+        - Shows trips per day and total trips
+      → For multi-day trips (>24 hours):
+        - System adjusts daily capacity accordingly
+        - Shows trips spanning multiple days
   - Set Monthly Limits
 → Choose Allocation Method:
   Option 1: Assign to Logistics Coordinator
@@ -398,7 +420,11 @@ Search Available Trucks →
     - Truck Type
     - Availability
 → Select Trucks → Link to Order →
-Set Collection Time → Add Special Instructions →
+Set Trip Configuration for Each Truck:
+  - Specify number of trips per day
+  - System validates against order's trip limits
+  - Shows total capacity based on trips
+→ Add Special Instructions →
 Submit Pre-Booking →
 Send Notifications and Emails to:
   - Selected Transporters
@@ -604,6 +630,8 @@ Process Continues or Terminated
    - 24-hour timer starts upon order acceptance by transporter
    - Fleet allocation must be completed within timer period
    - Pre-booking must be done at least 24 hours in advance
+   - Trip duration calculations respect 24-hour day cycles
+   - Multi-day trips automatically adjust daily capacity limits
 
 4. **Access Control**
 
