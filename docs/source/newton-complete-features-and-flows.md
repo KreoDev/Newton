@@ -29,10 +29,10 @@ System Automatically:
   - Validates Expiry Dates
 → Check Validation Results:
   If Valid:
-    → Enter Fleet Number (Optional)
-    → Select/Enter Group (Optional)
+    → Select Fleet Number (Optional)
+    → Select Group (Optional)
     → Save Asset
-    → Email Notifications
+    → Send Notification to Users with "Asset Added" Enabled
     → Confirmation Message
   If Invalid (Expired):
     → Error Notification with Reason
@@ -73,50 +73,57 @@ System Checks for Linked Transactions:
 ```text
 Logistics Coordinator/Allocation Officer Login →
 Navigate to Orders → Click "Create New Order" →
-Choose Order Number Method:
-  Option 1: Use Auto-Generated Order Number
-    → System Generates Unique Order Number
-  Option 2: Enter Manual Order Number
-    → Enter Custom Order Number
-    → System Checks for Duplicates
-      If Duplicate Exists:
-        → Error: "Order Number Already Exists"
-        → Prompt to Enter Different Number
-      If Unique:
-        → Proceed
+System Checks Order Number Configuration:
+  If "Auto-Generated Only" is Configured:
+    → System Automatically Generates Unique Order Number
+    → No Manual Entry Option Shown
+  If "Manual Entry Allowed" is Configured:
+    → Choose Order Number Method:
+      Option 1: Use Auto-Generated Order Number
+        → System Generates Unique Order Number
+      Option 2: Enter Manual Order Number
+        → Enter Custom Order Number
+        → System Checks for Duplicates
+          If Duplicate Exists:
+            → Error: "Order Number Already Exists"
+            → Prompt to Enter Different Number
+          If Unique:
+            → Proceed
 → Fill Order Details:
   - Select Order Type (Receiving or Dispatching)
+  - Select Client from List
   - Set Dispatch Date Range (Start & End)
   - Allocate Total Weight
-  - Select Loading Dates
-  - Choose Collection Point from List
-  - Select Destination
-  - Choose Product from Catalog
-  - Specify Seal Requirements (Yes/No, Quantity)
-  - Select Client
-  - Set Daily Truck Limit
-  - Set Daily Weight Limit
-  - Set Trip Limits:
-    Option 1: Set Maximum Trips Per Day:
-      → Enter number of trips allowed per day
+  - Select Collection Point from List
+  - Select Destination from List
+  - Select Product from Catalog
+  - Adjust Seal Requirements (Pre-filled with Defaults)
+  - Adjust Daily Truck Limit (Pre-filled with Default)
+  - Adjust Daily Weight Limit (Pre-filled with Default)
+  - Adjust Trip Limits (Pre-filled with Default: 1 trip per 24 hours):
+    Option 1: Keep or Adjust Maximum Trips Per Day:
+      → Modify trips allowed per day if needed
       → System applies limit across all order days
     Option 2: Set Trip Duration:
       → Enter trip duration in hours
       → System calculates possible trips based on:
-        - 24-hour day availability
+        - Collection Point operating hours
         - Order date range (single or multi-day)
         - Shows trips per day and total trips
-      → For multi-day trips (>24 hours):
-        - System adjusts daily capacity accordingly
-        - Shows trips spanning multiple days
-  - Set Monthly Limits
+      → System validates against Collection Point hours:
+        - If trip duration exceeds daily operating window
+        - Automatically spans to next operating day
+  - Adjust Monthly Limits (Pre-filled with Default)
 → Choose Allocation Method:
-  Option 1: Assign to Logistics Coordinator:
-    → Select Logistics Coordinator
+  Option 1: Assign to Logistics Coordinator Company:
+    → Select Logistics Company from List
+    → Notifications sent to configured contacts
     → LC Will Handle Weight Distribution Later
   Option 2: Assign to Transporter(s):
-    → Select Multiple Transporters
+    → Select Transporter Companies from List
+    → Notifications sent to configured contacts
     → Allocate Weight to Each Transporter
+    → Select Loading Dates
     → System Validates Total Weight = Sum of Allocations:
       If Mismatch:
         → Error: "Weight allocation doesn't match total"
@@ -141,6 +148,7 @@ Review Total Weight Available →
 Redistribute Weight:
   → Select Multiple Transporters
   → Allocate Weight to Each Transporter
+  → Select Loading Dates
   → Ensure Total = Original Allocation
   → Set Transporter-Specific Requirements
 → Submit Distribution →
@@ -313,33 +321,82 @@ Complete
 
 ### Administrative Flows
 
-#### Flow 12: Company Settings Configuration
+#### Flow 12: Company (Mine) Configuration
 
 ```text
 Newton Admin Login → System Settings →
-Select Company Settings →
-Configure Company Details:
-  - Add/Edit Companies:
+Select Company Management →
+Configure Mining Company Details:
+  - Add New Mining Company:
+    → Enter Company Name (Mine Name)
+    → Enter Registration Number
+    → Enter VAT Number
+    → Enter Physical Address
+    → Enter Main Contact Details
+  - Configure Mine Sites/Branches:
+    → Add Multiple Sites per Company
+    → Enter Site Location
+    → Set Site-Specific Requirements
+    → Add Site Manager Contact
+→ Save Company Configuration →
+Update Company Database → Confirmation
+```
+
+#### Flow 13: Transporter Configuration
+
+```text
+Newton Admin Login → System Settings →
+Select Transporter Management →
+Configure Transporter Details:
+  - Add New Transporter:
+    → Enter Transporter Company Name
+    → Enter Registration Number
+    → Enter VAT Number
+    → Enter Physical Address
+    → Enter Fleet Size Information
+  - Link Contact People for Transporter:
+    → Select Primary Contact from Existing Users
+    → Select Secondary Contacts from Existing Users
+    → System Validates Contact Information:
+      If Contact Missing Phone Number:
+        → Prompt: "Contact requires phone number for notifications"
+        → Enter Phone Number for Contact
+        → Update User Profile with Phone Number
+      If Contact Has Complete Information:
+        → Link Contact to Transporter
+→ Save Transporter Configuration →
+Update Transporter Database → Send Welcome Email to Contacts
+```
+
+#### Flow 14: Logistics Coordinator Company Configuration
+
+```text
+Newton Admin Login → System Settings →
+Select Logistics Coordinator Management →
+Configure Logistics Company Details:
+  - Add New Logistics Company:
     → Enter Company Name
     → Enter Registration Number
     → Enter VAT Number
     → Enter Physical Address
-    → Add Contact Person with Full Details
-  - Configure Branches/Sites:
-    → Add Multiple Branches per Company
-    → Assign Contact Person per Branch
-    → Set Batch Number Management Rules
-  - Set Company Limits:
-    → Daily Truck Limits
-    → Daily Weight Limits
-    → Monthly Limits
-  - Special Role Configuration:
-    → Flag Logistics Coordinator as Transporter (if needed)
-→ Save Company Settings →
-Confirm Changes → Notify Affected Users
+    → Set as Dual-Role Logistics Coordinator (if applicable)
+  - Link Contact People for Logistics Company:
+    → Select Primary Coordinator from Existing Users
+    → Select Additional Coordinators from Existing Users
+    → System Validates Contact Information:
+      If Contact Missing Phone Number:
+        → Prompt: "Contact requires phone number for notifications"
+        → Enter Phone Number for Contact
+        → Update User Profile with Phone Number
+      If Contact Has Complete Information:
+        → Link Contact to Logistics Company
+  - Logistics Company Settings:
+    → Link Associated Transporters if selected as a Dual-Role Logistics Coordinator (Optional)
+→ Save Logistics Company Configuration →
+Update Database → Send Welcome Email to Contacts
 ```
 
-#### Flow 13: User Management Configuration
+#### Flow 15: User Management Configuration
 
 ```text
 Newton Admin Login → System Settings →
@@ -369,39 +426,39 @@ Configure User Settings:
     → Set Role-Based Visibility Rules
   - Notification Settings (Per User):
     → Asset Notifications:
-      • Asset Added - Enable/Disable
-      • Asset Made Inactive - Enable/Disable
-      • Asset Edited - Enable/Disable
-      • Asset Deleted - Enable/Disable
+      - Asset Added - Enable/Disable
+      - Asset Made Inactive - Enable/Disable
+      - Asset Edited - Enable/Disable
+      - Asset Deleted - Enable/Disable
     → Order Notifications:
-      • Order Created - Enable/Disable
-      • Order Allocated - Enable/Disable
-      • Order Modified - Enable/Disable
-      • Order Cancelled - Enable/Disable
+      - Order Created - Enable/Disable
+      - Order Allocated - Enable/Disable
+      - Order Modified - Enable/Disable
+      - Order Cancelled - Enable/Disable
       Note: Users always receive notifications when orders are allocated directly to them
     → Weighbridge Notifications:
-      • Overload Detected - Enable/Disable
-      • Underload Detected - Enable/Disable
-      • Weight Limit Violations - Enable/Disable
+      - Overload Detected - Enable/Disable
+      - Underload Detected - Enable/Disable
+      - Weight Limit Violations - Enable/Disable
     → Security Notifications:
-      • Invalid/Expired License - Enable/Disable
-      • Unbooked Truck Arrival - Enable/Disable
-      • Unfulfilled Orders - Enable/Disable
-      • Incorrect Seals - Enable/Disable
+      - Invalid/Expired License - Enable/Disable
+      - Unbooked Truck Arrival - Enable/Disable
+      - Unfulfilled Orders - Enable/Disable
+      - Incorrect Seals - Enable/Disable
     → Pre-Booking Notifications:
-      • Pre-Booking Created - Enable/Disable
-      • Pre-Booking Modified - Enable/Disable
+      - Pre-Booking Created - Enable/Disable
+      - Pre-Booking Modified - Enable/Disable
     → System Notifications:
-      • Calibration Due - Enable/Disable
-      • License Expiring Soon - Enable/Disable
+      - Calibration Due - Enable/Disable
+      - License Expiring Soon - Enable/Disable
     → Notification Delivery Preferences:
-      • Preferred Email Address
-      • Set Quiet Hours (No Notifications Between X and Y)
+      - Preferred Email Address
+      - Set Quiet Hours (No Notifications Between X and Y)
 → Save User Configuration →
 Send Welcome Emails → Activate User Accounts
 ```
 
-#### Flow 14: Product Management Configuration
+#### Flow 16: Product Management Configuration
 
 ```text
 Newton Admin Login → System Settings →
@@ -423,37 +480,65 @@ Configure Product Settings:
 Update Product Catalog → Notify Relevant Users
 ```
 
-#### Flow 15: Order Settings Configuration
+#### Flow 17: Order Settings Configuration
 
 ```text
 Newton Admin Login → System Settings →
 Select Order Configuration →
 Configure Order Settings:
+  - Order Number Configuration:
+    → Set Order Number Mode:
+      - Auto-Generated Only (Force Auto-Generated)
+      - Manual Entry Allowed (User Can Choose)
+    → If Auto-Generated: Configure Number Format/Prefix
+    → If Manual Allowed: Set Validation Rules
   - Order Types:
     → Configure Receiving Orders
     → Configure Dispatching Orders
   - Order Limits:
-    → Set Daily Truck Limits
-    → Set Daily Weight Limits
-    → Set Monthly Limits
+    → Set Default Daily Truck Limit
+    → Set Default Daily Weight Limit
+    → Set Default Monthly Limits
+    → Set Default Trip Limit (Default: 1 trip per operating day)
+    Note: Trip calculations will consider Collection Point operating hours
     → Enforce Weight Redistribution Rules (Cannot Exceed Original Allocation)
     → Set Weight Adjustment Rules (Cannot Exceed Order Total)
-  - Trip Configuration:
-    → Enable Manual Trip Count Setting
-    → Enable Automatic Trip Calculation
-    → Set Multi-Day Trip Rules
-    → Configure Trip Duration Parameters
+    Note: These defaults will pre-populate in order creation but can be overridden per order
   - Pre-Booking Settings:
     → Set Pre-Booking as Compulsory or Optional
-    → Configure 24-Hour Advance Booking Rule
+    → Set Default Advance Booking Time (Default: 24 hours)
   - Seal Requirements:
+    → Set Default Seal Requirement (Yes/No)
+    → Set Default Seal Quantity
     → Configure Seal Verification Rules
-    → Set Seal Number Requirements
+    Note: Default seal settings will pre-populate in order creation
 → Save Order Settings →
 Apply to All Active Orders → Notify Logistics Coordinators
 ```
 
-#### Flow 16: Location Management Configuration
+#### Flow 18: Client Management Configuration
+
+```text
+Newton Admin Login → System Settings →
+Select Client Management →
+Configure Client Settings:
+  - Add New Client:
+    → Enter Client Name
+    → Enter Company Registration Number
+    → Enter VAT Number
+    → Enter Physical Address
+    → Add Contact Person Details
+    → Set Email for Notifications
+  - Client-Specific Settings:
+    → Link Allowed Collection Points
+    → Link Allowed Destinations
+    → Set Client-Specific Requirements
+    → Configure Notification Recipients
+→ Save Client Configuration →
+Update Client Database → Confirmation
+```
+
+#### Flow 19: Location Management Configuration
 
 ```text
 Newton Admin Login → System Settings →
@@ -463,22 +548,17 @@ Configure Location Settings:
     → Add Collection Point Name
     → Enter Physical Address
     → Add Contact Information
-    → Set Operating Hours
+    → Set Operating Hours (Default: 06:00-18:00)
   - Destinations:
     → Add Destination Name
     → Enter Physical Address
     → Add Contact Person Details
     → Set Delivery Requirements
-  - Route Configuration:
-    → Link Collection Points to Destinations
-    → Set Route Rules
-    → Define Distance/Duration
-    → Configure Route Restrictions
 → Save Location Settings →
 Update Route Database → Notify Transportation Teams
 ```
 
-#### Flow 17: Weighbridge Settings Configuration
+#### Flow 20: Weighbridge Settings Configuration
 
 ```text
 Newton Admin Login → System Settings →
@@ -490,7 +570,7 @@ Configure Weighbridge Settings:
     → Configure Serial Port Access
     → Set Input String Decoding Rules
   - Weight Settings:
-    → Set Tolerance Levels
+    → Set Default Tolerance Levels (e.g., ±0.5%)
     → Configure Weight Limits
     → Set Tare Weight Rules
   - Overload Policy:
@@ -509,7 +589,7 @@ Configure Weighbridge Settings:
 Test Configuration → Deploy to All Weighbridges
 ```
 
-#### Flow 18: Notification System Infrastructure
+#### Flow 21: Notification System Infrastructure
 
 ```text
 Newton Admin Login → System Settings →
@@ -534,17 +614,17 @@ Configure System-Wide Notification Settings:
     → Customize Email Body
     → Add Company Logo
     → Include Dynamic Fields:
-      • User Name
-      • Asset Details
-      • Order Numbers
-      • Weights
-      • Dates and Times
-      • Reason Fields
+      - User Name
+      - Asset Details
+      - Order Numbers
+      - Weights
+      - Dates and Times
+      - Reason Fields
   - Notification Triggers:
     → Define When Each Notification Type is Sent
     → Set Escalation Rules for Critical Alerts
     → Configure Warning Periods (Days Before Expiry)
-    → Set Overload/Underload Thresholds
+    → Set Default Overload/Underload Thresholds (e.g., >5% / <10%)
 → Test Email Templates:
   - Send Test Email for Each Template
   - Preview with Sample Data
@@ -552,7 +632,7 @@ Configure System-Wide Notification Settings:
 Apply System-Wide → Restart Notification Service
 ```
 
-#### Flow 19: System-Wide Settings Configuration
+#### Flow 22: System-Wide Settings Configuration
 
 ```text
 Newton Admin Login → System Settings →
