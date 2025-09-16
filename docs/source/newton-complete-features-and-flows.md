@@ -190,8 +190,11 @@ Send Notification to Users with "Pre-Booking Created" Enabled →
 ```text
 Truck Arrives at Security In →
 Security Personnel:
+  - Scan Driver QR Code
+  - Scan Driver License
   - Scan Truck QR Code
-  - Scan Driver ID
+  - Scan Truck Vehicle Disk
+  - System Validates All Scanned Documents
   - System Checks Pre-Booking Configuration:
     If Pre-Booking is Compulsory:
       → Verify truck has orders for today
@@ -205,7 +208,13 @@ Security Personnel:
     If Pre-Booking is Optional:
       → Verify truck/driver exists in system
       If Registered in System:
-        → Allow Entry (even without pre-booking)
+        → Check for Active Orders for Transporter
+        If Active Orders Exist:
+          → Allow Entry
+        If No Active Orders:
+          → Deny Entry
+          → Send Notification to Users with "Truck Arrival No Active Order" Enabled
+          → Log Rejection Reason
       If Not Registered:
         → Deny Entry
         → Alert Security Supervisor
@@ -444,6 +453,7 @@ Configure User Settings:
     → Security & Compliance Notifications:
       - Invalid/Expired License - Enable/Disable
       - Unbooked Truck Arrival - Enable/Disable
+      - Truck Arrival No Active Order - Enable/Disable
       - Incorrect Seals - Enable/Disable
       - Seal Number Mismatch - Enable/Disable
       - Unregistered Asset Attempting Entry - Enable/Disable
