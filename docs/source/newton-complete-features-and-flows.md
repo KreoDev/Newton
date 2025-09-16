@@ -1,3 +1,5 @@
+<!-- cSpell:words Underload underload -->
+
 # Newton Portal - Complete Features and User Flows
 
 ## Overview
@@ -7,12 +9,14 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
 ## Complete Feature List
 
 ### 1. Authentication & Security
+
 - **Two-Factor Authentication (2FA)** for secure login
 - **Facial Recognition** for user verification
 - **Role-Based Access Control** with specific permissions per role
 - **Credential Management** for portal access
 
 ### 2. Company & Organization Management
+
 - **Company Profile Management**
   - Company name and registration number
   - VAT number management
@@ -27,6 +31,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Option to flag Logistics Coordinator as Transporter (dual role functionality)
 
 ### 3. User & Role Management
+
 - **User Profile Features**
   - Name and surname management
   - Contact number and email address
@@ -48,6 +53,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Feature access control per role
 
 ### 4. Asset Management
+
 - **Truck Management**
   - Add new trucks to database
   - QR code scanning for truck identification
@@ -70,6 +76,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Fleet allocation with 24-hour timer
 
 ### 5. Induction Process
+
 - **Step-by-Step Asset Induction**
   - User authentication
   - Transporter selection
@@ -83,6 +90,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Validation feedback
 
 ### 6. Order Management
+
 - **Order Creation Features**
   - Auto-generated order numbers (default)
   - Manual order number entry option (with duplicate checking)
@@ -108,6 +116,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Multiple source linking
 
 ### 7. Pre-Booking System
+
 - **Logistics Coordinator Pre-Booking**
   - Pre-book trucks for specific orders
   - Selection of active orders linked to user
@@ -115,6 +124,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - 24-hour advance booking capability
 
 ### 8. Weighbridge Operations
+
 - **Weight Management**
   - Integration with weighbridge hardware
   - Axle weight measurement
@@ -135,6 +145,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Input string decoding from weighbridge data
 
 ### 9. Scanning & Verification
+
 - **Multi-Point Scanning**
   - Security in checkpoint scanning
   - Weighbridge scanning
@@ -147,6 +158,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Order verification
 
 ### 10. Notification System
+
 - **Email Notifications**
   - Automatic notifications on asset addition
   - Customizable email recipients per transporter/client
@@ -159,6 +171,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Expired document warnings
 
 ### 11. Location & Product Management
+
 - **Location Management**
   - Collection points/loading places
   - Destinations with contact information
@@ -169,6 +182,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Product specifications
 
 ### 12. Reporting & Analytics
+
 - **Performance Tracking**
   - Turnaround time tracking
   - Delay identification and analysis
@@ -180,6 +194,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Asset utilization reports
 
 ### 13. Asset Deletion & Management
+
 - **Deletion Controls**
   - Direct deletion for assets without transactions
   - Reason documentation requirement
@@ -190,6 +205,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Full deletion history with reasons logged
 
 ### 14. Configuration & Settings
+
 - **Administrator Configuration**
   - Additional field configuration (fleet number, group)
   - Feature enable/disable options
@@ -201,6 +217,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Interface simplification options
 
 ### 15. Integration Capabilities
+
 - **External System Integration**
   - Weighbridge hardware integration
   - License verification system connection
@@ -212,6 +229,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - API endpoints for third-party systems
 
 ### 16. Multi-Client Support
+
 - **Client Management**
   - Multiple client support
   - Client-specific order management
@@ -219,6 +237,7 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
   - Client-specific rules and limits
 
 ### 17. Sales & Marketing Tools
+
 - **Demonstration Features**
   - Comprehensive data presentation capabilities
   - System versatility showcase
@@ -230,27 +249,30 @@ Newton Web Portal is a comprehensive weighbridge and logistics management system
 ### Authentication Flows
 
 #### Flow 1: User Login with 2FA
-```
-Start → Enter Username/Email → Enter Password → 
-Receive 2FA Code → Enter 2FA Code → 
+
+```text
+Start → Enter Username/Email → Enter Password →
+Receive 2FA Code → Enter 2FA Code →
 Dashboard Access → Role-Based View
 ```
 
 #### Flow 2: User Login with Facial Recognition
-```
-Start → Enter Username/Email → 
-Initiate Facial Scan → Face Verification → 
+
+```text
+Start → Enter Username/Email →
+Initiate Facial Scan → Face Verification →
 Dashboard Access → Role-Based View
 ```
 
 ### Asset Management Flows
 
 #### Flow 3: Complete Asset Induction Process
-```
-Induction Officer Login → Select "Add New Asset" → 
-Select Transporter from Dropdown → 
-Scan QR Code (First Time) → Scan QR Code (Second Time for Verification) → 
-Scan License Disc Barcode (First Time) → Scan License Disc Barcode (Second Time for Verification) → 
+
+```text
+Induction Officer Login → Select "Add New Asset" →
+Select Transporter from Dropdown →
+Scan QR Code (First Time) → Scan QR Code (Second Time for Verification) →
+Scan License Disc Barcode (First Time) → Scan License Disc Barcode (Second Time for Verification) →
 System Automatically:
   - Identifies Asset Type (Truck/Trailer/Driver)
   - Extracts All Information from License Disc
@@ -268,11 +290,12 @@ System Automatically:
 ```
 
 #### Flow 4: Asset Deletion (Induction Error Correction)
-```
-Operator Login → Navigate to Asset Management → 
-Search/Select Asset → Click Delete → 
-Enter Deletion Reason → Submit → 
-System Checks for Linked Transactions → 
+
+```text
+Operator Login → Navigate to Asset Management →
+Search/Select Asset → Click Delete →
+Enter Deletion Reason → Submit →
+System Checks for Linked Transactions →
   If No Transactions (Typically During Induction):
     → Asset Deleted Immediately
     → Deletion Logged with Reason
@@ -286,10 +309,11 @@ System Checks for Linked Transactions →
 
 ### Order Management Flows
 
-#### Flow 5: Complete Order Creation
-```
-Logistics Coordinator/Allocation Officer Login → 
-Navigate to Orders → Click "Create New Order" → 
+#### Flow 5: Order Creation
+
+```text
+Logistics Coordinator/Allocation Officer Login →
+Navigate to Orders → Click "Create New Order" →
 Choose Order Number Method:
   Option 1: Use Auto-Generated Order Number
     → System Generates Unique Order Number
@@ -327,8 +351,8 @@ Choose Order Number Method:
         → Adjust Allocations
       If Match:
         → Proceed
-→ Review Order Summary → Submit Order → 
-Order Saved to Database → 
+→ Review Order Summary → Submit Order →
+Order Saved to Database →
 Send Notifications and Emails:
   - If Assigned to LC: Notify Logistics Coordinator
   - If Assigned to Transporters: Notify All Selected Transporters
@@ -337,39 +361,41 @@ Send Notifications and Emails:
 ```
 
 #### Flow 6: Order Allocation Process (Post-Creation)
-```
-Logistics Coordinator Login → View Orders Assigned to Me → 
-Select Order for Distribution → 
-Review Total Weight Available → 
+
+```text
+Logistics Coordinator Login → View Orders Assigned to Me →
+Select Order for Distribution →
+Review Total Weight Available →
 Redistribute Weight:
   → Select Multiple Transporters
   → Allocate Weight to Each Transporter
   → Ensure Total = Original Allocation
   → Set Transporter-Specific Requirements
-→ Submit Distribution → 
+→ Submit Distribution →
 Send Notifications and Emails:
   - Notify All Selected Transporters
   - Notify Other Relevant Parties
 → Update Order Status → Confirmation
 
-Note: This flow only applies when orders were assigned to 
-Logistics Coordinator during creation. Orders directly 
+Note: This flow only applies when orders were assigned to
+Logistics Coordinator during creation. Orders directly
 assigned to transporters skip this step.
 ```
 
 #### Flow 7: Pre-Booking Process
-```
-Logistics Coordinator Login → View Active Orders → 
-Select Order for Pre-Booking → 
-View Available Dates/Slots → Select Date → 
-Search Available Trucks → 
+
+```text
+Logistics Coordinator Login → View Active Orders →
+Select Order for Pre-Booking →
+View Available Dates/Slots → Select Date →
+Search Available Trucks →
   Filter by:
     - Transporter
     - Truck Type
     - Availability
-→ Select Trucks → Link to Order → 
-Set Collection Time → Add Special Instructions → 
-Submit Pre-Booking → 
+→ Select Trucks → Link to Order →
+Set Collection Time → Add Special Instructions →
+Submit Pre-Booking →
 Send Notifications and Emails to:
   - Selected Transporters
   - Other Relevant Parties
@@ -379,8 +405,9 @@ Send Notifications and Emails to:
 ### Weighbridge Operation Flows
 
 #### Flow 8: Complete Weighbridge Process (Inbound)
-```
-Truck Arrives at Security In → 
+
+```text
+Truck Arrives at Security In →
 Security Personnel:
   - Scan Truck QR Code
   - Scan Driver ID
@@ -388,7 +415,7 @@ Security Personnel:
   - Check Order Details
   If Valid → Allow Entry
   If Invalid → Send Alert to Logistics Coordinator
-→ Truck Proceeds to Weighbridge → 
+→ Truck Proceeds to Weighbridge →
 Weighbridge Operator:
   - Scan Truck QR Code
   - System Auto-Retrieves Order
@@ -399,8 +426,9 @@ Weighbridge Operator:
 ```
 
 #### Flow 9: Complete Weighbridge Process (Outbound)
-```
-Loaded Truck Returns to Weighbridge → 
+
+```text
+Loaded Truck Returns to Weighbridge →
 Weighbridge Operator:
   - Scan Truck QR Code
   - Capture Gross Weight
@@ -417,7 +445,7 @@ Weighbridge Operator:
   - Verify Seals Match Order
   - Generate Final Weight Ticket
   - Print Documents with Seal Numbers
-→ Truck Proceeds to Security Out → 
+→ Truck Proceeds to Security Out →
 Security Personnel:
   - Verify Documents
   - Check Seal Integrity
@@ -427,11 +455,12 @@ Security Personnel:
 ```
 
 #### Flow 10: Weighbridge Calibration
-```
-Weighbridge Supervisor Login → 
-Navigate to Calibration Tools → 
-Select Weighbridge → 
-Access Serial Port Configuration → 
+
+```text
+Weighbridge Supervisor Login →
+Navigate to Calibration Tools →
+Select Weighbridge →
+Access Serial Port Configuration →
   For Initial Calibration:
     → Place Known Weight on Bridge
     → Input Known Weight Value
@@ -443,25 +472,26 @@ Access Serial Port Configuration →
     → Run Verification Test
     → Compare Against Standards
     → Generate Calibration Certificate
-→ Log Calibration Activity → 
+→ Log Calibration Activity →
 Set Next Calibration Date → Complete
 ```
 
 ### Multi-Point Process Flows
 
 #### Flow 11: Complete Transportation Cycle
-```
+
+```text
 Day Before:
   Logistics Coordinator → Pre-Books Trucks → Notifications Sent
 
 Day Of Operation:
-  Driver Arrives → Security In Process → 
-  First Weighbridge (Tare) → Loading → 
-  Second Weighbridge (Gross) → Seal Application → 
-  Documentation → Security Out → 
-  
-  Transport to Destination → 
-  
+  Driver Arrives → Security In Process →
+  First Weighbridge (Tare) → Loading →
+  Second Weighbridge (Gross) → Seal Application →
+  Documentation → Security Out →
+
+  Transport to Destination →
+
   At Destination:
     → Arrival Scan
     → Weight Verification (if applicable)
@@ -474,8 +504,9 @@ Day Of Operation:
 ### Administrative Flows
 
 #### Flow 12: System Configuration (Newton Administrator)
-```
-Newton Admin Login → System Settings → 
+
+```text
+Newton Admin Login → System Settings →
 Select Configuration Area:
   Company Settings:
     → Add/Edit Companies
@@ -500,13 +531,14 @@ Select Configuration Area:
     → Configure Bridges
     → Set Tolerance Levels
     → Configure Alerts
-→ Apply Changes → Test Configuration → 
+→ Apply Changes → Test Configuration →
 Deploy to Production → Notify Affected Users
 ```
 
 #### Flow 13: Report Generation
-```
-User Login → Navigate to Reports → 
+
+```text
+User Login → Navigate to Reports →
 Select Report Type:
   - Turnaround Time Report
   - Weight Summary Report
@@ -517,7 +549,7 @@ Select Report Type:
   - Date Range
   - Specific Assets/Orders
   - Grouping Options
-→ Generate Report → 
+→ Generate Report →
 View/Export Options:
   - View Online
   - Export PDF
@@ -529,20 +561,21 @@ View/Export Options:
 ### Error Handling Flows
 
 #### Flow 14: Invalid Driver at Checkpoint
-```
-Driver Scanned at Security → 
-System Detects Invalid/Expired License → 
-Alert Generated → 
+
+```text
+Driver Scanned at Security →
+System Detects Invalid/Expired License →
+Alert Generated →
   Notifications Sent to:
     - Security Supervisor
     - Logistics Coordinator
     - Transporter
-→ Driver Detained → 
+→ Driver Detained →
 Options:
   - Replace Driver
   - Update License Information
   - Cancel Trip
-→ Resolution Logged → 
+→ Resolution Logged →
 Process Continues or Terminated
 ```
 
@@ -551,27 +584,32 @@ Process Continues or Terminated
 ### Critical Business Rules
 
 1. **Order Types**
+
    - Orders can only be of two types: Receiving or Dispatching
    - No other order types are permitted in the system
 
 2. **Weight Management**
+
    - Orders cannot exceed original weight allocation when redistributed
    - Weight adjustments permitted but cannot exceed order total
    - Overload detection triggers mandatory alerts
    - Daily and monthly limits must be enforced
 
 3. **Time Constraints**
+
    - 24-hour timer starts upon order acceptance by transporter
    - Fleet allocation must be completed within timer period
    - Pre-booking must be done at least 24 hours in advance
 
 4. **Access Control**
+
    - Role-based visibility strictly enforced
    - Transporters can only see their assigned orders
    - Asset deletion allowed only when no transactions exist
    - Dual role (Logistics Coordinator as Transporter) requires special flag
 
 5. **Data Integrity**
+
    - No editing of existing assets (delete and re-add only)
    - All deletions require reason documentation
    - QR codes are permanently linked to assets
@@ -585,12 +623,14 @@ Process Continues or Terminated
 ## Integration Requirements
 
 ### Required Integrations
+
 - Weighbridge hardware systems
 - License verification systems
 - Email notification service
 - QR code generation and scanning systems
 
 ### Optional Integrations
+
 - Facial recognition systems
 - MOX systems
 - Client management systems
@@ -600,6 +640,7 @@ Process Continues or Terminated
 ## Security & Compliance
 
 ### Security Features
+
 - Two-factor authentication
 - Role-based access control
 - Audit trail for all transactions
@@ -607,6 +648,7 @@ Process Continues or Terminated
 - Session management
 
 ### Compliance Requirements
+
 - Data retention policies
 - Privacy protection for driver information
 - Weight certification standards
@@ -616,6 +658,7 @@ Process Continues or Terminated
 ## User Interface Requirements
 
 ### Design Principles
+
 - Simple and intuitive interface
 - Mobile-responsive design
 - Predictive text and smart dropdowns
@@ -623,6 +666,7 @@ Process Continues or Terminated
 - Visual status indicators
 
 ### Accessibility Features
+
 - Screen reader compatibility
 - Keyboard navigation
 - High contrast mode options
@@ -631,6 +675,7 @@ Process Continues or Terminated
 ## Performance Requirements
 
 ### System Performance
+
 - Real-time weight capture
 - Instant notification delivery
 - Sub-second response times for queries
@@ -638,6 +683,7 @@ Process Continues or Terminated
 - Offline capability for critical operations
 
 ### Scalability
+
 - Multi-company support
 - Unlimited users per company
 - High transaction volume handling
