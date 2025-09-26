@@ -1,4 +1,4 @@
-<!-- cSpell:words Underload underload -->
+<!-- cSpell:words Underload underload ALPR -->
 
 # Newton Weighbridge System
 
@@ -23,9 +23,11 @@ Induction Officer Login → Select "Add New Asset" →
 Select Transporter from Dropdown →
 Scan QR Code (First Time) → Scan QR Code (Second Time for Verification) →
 Scan License Disc Barcode (First Time) → Scan License Disc Barcode (Second Time for Verification) →
+* →Scan NaTIS Scan NaTIS again.
 System Automatically:
   - Identifies Asset Type (Truck/Trailer/Driver)
   - Extracts All Information from License Disc
+  *- Extracts All extra Information from NaTIS Barcode
   - Validates Expiry Dates
 → Check Validation Results:
   If Valid:
@@ -44,25 +46,24 @@ System Automatically:
 #### Flow 3: Asset Deletion (Induction Error Correction)
 
 ```text
-Operator Login → Navigate to Asset Management →
-Search/Select Asset → Click Delete →
+Operator Login → Remove or Delete Assets/Drivers → Scan the QR code → Click Delete →
 Enter Deletion Reason → Submit →
 System Checks for Linked Transactions:
   If No Transactions (Typically During Induction):
-    → Asset Deleted Immediately
+    → Asset/Driver Deleted Immediately
     → Deletion Logged with Reason
-    → Send Notification to Users with "Asset Deleted" Enabled
+    → Send Notification to Users with "Asset/Driver Deleted" Enabled
     → Confirmation Message
   If Transactions Exist (99% of Cases):
     → Deletion Blocked
     → Show Transaction Count
-    → Display "Cannot Delete - Asset Has Transactions"
+    → Display "Cannot Delete - Asset/Driver Has Transactions"
     → Offer "Mark as Inactive" Option:
       If Selected:
         → Enter Reason for Inactivation
         → Confirm Inactivation
-        → Flag Asset as Inactive with Reason
-        → Send Notification to Users with "Asset Made Inactive" Enabled
+        → Flag Asset/Drivers as Inactive with Reason
+        → Send Notification to Users with "Asset/Drivers Made Inactive" Enabled
     → Return to Asset List
 ```
 
@@ -190,14 +191,10 @@ Send Notification to Users with "Pre-Booking Created" Enabled →
 ```text
 Truck Arrives at Security In →
 Security Personnel:
-  - Scan Driver QR Code
-  - Scan Driver License
+  - Scan Driver QR Code →If other Country is Identified skip Driver license scan?
   - Scan Truck QR Code
-  - Scan Truck Vehicle Disk
   - Scan Trailer 1 QR Code
-  - Scan Trailer 1 Vehicle Disk
   - Scan Trailer 2 QR Code
-  - Scan Trailer 2 Vehicle Disk
   - System Validates All Scanned Documents
   - System Checks Pre-Booking Configuration:
     If Pre-Booking is Compulsory:
@@ -225,12 +222,12 @@ Security Personnel:
 → Truck Proceeds to Weighbridge
 ```
 
-#### Flow 8: Weighbridge Tare Weight (Inbound)
+#### Flow 8: Weighbridge (First Weight) Depending on type of order Tare / Gross Weight
 
 ```text
-Truck Arrives at Weighbridge (Empty) →
+Truck Arrives at Weighbridge →
 Weighbridge Operator:
-  - Scan Truck Vehicle Disk
+  -Scan Any QR Code
   - Order Retrieval Process:
     If Pre-Booking is Compulsory:
       → System Auto-Retrieves Order
@@ -242,16 +239,18 @@ Weighbridge Operator:
         → Operator Links Truck to Available Order
   - Capture Tare Weight
   - Check for Weight Limits
-  - Print Tare Weight Ticket
+  - Capture ALPR Image and start verifying Transaction
+  - Submit = When all of above is in Order Boom gates open to proceed
+  - Show a pop up of a PDF
 → Truck Proceeds to Loading Point
 ```
 
-#### Flow 9: Weighbridge Gross Weight (Outbound)
+#### Flow 9: Weighbridge (Last Weight) Depending on type of order Tare / Gross Weight
 
 ```text
 Loaded Truck Returns to Weighbridge →
 Weighbridge Operator:
-  - Scan Truck Vehicle Disk
+  - Scan Any QR Code
   - Capture Gross Weight
   - Calculate Net Weight (Gross - Tare)
   - Check for Weight Violations:
@@ -264,14 +263,15 @@ Weighbridge Operator:
       → Truck Must Return to Loading Point
       → Adjust Load Weight
       → Return to Weighbridge for Re-weighing
-    If Underloaded:
+    If Underweight:
       → Alert Generated
-      → Send Notification to Users with "Underload Detected" Enabled
-      → Document Underload
+      → Send Notification to Users with "Underweight Detected" Enabled
+      → Document Underweight
       → Proceed with Warning Flag
     If Within Limits:
       → Proceed
   - Scan Seal Numbers
+  - Capture ALPR Image and start verifying Transaction
   - Generate Final Weight Ticket
   - Print Documents with Seal Numbers
 → Truck Proceeds to Security Out
@@ -283,13 +283,9 @@ Weighbridge Operator:
 Truck Arrives at Security Out →
 Security Personnel:
   - Scan Driver QR Code
-  - Scan Driver License
   - Scan Truck QR Code
-  - Scan Truck Vehicle Disk
   - Scan Trailer 1 QR Code
-  - Scan Trailer 1 Vehicle Disk
   - Scan Trailer 2 QR Code
-  - Scan Trailer 2 Vehicle Disk
   - System Verifies All Scanned Items:
     If Any Verification Fails:
       → Deny Exit
@@ -350,8 +346,9 @@ Configure Mining Company Details:
     → Enter VAT Number
     → Enter Physical Address
     → Enter Main Contact Details
-  - Configure Mine Sites/Branches:
-    → Add Multiple Sites per Company
+  - Configure Mine Groups and Sites:
+    → Add Group
+    → Add site, mark as receiving or dispatching
     → Enter Site Location
     → Set Site-Specific Requirements
     → Add Site Manager Contact
@@ -362,7 +359,7 @@ Update Company Database → Confirmation
 #### Flow 13: Service Provider Configuration (Transporter)
 
 ```text
-Newton Admin Login → System Settings →
+Site Newton Admin Login → System Settings →
 Select Service Provider Management →
 Choose "Add Transporter" →
 Configure Service Provider Details:
@@ -392,7 +389,7 @@ Update service_providers Collection → Send Welcome Email to Contacts
 #### Flow 14: Service Provider Configuration (Logistics Coordinator)
 
 ```text
-Newton Admin Login → System Settings →
+Site Newton Admin Login → System Settings →
 Select Service Provider Management →
 Choose "Add Logistics Coordinator" →
 Configure Service Provider Details:
@@ -424,7 +421,7 @@ Update service_providers Collection → Send Welcome Email to Contacts
 
 #### Flow 15: User Management Configuration
 
-```text
+```text Are there going to be user Profiles or Roles?
 Newton Admin Login → System Settings →
 Select User Management →
 Configure User Settings:
@@ -524,19 +521,19 @@ Configure Product Settings:
     → Enter Product Name
     → Enter Product Code
     → Set Product Specifications
-    → Define Product Categories
+    → Define Product Categories ( What do you mean)
   - Configure Categories:
     → Create Product Categories
     → Set Category Rules
     → Define Category Hierarchies
   - Product Linking:
-    → Link Products to Order Types
+    → Link Products to Order Types (What do you mean)
     → Set Product Availability per Site
 → Save Product Configuration →
 Update Product Catalog → Notify Relevant Users
 ```
 
-#### Flow 17: Order Settings Configuration
+#### Flow 17: Order Settings Configuration(We need to define daily allowed trucks, weight per Transporter)
 
 ```text
 Newton Admin Login → System Settings →

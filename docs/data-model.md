@@ -17,22 +17,22 @@
 | Field             | Type            | Required | Description                         | Example                |
 | ----------------- | --------------- | -------- | ----------------------------------- | ---------------------- |
 | id                | string (doc id) | yes      | Unique user id                      | u_123                  |
-| email             | string          | yes      | Sign-in identifier                  | john@example.com       |
+| email             | string          | yes      | Sign-in identifier                  | `john@example.com`     |
 | displayName       | string          | yes      | Friendly name                       | John Smith             |
 | firstName         | string          | yes      | First name                          | John                   |
 | lastName          | string          | yes      | Last name                           | Smith                  |
 | phoneNumber       | string          | yes      | Contact number for notifications    | +27821234567           |
 | roleId            | string          | yes      | Role reference                      | r_weighbridge_operator |
-| profilePicture    | string          | no       | Profile image URL                   | https://...            |
-| notificationPrefs | map             | yes      | Per-user notification settings      | See below              |
-| preferredEmail    | string          | no       | Alternative email for notifications | john.work@example.com  |
+| profilePicture    | string          | no       | Profile image URL                   | `https://...`          |
+| notificationPreferences | map             | yes      | Per-user notification settings      | See below              |
+| preferredEmail    | string          | no       | Alternative email for notifications | `john.work@example.com` |
 | createdAt         | number          | yes      | Client event time (ms)              | Date.now()             |
 | updatedAt         | number          | yes      | Last client event time (ms)         | Date.now()             |
 | dbCreatedAt       | timestamp       | yes      | Server creation time                | serverTimestamp        |
 | dbUpdatedAt       | timestamp       | yes      | Last server update time             | serverTimestamp        |
 | isActive          | boolean         | yes      | Account active status               | true                   |
 
-#### notificationPrefs structure:
+#### notificationPreferences structure
 
 ```javascript
 {
@@ -46,7 +46,7 @@
   "order.completed": true,
   "order.expiring": true,
   "weighbridge.overload": true,
-  "weighbridge.underload": true,
+  "weighbridge.underweight": true,
   "weighbridge.violations": true,
   "weighbridge.manualOverride": true,
   "preBooking.created": true,
@@ -89,7 +89,7 @@
 | physicalAddress    | string          | yes      | Company physical address    | 123 Mining Rd, City  |
 | mainContactName    | string          | yes      | Primary contact person      | Jane Doe             |
 | mainContactPhone   | string          | yes      | Primary contact number      | +27821234567         |
-| mainContactEmail   | string          | yes      | Primary contact email       | jane@abcmining.com   |
+| mainContactEmail   | string          | yes      | Primary contact email       | `jane@abcmining.com` |
 | sites              | string[]        | no       | Array of site IDs           | ["site_1", "site_2"] |
 | createdAt          | number          | yes      | Client event time (ms)      | Date.now()           |
 | updatedAt          | number          | yes      | Last client event time (ms) | Date.now()           |
@@ -127,7 +127,7 @@
 | vatNumber          | string          | no       | VAT registration number         | 4111111111         |
 | physicalAddress    | string          | yes      | Physical address                | 789 Client Street  |
 | contactName        | string          | yes      | Contact person name             | Bob Johnson        |
-| contactEmail       | string          | yes      | Contact email                   | bob@xyzcorp.com    |
+| contactEmail       | string          | yes      | Contact email                   | `bob@xyzcorp.com`  |
 | contactPhone       | string          | yes      | Contact phone number            | +27823456789       |
 | allowedLocationIds | string[]        | no       | Allowed collection/destinations | ["loc_1", "loc_2"] |
 | createdAt          | number          | yes      | Client event time (ms)          | Date.now()         |
@@ -195,7 +195,7 @@
 | completedWeight   | number          | no       | Weight completed so far                  | 250             |
 | completedTrips    | number          | no       | Number of trips completed                | 25              |
 
-#### allocations array structure:
+#### allocations array structure
 
 ```javascript
 ;[
@@ -260,7 +260,7 @@
 | dbUpdatedAt     | timestamp       | yes      | Last server update time       | serverTimestamp  |
 | isActive        | boolean         | yes      | Location active status        | true             |
 
-#### operatingHours structure:
+#### operatingHours structure
 
 ```javascript
 {
@@ -276,11 +276,11 @@
 
 ## Weighbridge Operations Collections
 
-### weighments (documents)
+### weighing_records (documents)
 
 | Field             | Type            | Required | Description                 | Example                |
 | ----------------- | --------------- | -------- | --------------------------- | ---------------------- |
-| id                | string (doc id) | yes      | Unique weighment id         | w_123                  |
+| id                | string (doc id) | yes      | Unique weighing record id   | w_123                  |
 | orderId           | string          | yes      | Order reference             | o_123                  |
 | assetId           | string          | yes      | Truck asset reference       | a_456                  |
 | serviceProviderId | string          | yes      | Service provider reference  | sp_123                 |
@@ -291,7 +291,7 @@
 | tareTimestamp     | timestamp       | yes      | When tare was captured      | 2024-01-15T08:30:00    |
 | grossTimestamp    | timestamp       | no       | When gross was captured     | 2024-01-15T10:45:00    |
 | overloadFlag      | boolean         | no       | Was truck overloaded        | false                  |
-| underloadFlag     | boolean         | no       | Was truck underloaded       | false                  |
+| underweightFlag   | boolean         | no       | Was truck underweight       | false                  |
 | sealNumbers       | string[]        | no       | Array of seal numbers       | ["SEAL001", "SEAL002"] |
 | ticketNumber      | string          | yes      | Generated ticket number     | TKT-2024-00123         |
 | operatorId        | string          | yes      | Weighbridge operator user   | u_999                  |
@@ -311,7 +311,7 @@
 | serialPortConfig   | map             | no       | Serial port configuration      | See settings     |
 | tolerancePercent   | number          | yes      | Weight tolerance percentage    | 0.5              |
 | overloadThreshold  | number          | yes      | Overload threshold percentage  | 5                |
-| underloadThreshold | number          | yes      | Underload threshold percentage | 10               |
+| underweightThreshold | number        | yes      | Underweight threshold percentage | 10               |
 | lastCalibration    | timestamp       | no       | Last calibration date          | 2024-01-01       |
 | nextCalibration    | timestamp       | no       | Next calibration due date      | 2024-02-01       |
 | createdAt          | number          | yes      | Client event time (ms)         | Date.now()       |
@@ -342,7 +342,7 @@
 | id          | string (doc id) | yes      | Unique seal id          | seal_123            |
 | sealNumber  | string          | yes      | Seal number             | SEAL001             |
 | orderId     | string          | yes      | Order reference         | o_123               |
-| weighmentId | string          | yes      | Weighment reference     | w_123               |
+| weighingRecordId | string      | yes      | Weighing record reference | w_123               |
 | status      | enum            | yes      | intact\|broken\|missing | intact              |
 | appliedAt   | timestamp       | yes      | When seal was applied   | 2024-01-15T09:00:00 |
 | verifiedAt  | timestamp       | no       | When seal was verified  | 2024-01-15T11:00:00 |
@@ -371,7 +371,7 @@
 | createdAt          | number          | yes      | Client event time (ms)    | Date.now()          |
 | dbCreatedAt        | timestamp       | yes      | Server creation time      | serverTimestamp     |
 
-#### scanResults structure:
+#### scanResults structure
 
 ```javascript
 {
@@ -516,7 +516,7 @@ Document path: `settings/security_alerts`
 
 Example body with placeholders:
 
-```
+```text
 Hello {{userName}},
 
 A new {{assetType}} has been added to the system:
@@ -570,7 +570,7 @@ Key Firestore composite indexes needed:
 2. **orders**: (serviceProviderId in allocations, status)
 3. **pre_bookings**: (scheduledDate, status)
 4. **assets**: (serviceProviderId, assetType, isActive)
-5. **weighments**: (orderId, createdAt DESC)
+5. **weighing_records**: (orderId, createdAt DESC)
 6. **security_checks**: (assetId, checkType, timestamp DESC)
 7. **audit_logs**: (userId, timestamp DESC)
 8. **audit_logs**: (entityType, entityId, timestamp DESC)
