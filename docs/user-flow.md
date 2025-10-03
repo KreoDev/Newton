@@ -1,4 +1,4 @@
-<!-- cSpell:words Underload underload ALPR -->
+<!-- cSpell:words Underweight underweight ALPR -->
 
 # Newton Weighbridge System
 
@@ -20,14 +20,12 @@ Dashboard Access → Role-Based View
 
 ```text
 Induction Officer Login → Select "Add New Asset" →
-Select Transporter from Dropdown →
+Select Company (companyType = transporter or logistics_coordinator) from Dropdown →
 Scan QR Code (First Time) → Scan QR Code (Second Time for Verification) →
 Scan License Disc Barcode (First Time) → Scan License Disc Barcode (Second Time for Verification) →
-* →Scan NaTIS Scan NaTIS again.
 System Automatically:
   - Identifies Asset Type (Truck/Trailer/Driver)
   - Extracts All Information from License Disc
-  *- Extracts All extra Information from NaTIS Barcode
   - Validates Expiry Dates
 → Check Validation Results:
   If Valid:
@@ -92,11 +90,11 @@ System Checks Order Number Configuration:
             → Proceed
 → Fill Order Details:
   - Select Order Type (Receiving or Dispatching)
-  - Select Client from List
+  - Select Client from Client List
   - Set Dispatch Date Range (Start & End)
   - Allocate Total Weight
-  - Select Collection Point from List
-  - Select Destination from List
+  - Select Collection Site (siteType = collection) from List
+  - Select Destination Site (siteType = destination) from List
   - Select Product from Catalog
   - Adjust Seal Requirements (Pre-filled with Defaults)
   - Adjust Daily Truck Limit (Pre-filled with Default)
@@ -108,20 +106,20 @@ System Checks Order Number Configuration:
     Option 2: Set Trip Duration:
       → Enter trip duration in hours
       → System calculates possible trips based on:
-        - Collection Point operating hours
+        - Collection Site operating hours
         - Order date range (single or multi-day)
         - Shows trips per day and total trips
-      → System validates against Collection Point hours:
+      → System validates against Collection Site hours:
         - If trip duration exceeds daily operating window
         - Automatically spans to next operating day
   - Adjust Monthly Limits (Pre-filled with Default)
 → Choose Allocation Method:
   Option 1: Assign to Logistics Coordinator:
-    → Select from Service Providers (where is_logistics_coordinator = true)
+    → Select from Companies (companyType = logistics_coordinator)
     → Notifications sent to configured contacts
     → LC Will Handle Weight Distribution Later
-  Option 2: Assign to Transporter(s):
-    → Select from Service Providers (where is_transporter = true)
+  Option 2: Assign to Transporter Companies:
+    → Select from Companies (companyType = transporter)
     → Notifications sent to configured contacts
     → Allocate Weight to Each Transporter
     → Select Loading Dates
@@ -147,8 +145,8 @@ Logistics Coordinator Login → View Orders Assigned to Me →
 Select Order for Distribution →
 Review Total Weight Available →
 Redistribute Weight:
-  → Select Multiple Service Providers (where is_transporter = true)
-  → Allocate Weight to Each Transporter
+  → Select Multiple Transporter Companies (companyType = transporter)
+  → Allocate Weight to Each Transporter Company
   → Select Loading Dates
   → Ensure Total = Original Allocation
   → Set Transporter-Specific Requirements
@@ -170,7 +168,7 @@ Select Order for Pre-Booking →
 View Available Dates/Slots → Select Date →
 Search Available Trucks:
   Filter by:
-    - Transporter
+    - Transporter Company
     - Truck Type
     - Availability
 → Select Trucks → Link to Order →
@@ -209,7 +207,7 @@ Security Personnel:
     If Pre-Booking is Optional:
       → Verify truck/driver exists in system
       If Registered in System:
-        → Check for Active Orders for Service Provider
+        → Check for Active Orders for the Company (Transporter / Logistics Coordinator)
         If Active Orders Exist:
           → Allow Entry
         If No Active Orders:
@@ -356,14 +354,14 @@ Configure Mining Company Details:
 Update Company Database → Confirmation
 ```
 
-#### Flow 13: Service Provider Configuration (Transporter)
+#### Flow 13: Company Configuration (Transporter Type)
 
 ```text
 Site Newton Admin Login → System Settings →
-Select Service Provider Management →
-Choose "Add Transporter" →
-Configure Service Provider Details:
-  - Add New Service Provider:
+Select Company Management →
+Choose "Add Company" with `companyType = transporter` →
+Configure Company Details:
+  - Add New Company:
     → Enter Company Name
     → Enter Registration Number
     → Enter VAT Number
@@ -381,19 +379,19 @@ Configure Service Provider Details:
         → Enter Phone Number for Contact
         → Update User Profile with Phone Number
       If Contact Has Complete Information:
-        → Link Contact to Service Provider
-→ Save Service Provider Configuration →
-Update service_providers Collection → Send Welcome Email to Contacts
+        → Link Contact to Company
+→ Save Company Configuration →
+Update companies Collection → Send Welcome Email to Contacts
 ```
 
-#### Flow 14: Service Provider Configuration (Logistics Coordinator)
+#### Flow 14: Company Configuration (Logistics Coordinator Type)
 
 ```text
 Site Newton Admin Login → System Settings →
-Select Service Provider Management →
-Choose "Add Logistics Coordinator" →
-Configure Service Provider Details:
-  - Add New Service Provider:
+Select Company Management →
+Choose "Add Company" with `companyType = logistics_coordinator` →
+Configure Company Details:
+  - Add New Company:
     → Enter Company Name
     → Enter Registration Number
     → Enter VAT Number
@@ -410,13 +408,13 @@ Configure Service Provider Details:
         → Enter Phone Number for Contact
         → Update User Profile with Phone Number
       If Contact Has Complete Information:
-        → Link Contact to Service Provider
+        → Link Contact to Company
   - Additional Settings for Dual-Role:
-    If Both Flags Enabled:
+    If dual-role (includes transporter):
       → Enter Fleet Size Information
       → Configure Transport Capabilities
-→ Save Service Provider Configuration →
-Update service_providers Collection → Send Welcome Email to Contacts
+→ Save Company Configuration →
+Update companies Collection → Send Welcome Email to Contacts
 ```
 
 #### Flow 15: User Management Configuration
@@ -455,14 +453,11 @@ Configure User Settings:
       - Weighbridge Gross Weight - Enable/Disable
       - Weighbridge Calibration - Enable/Disable
     → Administrative Permissions:
-      - Company (Mine) Configuration - No Access / View Only / Full Access
-      - Transporter Configuration - No Access / View Only / Full Access
-      - Logistics Coordinator Configuration - No Access / View Only / Full Access
       - User Management - No Access / View Only / Full Access
       - Product Management - No Access / View Only / Full Access
       - Order Settings - No Access / View Only / Full Access
       - Client Management - No Access / View Only / Full Access
-      - Collection Point/Destination Management - No Access / View Only / Full Access
+      - Collection Site/Destination Management - No Access / View Only / Full Access
       - Weighbridge Configuration - No Access / View Only / Full Access
       - Notification Infrastructure - No Access / View Only / Full Access
       - System-Wide Settings - No Access / View Only / Full Access
@@ -485,7 +480,7 @@ Configure User Settings:
       Note: Users always receive notifications when orders are allocated directly to them
     → Weighbridge Notifications:
       - Overload Detected - Enable/Disable
-      - Underload Detected - Enable/Disable
+      - Underweight Detected - Enable/Disable
       - Weight Limit Violations - Enable/Disable
       - Manual Weight Override Used - Enable/Disable
     → Pre-Booking & Scheduling Notifications:
@@ -550,7 +545,7 @@ Configure Order Settings:
     → Set Default Daily Weight Limit
     → Set Default Monthly Limits
     → Set Default Trip Limit (Default: 1 trip per operating day)
-    Note: Trip calculations will consider Collection Point operating hours
+    Note: Trip calculations will consider Collection Site operating hours
     → Set Default Weight per Truck
     Note: These defaults will pre-populate in order creation but can be overridden per order
   - Pre-Booking Settings:
@@ -579,7 +574,7 @@ Configure Client Settings:
     → Add Contact Person Details
     → Set Email for Notifications
   - Client-Specific Settings:
-    → Link Allowed Collection Points
+    → Link Allowed Collection Sites
     → Link Allowed Destinations
     → Set Client-Specific Requirements
     → Configure Notification Recipients
@@ -587,14 +582,14 @@ Configure Client Settings:
 Update Client Database → Confirmation
 ```
 
-#### Flow 19: Location Management Configuration
+#### Flow 19: Site Management Configuration
 
 ```text
 Newton Admin Login → System Settings →
-Select Location Management →
-Configure Location Settings:
-  - Collection Points/Loading Places:
-    → Add Collection Point Name
+Select Site Management →
+Configure Site Settings:
+  - Collection Sites/Loading Places:
+    → Add Collection Site Name
     → Enter Physical Address
     → Select Contact Person from Existing Users
     → System Validates Contact Information:
@@ -613,7 +608,7 @@ Configure Location Settings:
         → Enter Phone Number for Contact
         → Update User Profile with Phone Number
     → Set Delivery Requirements
-→ Save Location Settings →
+→ Save Site Settings →
 Update Route Database → Notify Transportation Teams
 ```
 
@@ -641,7 +636,7 @@ Configure Weighbridge Settings:
     → Configure Load Cell Parameters
     → Set Verification Standards
   - Alert Configuration:
-    → Configure Overload/Underload Alerts
+    → Configure Overload/Underweight Alerts
     → Set Weight Violation Notifications
     → Define Alert Recipients
 → Save Weighbridge Settings →
@@ -663,7 +658,7 @@ Configure System-Wide Notification Settings:
     → Order Allocated Template
     → Order Cancelled Template
     → Overload Alert Template (Mandatory Offload Required)
-    → Underload Alert Template
+    → Underweight Alert Template
     → License Expiry Warning Template
     → Pre-Booking Confirmation Template
     → 24-Hour Reminder Template
@@ -684,7 +679,7 @@ Configure System-Wide Notification Settings:
     → Set Escalation Rules for Critical Alerts
     → Configure Warning Periods (Days Before Expiry)
     → Set Default Overload Threshold (e.g., >5% requires mandatory offload)
-    → Set Default Underload Threshold (e.g., <10% triggers warning)
+    → Set Default Underweight Threshold (e.g., <10% triggers warning)
 → Test Email Templates:
   - Send Test Email for Each Template
   - Preview with Sample Data

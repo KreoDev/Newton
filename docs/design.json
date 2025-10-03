@@ -1,0 +1,996 @@
+{
+  "design_system": {
+    "name": "Newton Design System",
+    "version": "1.1.0",
+    "description": "UI/UX design system for Newton Asset Management application",
+    "foundation": {
+      "component_library": "Radix UI + shadcn/ui",
+      "styling": "Tailwind CSS v4",
+      "icons": "Lucide React",
+      "fonts": {
+        "primary": "Geist Sans",
+        "monospace": "Geist Mono"
+      },
+      "motion": "Framer Motion"
+    },
+    "visual_style": {
+      "theme": "Glass Morphism",
+      "principles": ["Translucent surfaces layered over vibrant gradients", "Soft inner shadows and lifted silhouettes to create depth", "Subtle motion and responsive hover states that reinforce interactivity", "Maintain Newton brand colors across light and dark contexts"],
+      "implementation_notes": "Use Tailwind CSS v4 utilities for blur, opacity, gradients, and backdrop filters while retaining existing OKLCH color tokens. Panels float above gradient backdrops with layered z-index tokens.",
+      "background_layer": "Full-screen radial gradient combining cool blue tones with subtle noise overlay"
+    }
+  },
+  "color_palette": {
+    "color_space": "OKLCH",
+    "themes": {
+      "light": {
+        "background": {
+          "default": "oklch(1 0 0)",
+          "description": "Pure white"
+        },
+        "foreground": {
+          "default": "oklch(0.145 0 0)",
+          "description": "Dark gray text"
+        },
+        "primary": {
+          "default": "oklch(0.205 0 0)",
+          "foreground": "oklch(0.985 0 0)",
+          "description": "Dark gray primary with white text"
+        },
+        "secondary": {
+          "default": "oklch(0.97 0 0)",
+          "foreground": "oklch(0.205 0 0)",
+          "description": "Light gray secondary"
+        },
+        "accent": {
+          "default": "oklch(0.97 0 0)",
+          "foreground": "oklch(0.205 0 0)"
+        },
+        "muted": {
+          "default": "oklch(0.97 0 0)",
+          "foreground": "oklch(0.556 0 0)"
+        },
+        "destructive": {
+          "default": "oklch(0.577 0.245 27.325)",
+          "description": "Red for dangerous actions"
+        },
+        "border": "oklch(0.922 0 0)",
+        "input": "oklch(0.922 0 0)",
+        "ring": "oklch(0.708 0 0)",
+        "glass_layers": {
+          "soft": {
+            "fill": "oklch(1 0 0 / 0.78)",
+            "border": "oklch(0.922 0 0 / 0.55)",
+            "shadow": "0 28px 70px -40px rgb(15 15 15 / 0.28)"
+          },
+          "strong": {
+            "fill": "oklch(0.97 0 0 / 0.72)",
+            "border": "oklch(0.708 0 0 / 0.35)",
+            "shadow": "0 36px 80px -38px rgb(15 15 15 / 0.32)"
+          },
+          "floating": {
+            "fill": "oklch(1 0 0 / 0.68)",
+            "border": "oklch(0.922 0 0 / 0.45)",
+            "shadow": "0 42px 120px -60px rgb(15 15 15 / 0.4)"
+          }
+        },
+        "gradient_backdrops": {
+          "primary_surface": "linear-gradient(140deg, oklch(0.97 0 0 / 0.85) 0%, oklch(0.922 0 0 / 0.6) 35%, oklch(0.205 0 0 / 0.45) 100%)",
+          "accent_ripple": "radial-gradient(circle at 20% 20%, oklch(0.97 0 0 / 0.65), oklch(0.205 0 0 / 0.25) 70%)"
+        }
+      },
+      "dark": {
+        "background": {
+          "default": "oklch(0.145 0 0)",
+          "description": "Dark gray background"
+        },
+        "foreground": {
+          "default": "oklch(0.985 0 0)",
+          "description": "Light gray text"
+        },
+        "primary": {
+          "default": "oklch(0.922 0 0)",
+          "foreground": "oklch(0.205 0 0)"
+        },
+        "secondary": {
+          "default": "oklch(0.269 0 0)",
+          "foreground": "oklch(0.985 0 0)"
+        },
+        "accent": {
+          "default": "oklch(0.269 0 0)",
+          "foreground": "oklch(0.985 0 0)"
+        },
+        "muted": {
+          "default": "oklch(0.269 0 0)",
+          "foreground": "oklch(0.708 0 0)"
+        },
+        "destructive": {
+          "default": "oklch(0.704 0.191 22.216)",
+          "description": "Red for dangerous actions"
+        },
+        "border": "oklch(1 0 0 / 10%)",
+        "input": "oklch(1 0 0 / 15%)",
+        "ring": "oklch(0.556 0 0)",
+        "glass_layers": {
+          "soft": {
+            "fill": "oklch(0.145 0 0 / 0.68)",
+            "border": "oklch(1 0 0 / 0.12)",
+            "shadow": "0 32px 90px -45px rgb(0 0 0 / 0.65)"
+          },
+          "strong": {
+            "fill": "oklch(0.269 0 0 / 0.55)",
+            "border": "oklch(0.985 0 0 / 0.25)",
+            "shadow": "0 36px 110px -52px rgb(0 0 0 / 0.7)"
+          },
+          "floating": {
+            "fill": "oklch(0.205 0 0 / 0.45)",
+            "border": "oklch(0.985 0 0 / 0.18)",
+            "shadow": "0 48px 140px -70px rgb(0 0 0 / 0.75)"
+          }
+        },
+        "gradient_backdrops": {
+          "primary_surface": "linear-gradient(150deg, oklch(0.205 0 0 / 0.5) 0%, oklch(0.269 0 0 / 0.6) 45%, oklch(0.985 0 0 / 0.25) 100%)",
+          "accent_ripple": "radial-gradient(circle at 70% 20%, oklch(0.269 0 0 / 0.6), oklch(0.985 0 0 / 0.18) 80%)"
+        }
+      }
+    },
+    "semantic_colors": {
+      "status": {
+        "active": "green",
+        "inactive": "gray",
+        "pending": "yellow",
+        "error": "red"
+      },
+      "chart_colors": ["chart-1", "chart-2", "chart-3", "chart-4", "chart-5"]
+    }
+  },
+  "typography": {
+    "font_families": {
+      "sans": "var(--font-geist-sans)",
+      "mono": "var(--font-geist-mono)"
+    },
+    "font_sizes": {
+      "xs": "0.75rem",
+      "sm": "0.875rem",
+      "base": "1rem",
+      "lg": "1.125rem",
+      "xl": "1.25rem",
+      "2xl": "1.5rem",
+      "3xl": "1.875rem",
+      "4xl": "2.25rem"
+    },
+    "font_weights": {
+      "regular": "400",
+      "medium": "500",
+      "semibold": "600",
+      "bold": "700"
+    },
+    "line_heights": {
+      "tight": "1.25",
+      "normal": "1.5",
+      "relaxed": "1.75"
+    },
+    "heading_styles": {
+      "page_title": {
+        "size": "3xl",
+        "weight": "bold",
+        "tracking": "tight",
+        "effects": "text-shadow: 0 8px 24px rgb(15 15 15 / 0.18)"
+      },
+      "section_title": {
+        "size": "xl",
+        "weight": "semibold",
+        "effects": "backdrop-filter: blur(6px)"
+      },
+      "card_title": {
+        "size": "lg",
+        "weight": "semibold",
+        "effects": "text-shadow: 0 4px 16px rgb(15 15 15 / 0.12)"
+      },
+      "dialog_title": {
+        "size": "lg",
+        "weight": "semibold",
+        "effects": "letter-spacing: 0.01em"
+      }
+    }
+  },
+  "spacing": {
+    "base_unit": "0.25rem",
+    "scale": {
+      "0": "0",
+      "1": "0.25rem",
+      "2": "0.5rem",
+      "3": "0.75rem",
+      "4": "1rem",
+      "5": "1.25rem",
+      "6": "1.5rem",
+      "8": "2rem",
+      "10": "2.5rem",
+      "12": "3rem",
+      "16": "4rem"
+    },
+    "common_patterns": {
+      "card_padding": "1.5rem",
+      "modal_padding": "1.5rem",
+      "form_gap": "1rem",
+      "button_padding_x": "1rem",
+      "button_padding_y": "0.5rem",
+      "floating_layer_gap": "2.5rem"
+    }
+  },
+  "border_radius": {
+    "base": "0.625rem",
+    "scale": {
+      "none": "0",
+      "sm": "calc(var(--radius) - 4px)",
+      "md": "calc(var(--radius) - 2px)",
+      "lg": "var(--radius)",
+      "xl": "calc(var(--radius) + 4px)",
+      "full": "9999px"
+    },
+    "component_defaults": {
+      "button": "md",
+      "card": "lg",
+      "input": "md",
+      "modal": "lg",
+      "badge": "full",
+      "panel": "xl"
+    }
+  },
+  "shadows": {
+    "xs": "inset 0 1px 0 0 rgb(255 255 255 / 0.35)",
+    "sm": "0 12px 30px -22px rgb(15 15 15 / 0.25)",
+    "md": "0 20px 48px -30px rgb(15 15 15 / 0.28)",
+    "lg": "0 36px 80px -36px rgb(15 15 15 / 0.32)",
+    "xl": "0 64px 120px -48px rgb(15 15 15 / 0.4)",
+    "inner_soft": "inset 0 1px 0 0 rgb(255 255 255 / 0.2), inset 0 -12px 30px -24px rgb(15 15 15 / 0.28)",
+    "inner_strong": "inset 0 2px 16px -12px rgb(0 0 0 / 0.45)",
+    "hover_pop": "0 18px 60px -32px rgb(15 15 15 / 0.35)"
+  },
+  "effects": {
+    "backdrop_blurs": {
+      "sm": "12px",
+      "md": "18px",
+      "lg": "28px"
+    },
+    "surface_depth": {
+      "layer_offsets": ["0px", "24px", "48px"],
+      "z_index_scale": {
+        "base": 0,
+        "floating": 10,
+        "frosted_panel": 20,
+        "modal": 30
+      }
+    },
+    "border_styles": {
+      "light": {
+        "base": "1px solid oklch(0.922 0 0 / 0.55)",
+        "hover": "1px solid oklch(0.922 0 0 / 0.75)"
+      },
+      "dark": {
+        "base": "1px solid oklch(0.985 0 0 / 0.18)",
+        "hover": "1px solid oklch(0.985 0 0 / 0.32)"
+      }
+    },
+    "inner_glow": {
+      "light": "inset 0 0 12px rgb(255 255 255 / 0.18)",
+      "dark": "inset 0 0 16px rgb(255 255 255 / 0.12)"
+    }
+  },
+  "components": {
+    "button": {
+      "surface": "glass_layers.strong",
+      "variants": {
+        "default": {
+          "background": "linear-gradient(145deg, oklch(0.205 0 0 / 0.38) 0%, oklch(0.205 0 0 / 0.18) 100%)",
+          "text": "primary (switches to white in dark mode)",
+          "border": "effects.border_styles.light.base",
+          "backdropFilter": "blur(12px)",
+          "shadow": ["shadows.inner_soft", "shadows.sm"],
+          "hover": {
+            "background": "linear-gradient(145deg, oklch(0.205 0 0 / 0.45) 0%, oklch(0.205 0 0 / 0.22) 100%)",
+            "border": "effects.border_styles.light.hover",
+            "shadow": ["shadows.inner_soft", "shadows.hover_pop"]
+          },
+          "focus": {
+            "ring": "ring-2 ring-offset-4 ring"
+          },
+          "active": {
+            "shadow": "shadows.inner_strong"
+          }
+        },
+        "secondary": {
+          "background": "linear-gradient(145deg, oklch(0.97 0 0 / 0.65) 0%, oklch(0.922 0 0 / 0.45) 100%)",
+          "text": "secondary-foreground",
+          "border": "effects.border_styles.light.base",
+          "backdropFilter": "blur(12px)",
+          "shadow": "shadows.sm",
+          "hover": {
+            "background": "linear-gradient(145deg, oklch(0.97 0 0 / 0.72) 0%, oklch(0.922 0 0 / 0.55) 100%)",
+            "border": "effects.border_styles.light.hover",
+            "shadow": "shadows.hover_pop"
+          }
+        },
+        "outline": {
+          "border": "effects.border_styles.light.base",
+          "text": "foreground",
+          "background": "transparent",
+          "backdropFilter": "blur(18px)",
+          "hover": {
+            "background": "oklch(1 0 0 / 0.18)",
+            "border": "effects.border_styles.light.hover",
+            "shadow": "shadows.sm"
+          }
+        },
+        "ghost": {
+          "text": "foreground",
+          "background": "oklch(1 0 0 / 0.12)",
+          "backdropFilter": "blur(12px)",
+          "hover": {
+            "background": "oklch(1 0 0 / 0.18)",
+            "border": "effects.border_styles.light.hover"
+          }
+        },
+        "destructive": {
+          "background": "linear-gradient(145deg, oklch(0.577 0.245 27.325 / 0.6) 0%, oklch(0.577 0.245 27.325 / 0.4) 100%)",
+          "text": "white",
+          "border": "oklch(0.577 0.245 27.325 / 0.55)",
+          "backdropFilter": "blur(12px)",
+          "shadow": "shadows.sm",
+          "hover": {
+            "background": "linear-gradient(145deg, oklch(0.577 0.245 27.325 / 0.75) 0%, oklch(0.577 0.245 27.325 / 0.55) 100%)",
+            "border": "oklch(0.577 0.245 27.325 / 0.75)",
+            "shadow": "shadows.hover_pop"
+          }
+        },
+        "link": {
+          "text": "primary",
+          "underline": true,
+          "hover": {
+            "text": "primary",
+            "glow": "0 0 0 1px oklch(0.205 0 0 / 0.35)"
+          }
+        }
+      },
+      "sizes": {
+        "sm": {
+          "height": "36px",
+          "padding": "0 12px",
+          "fontSize": "sm"
+        },
+        "default": {
+          "height": "40px",
+          "padding": "0 16px",
+          "fontSize": "sm"
+        },
+        "lg": {
+          "height": "44px",
+          "padding": "0 32px",
+          "fontSize": "base"
+        },
+        "icon": {
+          "height": "40px",
+          "width": "40px"
+        }
+      },
+      "states": {
+        "hover": "accentuate border and drop shadow",
+        "focus": "ring-2 ring-offset-2 with translucent offset surface",
+        "active": "inner shadow for pressed effect",
+        "disabled": "reduce opacity to 45% and remove glass shadow"
+      }
+    },
+    "input": {
+      "base": {
+        "height": "40px",
+        "padding": "0 12px",
+        "border": "effects.border_styles.light.base",
+        "borderRadius": "md",
+        "fontSize": "sm",
+        "background": "oklch(1 0 0 / 0.72)",
+        "backdropFilter": "blur(18px)",
+        "shadow": "shadows.inner_soft"
+      },
+      "states": {
+        "focus": "ring-2 ring-primary shadow-md accentuated border",
+        "error": "border-destructive text-destructive inner_strong shadow",
+        "disabled": "opacity-50 cursor-not-allowed backdrop-filter blur(12px)"
+      }
+    },
+    "card": {
+      "base": {
+        "background": "oklch(1 0 0 / 0.78)",
+        "gradient": "color_palette.themes.light.gradient_backdrops.primary_surface",
+        "borderRadius": "lg",
+        "border": "effects.border_styles.light.base",
+        "padding": "24px",
+        "backdropFilter": "blur(18px)",
+        "shadow": ["shadows.inner_soft", "shadows.lg"]
+      },
+      "hover": {
+        "border": "effects.border_styles.light.hover",
+        "shadow": ["shadows.inner_soft", "shadows.xl"],
+        "transform": "translateY(-4px)"
+      },
+      "variants": {
+        "elevated": {
+          "shadow": "shadows.xl"
+        },
+        "outline": {
+          "border": "effects.border_styles.light.base",
+          "background": "oklch(1 0 0 / 0.6)"
+        },
+        "ghost": {
+          "background": "transparent",
+          "border": "effects.border_styles.light.base",
+          "backdropFilter": "blur(12px)"
+        }
+      }
+    },
+    "modal": {
+      "overlay": {
+        "background": "linear-gradient(120deg, rgb(0 0 0 / 0.45) 0%, rgb(0 0 0 / 0.65) 100%)",
+        "backdropFilter": "blur(16px)"
+      },
+      "content": {
+        "background": "oklch(1 0 0 / 0.72)",
+        "borderRadius": "lg",
+        "maxWidth": "500px",
+        "padding": "24px",
+        "shadow": ["shadows.xl", "shadows.inner_soft"],
+        "border": "effects.border_styles.light.base",
+        "backdropFilter": "blur(24px)",
+        "gradient": "color_palette.themes.light.gradient_backdrops.primary_surface"
+      },
+      "animations": {
+        "enter": "framer-motion: { type: 'spring', damping: 18, stiffness: 220, opacity: [0, 1], scale: [0.95, 1], filter: ['blur(12px)', 'blur(0px)'] }",
+        "exit": "framer-motion: { type: 'tween', duration: 0.25, opacity: [1, 0], scale: [1, 0.96], filter: ['blur(0px)', 'blur(16px)'] }"
+      }
+    },
+    "table": {
+      "container": {
+        "border": "effects.border_styles.light.base",
+        "borderRadius": "lg",
+        "overflow": "auto",
+        "background": "oklch(1 0 0 / 0.7)",
+        "backdropFilter": "blur(18px)",
+        "shadow": "shadows.sm"
+      },
+      "header": {
+        "background": "oklch(0.97 0 0 / 0.65)",
+        "borderBottom": "effects.border_styles.light.base",
+        "fontWeight": "medium",
+        "backdropFilter": "blur(12px)"
+      },
+      "row": {
+        "borderBottom": "effects.border_styles.light.base",
+        "hover": {
+          "background": "oklch(1 0 0 / 0.16)",
+          "border": "effects.border_styles.light.hover",
+          "shadow": "shadows.sm"
+        }
+      },
+      "cell": {
+        "padding": "12px",
+        "fontSize": "sm"
+      }
+    },
+    "badge": {
+      "base": {
+        "borderRadius": "full",
+        "padding": "2px 10px",
+        "fontSize": "xs",
+        "fontWeight": "medium",
+        "backdropFilter": "blur(10px)",
+        "border": "effects.border_styles.light.base",
+        "shadow": "shadows.inner_soft"
+      },
+      "variants": {
+        "default": {
+          "light": {
+            "background": "oklch(0.96 0.01 240 / 0.35)",
+            "text": "oklch(0.4 0.02 240)"
+          },
+          "dark": {
+            "background": "oklch(1 0 0 / 0.25)",
+            "text": "oklch(0.985 0 0)"
+          }
+        },
+        "secondary": {
+          "light": {
+            "background": "oklch(0.92 0.08 236 / 0.35)",
+            "text": "oklch(0.48 0.12 236)"
+          },
+          "dark": {
+            "background": "oklch(0.75 0.1 236 / 0.22)",
+            "text": "oklch(0.92 0.08 236)"
+          }
+        },
+        "success": {
+          "light": {
+            "background": "oklch(0.88 0.09 150 / 0.35)",
+            "text": "oklch(0.5 0.11 150)"
+          },
+          "dark": {
+            "background": "oklch(0.69 0.14 150 / 0.22)",
+            "text": "oklch(0.88 0.09 150)"
+          }
+        },
+        "warning": {
+          "light": {
+            "background": "oklch(0.9 0.1 85 / 0.35)",
+            "text": "oklch(0.52 0.12 85)"
+          },
+          "dark": {
+            "background": "oklch(0.7 0.13 85 / 0.22)",
+            "text": "oklch(0.9 0.1 85)"
+          }
+        },
+        "destructive": {
+          "light": {
+            "background": "oklch(0.86 0.12 30 / 0.35)",
+            "text": "oklch(0.45 0.14 30)"
+          },
+          "dark": {
+            "background": "oklch(0.68 0.16 30 / 0.22)",
+            "text": "oklch(0.96 0.12 30)"
+          }
+        },
+        "info": {
+          "light": {
+            "background": "oklch(0.92 0.08 225 / 0.35)",
+            "text": "oklch(0.5 0.11 225)"
+          },
+          "dark": {
+            "background": "oklch(0.73 0.12 225 / 0.22)",
+            "text": "oklch(0.92 0.08 225)"
+          }
+        },
+        "neutral": {
+          "light": {
+            "background": "oklch(0.95 0.01 260 / 0.35)",
+            "text": "oklch(0.45 0.01 260)"
+          },
+          "dark": {
+            "background": "oklch(0.45 0 0 / 0.35)",
+            "text": "oklch(0.92 0 0)"
+          }
+        },
+        "outline": {
+          "light": {
+            "border": "oklch(0.85 0 0 / 0.4)",
+            "text": "oklch(0.45 0 0)"
+          },
+          "dark": {
+            "border": "oklch(0.985 0 0 / 0.25)",
+            "text": "oklch(0.985 0 0)"
+          }
+        }
+      }
+    },
+    "form": {
+      "field": {
+        "marginBottom": "16px",
+        "gap": "0.75rem"
+      },
+      "label": {
+        "marginBottom": "8px",
+        "fontSize": "sm",
+        "fontWeight": "medium",
+        "background": "oklch(1 0 0 / 0.55)",
+        "padding": "0.25rem 0.5rem",
+        "borderRadius": "sm",
+        "backdropFilter": "blur(10px)"
+      },
+      "error": {
+        "marginTop": "4px",
+        "fontSize": "sm",
+        "color": "destructive",
+        "shadow": "inset 0 1px 6px -4px oklch(0.577 0.245 27.325 / 0.45)"
+      },
+      "helper": {
+        "marginTop": "4px",
+        "fontSize": "sm",
+        "color": "muted-foreground",
+        "background": "oklch(1 0 0 / 0.35)",
+        "padding": "0.25rem 0.5rem",
+        "borderRadius": "sm"
+      }
+    },
+    "theme_overrides": {
+      "dark": {
+        "surface": "color_palette.themes.dark.glass_layers.soft",
+        "border": "effects.border_styles.dark.base",
+        "hover_border": "effects.border_styles.dark.hover",
+        "shadow": "increase blur radius by 4px and reduce opacity by 10%"
+      }
+    },
+    "dropdown_menu": {
+      "surface": {
+        "light": {
+          "background": "oklch(1 0 0 / 0.50)",
+          "border": "oklch(0.50 0 0 / 0.40)",
+          "backdropFilter": "blur(28px)",
+          "shadow": "shadows.lg"
+        },
+        "dark": {
+          "background": "oklch(0.22 0.03 260 / 0.42)",
+          "border": "oklch(0.82 0.04 290 / 0.60)",
+          "backdropFilter": "blur(28px)",
+          "shadow": "0 38px 110px -40px rgb(5 10 25 / 0.85)"
+        }
+      },
+      "label": {
+        "typography": "uppercase text-xs tracking-[0.14em]",
+        "color": "muted-foreground/80"
+      },
+      "item": {
+        "padding": "0.5rem 0.75rem",
+        "radius": "0.75rem",
+        "icon_color": {
+          "light": "muted-foreground",
+          "dark": "white/80"
+        },
+        "hover": {
+          "light": {
+            "background": "oklch(1 0 0 / 0.15)",
+            "text": "foreground"
+          },
+          "dark": {
+            "background": "oklch(0.28 0.04 255 / 0.55)",
+            "text": "white"
+          }
+        },
+        "destructive_hover": {
+          "light": "oklch(0.577 0.245 27.325 / 0.12)",
+          "dark": "oklch(0.55 0.20 25 / 0.42)"
+        }
+      }
+    }
+  },
+  "layouts": {
+    "app": {
+      "structure": "root layout wraps providers; authenticated group contains persistent navigation shell",
+      "route_groups": {
+        "authenticated": {
+          "path": "src/app/(authenticated)",
+          "layout": "AppLayout",
+          "responsibilities": ["Primary sidebar navigation", "Top header with company switcher", "Glass morphism page container"],
+          "access": "Protected by AuthGuard"
+        }
+      },
+      "sidebar": {
+        "width": "250px",
+        "background": "oklch(1 0 0 / 0.65)",
+        "borderRight": "effects.border_styles.light.base",
+        "backdropFilter": "blur(16px)",
+        "shadow": "shadows.lg",
+        "gradient": "color_palette.themes.light.gradient_backdrops.accent_ripple"
+      },
+      "header": {
+        "height": "64px",
+        "borderBottom": "effects.border_styles.light.base",
+        "padding": "0 24px",
+        "background": "oklch(1 0 0 / 0.6)",
+        "backdropFilter": "blur(18px)",
+        "shadow": "shadows.sm"
+      },
+      "main": {
+        "padding": "24px",
+        "maxWidth": "1400px",
+        "margin": "0 auto",
+        "background": "transparent",
+        "layering": "stack glass cards over gradient backdrop with floating offsets"
+      },
+      "top_navigation": {
+        "background": "glass-surface glass-layer-gradient",
+        "logo_tile": "rounded bg-slate-900/90 (light) or transparent (dark) with padding",
+        "desktop_nav": {
+          "item_style": "rounded-xl glass-surface, gradient ring when active",
+          "hover": "accent border, subtle glass shadow",
+          "icon": "Lucide icons tinted to primary when active"
+        },
+        "right_cluster": {
+          "company_switcher": "Dropdown with outline button",
+          "user_menu": "Avatar button opening glass dropdown",
+          "mobile_toggle": "ghost button showing navigation on small screens"
+        }
+      }
+    },
+    "grid": {
+      "dashboard": {
+        "columns": {
+          "mobile": "1",
+          "tablet": "2",
+          "desktop": "4"
+        },
+        "gap": "16px",
+        "layering": "staggered z-index using effects.surface_depth.z_index_scale",
+        "background": {
+          "light": "radial-gradient(circle at 10% 0%, oklch(0.92 0.04 230 / 0.85), transparent 55%), radial-gradient(circle at 80% -10%, oklch(0.82 0.05 215 / 0.75), transparent 60%), linear-gradient(180deg, oklch(0.9 0.05 230 / 0.6), oklch(0.72 0.03 240 / 0.55))",
+          "dark": "radial-gradient(circle at 30% -10%, oklch(0.36 0.05 260 / 0.65), transparent 60%), radial-gradient(circle at 75% 0%, oklch(0.28 0.04 280 / 0.6), transparent 65%), linear-gradient(180deg, oklch(0.2 0.02 260 / 0.55), oklch(0.12 0.015 260 / 0.6))"
+        }
+      },
+      "form": {
+        "columns": {
+          "modal": "4",
+          "page": "6"
+        },
+        "gap": "16px",
+        "background": "oklch(1 0 0 / 0.62)",
+        "backdropFilter": "blur(16px)"
+      }
+    },
+    "breakpoints": {
+      "sm": "640px",
+      "md": "768px",
+      "lg": "1024px",
+      "xl": "1280px",
+      "2xl": "1536px"
+    },
+    "theme_overrides": {
+      "dark": {
+        "sidebar": {
+          "background": "color_palette.themes.dark.glass_layers.soft.fill",
+          "borderRight": "effects.border_styles.dark.base"
+        },
+        "header": {
+          "background": "color_palette.themes.dark.glass_layers.soft.fill",
+          "borderBottom": "effects.border_styles.dark.base"
+        },
+        "main": {
+          "layering": "increase floating offset by +8px and use gradient_backdrops.primary_surface from dark theme"
+        }
+      }
+    }
+  },
+  "interactions": {
+    "animations": {
+      "duration": {
+        "fast": "150ms",
+        "normal": "280ms",
+        "slow": "450ms"
+      },
+      "easing": {
+        "default": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "bounce": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+        "glass_float": "cubic-bezier(0.33, 1, 0.68, 1)"
+      },
+      "motion_library": {
+        "library": "Framer Motion",
+        "usage": ["Panel entrance spring with blur-to-sharp transition", "Hover parallax and tilt for cards and analytics charts", "Staggered fade-in for layered surfaces"],
+        "defaults": {
+          "type": "spring",
+          "damping": 20,
+          "stiffness": 240,
+          "mass": 0.9
+        }
+      }
+    },
+    "transitions": {
+      "color": "color 200ms ease-in-out",
+      "background": "background-color 200ms ease-in-out",
+      "border": "border-color 220ms ease-in-out",
+      "shadow": "box-shadow 220ms ease-in-out",
+      "transform": "transform 220ms ease-in-out",
+      "backdrop": "backdrop-filter 260ms ease-in-out"
+    },
+    "hover_effects": {
+      "lift": {
+        "transform": "translateY(-4px)",
+        "shadow": "shadows.hover_pop",
+        "border": "effects.border_styles.light.hover"
+      },
+      "grow": {
+        "transform": "scale(1.03)",
+        "shadow": "shadows.lg"
+      },
+      "fade": {
+        "opacity": "0.85",
+        "background": "oklch(1 0 0 / 0.22)"
+      },
+      "glow": {
+        "shadow": "0 0 0 1px oklch(0.205 0 0 / 0.35), 0 16px 40px -24px rgb(15 15 15 / 0.35)"
+      }
+    }
+  },
+  "patterns": {
+    "navigation": {
+      "sidebar": {
+        "item_height": "40px",
+        "icon_size": "16px",
+        "active_indicator": "background-accent with border accentuated",
+        "hover": {
+          "background": "oklch(1 0 0 / 0.22)",
+          "border": "effects.border_styles.light.hover",
+          "shadow": "shadows.sm"
+        }
+      },
+      "breadcrumbs": {
+        "separator": "/",
+        "fontSize": "sm",
+        "color": "muted-foreground",
+        "background": "oklch(1 0 0 / 0.45)",
+        "backdropFilter": "blur(10px)",
+        "border": "effects.border_styles.light.base",
+        "visibility": "hidden on top-level routes"
+      },
+      "tabs": {
+        "height": "40px",
+        "borderBottom": "2px solid transparent",
+        "active": {
+          "border": "border-primary/60",
+          "background": "linear-gradient(135deg, oklch(0.9 0.02 260 / 0.2), oklch(0.85 0.01 260 / 0.1))",
+          "text": "primary",
+          "shadow": "shadows.inner_soft"
+        },
+        "hover": {
+          "background": "oklch(1 0 0 / 0.2)",
+          "border": "effects.border_styles.light.hover"
+        }
+      }
+    },
+    "feedback": {
+      "loading": {
+        "spinner": "animate-spin with layered blur glow",
+        "skeleton": "animate-pulse with gradient shimmer",
+        "progress": "linear progress bar with translucent track"
+      },
+      "toast": {
+        "position": "bottom-right",
+        "duration": "5000ms",
+        "maxVisible": "3",
+        "background": "oklch(0.145 0 0 / 0.72)",
+        "border": "effects.border_styles.dark.base",
+        "shadow": "shadows.lg",
+        "hover": {
+          "border": "effects.border_styles.dark.hover",
+          "shadow": "shadows.xl"
+        }
+      },
+      "empty_states": {
+        "icon": "48px",
+        "title": "text-lg font-semibold",
+        "description": "text-sm text-muted-foreground",
+        "background": "oklch(1 0 0 / 0.55)",
+        "backdropFilter": "blur(12px)",
+        "border": "effects.border_styles.light.base"
+      }
+    },
+    "data_display": {
+      "table": {
+        "striped": false,
+        "hover": true,
+        "bordered": true,
+        "responsive": "horizontal-scroll with frosted edge fade"
+      },
+      "pagination": {
+        "items_per_page": [10, 25, 50, 100],
+        "button_count": 5,
+        "background": "oklch(1 0 0 / 0.55)",
+        "hover": {
+          "border": "effects.border_styles.light.hover",
+          "shadow": "shadows.sm"
+        }
+      },
+      "sorting": {
+        "indicator": "arrow icon",
+        "multi_column": false,
+        "hover": {
+          "color": "primary",
+          "border": "effects.border_styles.light.hover"
+        }
+      }
+    }
+  },
+  "accessibility": {
+    "focus": {
+      "visible": "ring-2 ring-primary ring-offset-2 backdrop-blur",
+      "trap": "modal and dropdown",
+      "order": "logical tab order"
+    },
+    "aria": {
+      "labels": "all interactive elements",
+      "live_regions": "form errors and toasts",
+      "descriptions": "complex interactions"
+    },
+    "keyboard": {
+      "navigation": "tab, arrow keys, enter, escape",
+      "shortcuts": {
+        "search": "cmd+k or ctrl+k",
+        "close": "escape"
+      }
+    },
+    "contrast": {
+      "minimum": "WCAG AA (4.5:1)",
+      "large_text": "WCAG AA (3:1)",
+      "glass_guideline": "ensure backdrop luminance difference remains above 4.5:1 via secondary or accent gradients"
+    }
+  },
+  "responsive": {
+    "strategy": "mobile-first",
+    "breakpoints": {
+      "sm": {
+        "min": "640px",
+        "columns": 4
+      },
+      "md": {
+        "min": "768px",
+        "columns": 8
+      },
+      "lg": {
+        "min": "1024px",
+        "columns": 12
+      },
+      "xl": {
+        "min": "1280px",
+        "columns": 12
+      },
+      "2xl": {
+        "min": "1536px",
+        "columns": 12
+      }
+    },
+    "mobile_optimizations": {
+      "touch_targets": "minimum 44x44px",
+      "font_size": "minimum 16px for inputs",
+      "viewport": "width=device-width, initial-scale=1",
+      "navigation": "collapsible sidebar with overlay",
+      "surface_adjustments": "reduce blur to 12px and increase background opacity to 0.82 for readability"
+    }
+  },
+  "icons": {
+    "library": "Lucide React",
+    "sizes": {
+      "xs": "12px",
+      "sm": "16px",
+      "md": "20px",
+      "lg": "24px",
+      "xl": "32px"
+    },
+    "default_size": "16px",
+    "stroke_width": "2",
+    "usage_patterns": {
+      "navigation": "icon + label",
+      "buttons": "icon only or icon + text",
+      "status": "icon with semantic color",
+      "actions": "icon buttons for common actions"
+    },
+    "glass_pairing": {
+      "tint": "apply background: oklch(1 0 0 / 0.35)",
+      "shadow": "inset 0 1px 0 0 rgb(255 255 255 / 0.25)"
+    }
+  },
+  "states": {
+    "interactive": {
+      "default": "base appearance",
+      "hover": "emphasize border contrast, increase drop shadow, add glow",
+      "focus": "keyboard navigation indicator with translucent ring",
+      "active": "pressed state with inner shadow and reduced blur",
+      "disabled": "reduced opacity, no pointer events, remove glow",
+      "loading": "spinner or skeleton with shimmer gradient",
+      "error": "red border and text",
+      "success": "green indicator"
+    },
+    "form": {
+      "pristine": "untouched field",
+      "touched": "field has been focused",
+      "dirty": "value has changed",
+      "valid": "passes validation",
+      "invalid": "fails validation",
+      "submitting": "form is being submitted"
+    }
+  },
+  "navigation_patterns": {
+    "sidebar": {
+      "items": "Icons with labels, glass-surface tiles",
+      "active": "ring + gradient overlay",
+      "hover": "accent border and subtle lift",
+      "breakpoints": "collapsible below lg"
+    },
+    "header": {
+      "slots": ["company switcher", "user menu", "mobile menu"],
+      "actions": "Dropdown menus use glass dropdown tokens"
+    }
+  }
+}
