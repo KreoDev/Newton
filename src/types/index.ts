@@ -1,182 +1,223 @@
-// Meta fields shared by every document stored in Firestore
-export interface BaseEntity {
-  id: string
-  /** Millisecond timestamp when doc was first created (new) */
-  createdDate?: number
-  /** Millisecond timestamp when doc was last modified (new) */
-  modifiedDate?: number
-  /** Company database key that this record belongs to */
-  companyDB?: string
+export interface Timestamped {
+  createdAt: number
+  updatedAt: number
+  dbCreatedAt?: unknown
+  dbUpdatedAt?: unknown
 }
 
-// Company root collection
-export interface Company {
-  id: string
-  dbName: string
-  name: string
+export interface CompanyScoped {
+  companyId: string
 }
 
-// User and Authentication
-export interface User extends BaseEntity {
-  companyDB: string
+export interface User extends Timestamped, CompanyScoped {
+  id: string
   email: string
   firstName: string
   lastName: string
   roleId: string
+  phoneNumber?: string
+  displayName?: string
   avatar?: string
-  permissions?: Role["permissions"]
-  preferences?: {
-    [key: string]: unknown
-  }
+  isActive: boolean
+  isGlobal: boolean
+  notificationPreferences: Record<string, boolean>
 }
 
-// Role and Permissions
-export interface Role extends BaseEntity {
-  name: string
-  definedBy: "user" | "system"
-  permissions: {
-    [module: string]: {
-      [action: string]: boolean
-    }
-  }
-}
-
-// Asset Types and Fields
-export interface AssetType extends BaseEntity {
-  companyDB: string
-  name: string
-  /** true if this asset type represents vehicles */
-  isVehicle: boolean
-  status: "active" | "inactive"
-  fields: Field[]
-}
-
-export interface Field {
+export interface Role extends Timestamped, CompanyScoped {
   id: string
-  label: string
-  fieldType: FieldType
-  options?: string[]
-  required: boolean
-  scanType?: string
-}
-
-// Assets
-export interface Asset extends BaseEntity {
-  companyDB: string
-  isVehicle: boolean
-  assetTypeId: string
-  registrationNumber: string
-  fleetNumber?: string
-  status: "active" | "sold" | "written_off" | "standby" | "sales_prep" | "inactive"
-  registerNumber: string
+  name: string
+  permissionKeys: string[]
   description?: string
-  make?: string
-  series?: string
-  vinNumber: string
-  engineNumber: string
-  licenseExpiryDate?: Date
-  max?: number
-  transporterCode: string
-  year: number
-  optimalPayload: string
-  axelCount: number
-  assetTareWeight: number
-  inductionDate: Date
-  inductionUser: string
-  documentsCount: number
-  agreedValue?: number
-  creatorId?: string
-  newtonBarcodeId?: string
-  properties: {
-    [key: string]: any
-  }
+  isActive: boolean
 }
 
-// Documents
-export interface DocumentType extends BaseEntity {
-  companyDB: string
-  name: string
-  attachableTo: "Asset" | "Employee" | "Leader" | "Follower"
-  status: "active" | "standby" | "on_file"
-  fields: Field[]
-}
-
-export interface Document extends BaseEntity {
-  companyDB: string
-  documentableType: string
-  documentableId: string
-  documentTypeId: string
-  status: "active" | "archived" | "standby" | "on_file" | "standby_on_file"
-  fileName: string
-  fileUrl: string
-  fileSize: number
-  contentType: string
-}
-
-// Transporters
-export interface Transporter extends BaseEntity {
-  companyDB: string
-  name: string
-  email: string
-  code: string
-}
-
-// Command system for Node.js communication
-export interface Command extends BaseEntity {
-  companyDB: string
-  action: string
-  payload: Record<string, unknown>
-  processed: boolean
-  processedAt?: Date
-  result?: Record<string, unknown>
-  error?: string
-}
-
-export interface ScanType {
+export interface Company extends Timestamped {
   id: string
   name: string
+  companyType: "mine" | "transporter" | "logistics_coordinator"
+  registrationNumber: string
+  vatNumber?: string
+  physicalAddress: string
+  mainContactId: string
+  secondaryContactIds: string[]
+  mineConfig?: Record<string, unknown>
+  transporterConfig?: Record<string, unknown>
+  logisticsCoordinatorConfig?: Record<string, unknown>
+  isActive: boolean
 }
 
-// Form and UI types
-export interface FormField {
+export interface Client extends Timestamped, CompanyScoped {
+  id: string
   name: string
-  label: string
-  type: "text" | "email" | "password" | "number" | "date" | "select" | "checkbox" | "textarea"
-  required?: boolean
-  options?: { value: string; label: string }[]
-  validation?: Record<string, unknown>
+  registrationNumber: string
+  vatNumber?: string
+  physicalAddress: string
+  contactName: string
+  contactEmail: string
+  contactPhone: string
+  allowedSiteIds: string[]
+  isActive: boolean
 }
 
-export interface TableColumn {
-  key: string
-  label: string
-  sortable?: boolean
-  exportable?: boolean
+export interface Asset extends Timestamped, CompanyScoped {
+  id: string
+  assetType: "truck" | "trailer" | "driver"
+  qrCode: string
+  vehicleDiskData?: string
+  driverLicenseData?: string
+  registrationNumber?: string
+  licenseNumber?: string
+  licenseExpiryDate?: string
+  fleetNumber?: string
+  groupId?: string
+  isActive: boolean
+  inactiveReason?: string
+  inactiveDate?: string
+  deletedReason?: string
 }
 
-// API Response types
-export interface ApiResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
-  message?: string
+export interface Order extends Timestamped, CompanyScoped {
+  id: string
+  orderNumber: string
+  orderType: "receiving" | "dispatching"
+  clientCompanyId: string
+  dispatchStartDate: string
+  dispatchEndDate: string
+  totalWeight: number
+  collectionSiteId: string
+  destinationSiteId: string
+  productId: string
+  sealRequired: boolean
+  sealQuantity?: number
+  dailyTruckLimit: number
+  dailyWeightLimit: number
+  monthlyLimit?: number
+  tripLimit: number
+  tripDuration?: number
+  status: "pending" | "allocated" | "completed" | "cancelled"
+  createdById: string
+  completedWeight?: number
+  completedTrips?: number
 }
 
-export interface PaginatedResponse<T> {
-  items: T[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
+export interface PreBooking extends Timestamped, CompanyScoped {
+  id: string
+  orderId: string
+  assetId: string
+  transporterCompanyId: string
+  scheduledDate: string
+  scheduledTime: string
+  tripsPerDay: number
+  specialInstructions?: string
+  status: "pending" | "arrived" | "late" | "completed"
+  arrivalTime?: string
+  createdById: string
 }
 
-// Constants
-export const APP_MODULES = ["transporters", "employees", "assets"] as const
+export interface Product extends Timestamped, CompanyScoped {
+  id: string
+  name: string
+  code: string
+  categoryId?: string
+  specifications?: string
+  isActive: boolean
+}
 
-export const ACTIONS = ["list", "view", "create", "edit", "delete", "export", "print"] as const
+export interface Site extends Timestamped, CompanyScoped {
+  id: string
+  name: string
+  siteType: "collection" | "destination"
+  physicalAddress: string
+  contactUserId: string
+  operatingHours: Record<string, { open: string; close: string }>
+  isActive: boolean
+}
 
-export const FIELD_TYPES = ["date", "radio_buttons", "select", "text", "scan", "custom_scan", "number", "textarea", "user_select", "asset_select", "transporter_select", "checkbox"] as const
+export interface WeighingRecord extends Timestamped, CompanyScoped {
+  id: string
+  orderId: string
+  assetId: string
+  weighbridgeId: string
+  status: "tare_only" | "completed"
+  tareWeight: number
+  grossWeight?: number
+  netWeight?: number
+  tareTimestamp: string
+  grossTimestamp?: string
+  overloadFlag?: boolean
+  underweightFlag?: boolean
+  sealNumbers?: string[]
+  ticketNumber: string
+  operatorId: string
+}
 
-export type AppModule = (typeof APP_MODULES)[number]
-export type Action = (typeof ACTIONS)[number]
-export type FieldType = (typeof FIELD_TYPES)[number]
+export interface Weighbridge extends Timestamped, CompanyScoped {
+  id: string
+  name: string
+  location: string
+  axleSetup: "single" | "multiple"
+  serialPortConfig?: Record<string, unknown>
+  tolerancePercent: number
+  overloadThreshold: number
+  underweightThreshold: number
+  lastCalibration?: string
+  nextCalibration?: string
+  isActive: boolean
+}
+
+export interface Calibration extends Timestamped, CompanyScoped {
+  id: string
+  weighbridgeId: string
+  knownWeight: number
+  measuredWeight: number
+  variance: number
+  adjustmentFactor: number
+  certificateNumber?: string
+  performedById: string
+}
+
+export interface Seal extends Timestamped, CompanyScoped {
+  id: string
+  sealNumber: string
+  orderId: string
+  weighingRecordId: string
+  status: "intact" | "broken" | "missing"
+  appliedAt: string
+  verifiedAt?: string
+}
+
+export interface SecurityCheck extends Timestamped, CompanyScoped {
+  id: string
+  checkType: "entry" | "exit"
+  assetId: string
+  driverId: string
+  trailer1Id?: string
+  trailer2Id?: string
+  orderId?: string
+  preBookingId?: string
+  scanResults: Record<string, unknown>
+  verificationStatus: "passed" | "failed" | "denied"
+  denialReason?: string
+  securityOfficerId: string
+  timestamp: string
+}
+
+export interface NotificationTemplate extends Timestamped, CompanyScoped {
+  id: string
+  name: string
+  subject: string
+  body: string
+  category: "asset" | "order" | "weighbridge" | "security" | "system"
+}
+
+export interface AuditLog extends Timestamped, CompanyScoped {
+  id: string
+  userId: string
+  action: string
+  entityType: string
+  entityId: string
+  changes?: Record<string, unknown>
+  ipAddress?: string
+  userAgent?: string
+  timestamp: string
+}

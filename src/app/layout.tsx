@@ -4,6 +4,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { LayoutProvider } from "@/contexts/LayoutContext"
 import { AuthProvider } from "@/contexts/AuthContext"
+import { CompanyProvider } from "@/contexts/CompanyContext"
 import { AuthGuard } from "@/components/layout/AuthGuard"
 import { Toaster } from "@/components/ui/sonner"
 
@@ -33,8 +34,10 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <LayoutProvider>
             <AuthProvider>
-              <AuthGuard>{children}</AuthGuard>
-              <Toaster />
+              <CompanyProvider>
+                <AuthGuard>{children}</AuthGuard>
+                <Toaster />
+              </CompanyProvider>
             </AuthProvider>
           </LayoutProvider>
         </ThemeProvider>

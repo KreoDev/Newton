@@ -11,7 +11,7 @@ interface AuthContextType {
   firebaseUser: FirebaseUser | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, firstName: string, lastName: string, companyDB: string, roleId: string) => Promise<void>
+  signUp: (email: string, password: string, firstName: string, lastName: string, companyId: string, roleId: string) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -22,66 +22,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
   const [loading, setLoading] = useState(true)
-  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!mounted) return
-
-    const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
-      if (firebaseUser) {
-        // Get user data from Firestore
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid))
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as User
-          setUser({
-            ...userData,
-            id: firebaseUser.uid,
-          })
+    const unsubscribe = onAuthStateChanged(auth, async currentFirebaseUser => {
+      try {
+        if (currentFirebaseUser) {
+          const userDoc = await getDoc(doc(db, "users", currentFirebaseUser.uid))
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as User
+            setUser({
+              ...userData,
+              id: currentFirebaseUser.uid,
+              isGlobal: Boolean(userData.isGlobal),
+            })
+          } else {
+            setUser(null)
+          }
+          setFirebaseUser(currentFirebaseUser)
+        } else {
+          setUser(null)
+          setFirebaseUser(null)
         }
-        setFirebaseUser(firebaseUser)
-      } else {
-        setUser(null)
-        setFirebaseUser(null)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })
 
     return () => unsubscribe()
-  }, [mounted])
-
-  // Don't render children until mounted to prevent hydration issues
-  if (!mounted) {
-    return null
-  }
+  }, [])
 
   const signIn = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password)
   }
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string, companyDB: string, roleId: string) => {
-    const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, email, password)
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, companyId: string, roleId: string) => {
+    const { user: createdUser } = await createUserWithEmailAndPassword(auth, email, password)
 
-    // Create user document in Firestore
     const newUser: Omit<User, "id"> = {
       email,
       firstName,
       lastName,
-      companyDB,
+      companyId,
       roleId,
-      createdDate: Date.now(),
-      modifiedDate: Date.now(),
+      notificationPreferences: {},
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      dbCreatedAt: new Date().toISOString(),
+      dbUpdatedAt: new Date().toISOString(),
+      isActive: true,
+      isGlobal: false,
     }
 
-    await setDoc(doc(db, "users", firebaseUser.uid), newUser)
+    await setDoc(doc(db, "users", createdUser.uid), newUser)
 
-    // Fetch the full user data to set the user state
-    const userDoc = await getDoc(doc(db, "users", firebaseUser.uid))
+    const userDoc = await getDoc(doc(db, "users", createdUser.uid))
     if (userDoc.exists()) {
-      setUser({ id: firebaseUser.uid, ...userDoc.data() } as User)
+      setUser({ id: createdUser.uid, ...userDoc.data() } as User)
     }
   }
 
@@ -97,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser({
           ...userData,
           id: firebaseUser.uid,
+          isGlobal: Boolean(userData.isGlobal),
         })
       }
     }

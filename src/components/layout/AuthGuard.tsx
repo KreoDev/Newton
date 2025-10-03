@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePathname, useRouter } from "next/navigation"
 
-const PUBLIC_PATHS = ["/login"]
+const PUBLIC_PATHS = ["/login", "/seed"]
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -18,9 +18,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (!user && !pathIsPublic) {
       router.push("/login")
+      return
     }
 
-    if (user && pathIsPublic) {
+    if (user && pathname === "/login") {
       router.push("/")
     }
   }, [user, loading, pathname, router])

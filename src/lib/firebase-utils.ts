@@ -5,12 +5,12 @@ import { toast } from "sonner"
 // Generic CRUD operations with toast notifications
 export const createDocument = async (collectionName: string, data: Record<string, unknown>, successMessage?: string) => {
   try {
-    const localStorageCompany = typeof window !== "undefined" ? localStorage.getItem("companyDB") : null
-    const companyDB = typeof data.companyDB === "string" ? data.companyDB : localStorageCompany ?? "dev"
+    const localStorageCompany = typeof window !== "undefined" ? localStorage.getItem("newton-layout-company") : null
+    const inferredCompanyId = typeof data.companyId === "string" ? data.companyId : localStorageCompany
 
     const docRef = await addDoc(collection(db, collectionName), {
-      companyDB,
       ...data,
+      ...(inferredCompanyId ? { companyId: inferredCompanyId } : {}),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       createdDate: Date.now(),
@@ -33,11 +33,13 @@ export const createDocument = async (collectionName: string, data: Record<string
 
 export const updateDocument = async (collectionName: string, id: string, data: Record<string, unknown>, successMessage?: string) => {
   try {
-    await updateDoc(doc(db, collectionName, id), {
+    const updateData = {
       ...data,
       updatedAt: serverTimestamp(),
       modifiedDate: Date.now(),
-    })
+    }
+
+    await updateDoc(doc(db, collectionName, id), updateData)
 
     toast.success(successMessage || `${collectionName.slice(0, -1)} updated successfully`, {
       description: `Changes have been saved`,

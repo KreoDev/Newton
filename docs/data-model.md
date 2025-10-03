@@ -9,6 +9,8 @@
 - Client times reflect when the action happened; server times reflect when Firestore accepted the write.
 - QR codes and vehicle disks are stored as plain strings.
 - All deletion operations are soft deletes using `isActive` flag except for immediate induction errors.
+- Unless explicitly stated otherwise, **every document is scoped to a company via `companyId`**. This field references the owning company’s document id (e.g. `c_dev`). Multi-tenant isolation must be enforced with Firestore security rules using this value. Users marked as global can temporarily switch their active `companyId`, but still only interact with one company at a time.
+- Users with `isGlobal = true` may use the company switcher UI to change which company they are acting on. Switching updates the user’s `companyId` document field before further reads/writes so security rules continue to evaluate in a single-tenant context.
 
 ## Core Collections
 
@@ -17,6 +19,7 @@
 | Field                   | Type                 | Required | Description                                               | Example                                            |
 | ----------------------- | -------------------- | -------- | --------------------------------------------------------- | -------------------------------------------------- |
 | id                      | string (doc id)      | yes      | Unique user id                                            | u_123                                              |
+| companyId               | string               | yes      | Active company reference (updates when user switches)     | c_123                                              |
 | email                   | string               | yes      | Sign-in identifier                                        | `john@example.com`                                 |
 | displayName             | string               | yes      | Friendly name                                             | John Smith                                         |
 | firstName               | string               | yes      | First name                                                | John                                               |
@@ -31,6 +34,7 @@
 | updatedAt               | number               | yes      | Last client event time (ms)                               | Date.now()                                         |
 | dbCreatedAt             | timestamp            | yes      | Server creation time                                      | serverTimestamp                                    |
 | dbUpdatedAt             | timestamp            | yes      | Last server update time                                   | serverTimestamp                                    |
+| isGlobal                | boolean              | yes      | Can view/switch between multiple companies                | false                                              |
 | isActive                | boolean              | yes      | Account active status                                     | true                                               |
 
 #### notificationPreferences structure
@@ -71,6 +75,7 @@
 | Field          | Type            | Required | Description                                        | Example                              |
 | -------------- | --------------- | -------- | -------------------------------------------------- | ------------------------------------ |
 | id             | string (doc id) | yes      | Unique role id                                     | r_newton_admin                       |
+| companyId      | string          | yes      | Owning company reference                           | c_123                                |
 | name           | string          | yes      | Role display name                                  | Newton Administrator                 |
 | permissionKeys | string[]        | yes      | Keys referencing entries in `settings/permissions` | ["assets.manage", "orders.create"]   |
 | description    | string          | no       | Role description                                   | Full system access and configuration |
@@ -78,6 +83,7 @@
 | updatedAt      | number          | yes      | Last client event time (ms)                        | Date.now()                           |
 | dbCreatedAt    | timestamp       | yes      | Server creation time                               | serverTimestamp                      |
 | dbUpdatedAt    | timestamp       | yes      | Last server update time                            | serverTimestamp                      |
+| isActive       | boolean         | yes      | Role currently usable                              | true                                 |
 
 ### companies (documents)
 
@@ -99,6 +105,9 @@
 | mineConfig                 | map             | no       | Mine-only configuration (sites, order settings, etc.)                          | See below           |
 | transporterConfig          | map             | no       | Transporter configuration (fleet, capabilities, compliance settings)           | See below           |
 | logisticsCoordinatorConfig | map             | no       | Logistics coordinator preferences (allocation rules, coverage areas, contacts) | See below           |
+| orderConfig                | map             | no       | Company-specific order defaults                                                | See below           |
+| systemSettings             | map             | no       | Company UI/field configuration overrides                                       | See below           |
+| securityAlerts             | map             | no       | Company security alert/escalation config                                       | See below           |
 
 #### Type-specific configuration examples
 
@@ -121,6 +130,38 @@ logisticsCoordinatorConfig: {
   dispatchRegions: ["Northern Cape", "Gauteng"],
   escalationContacts: ["u_222"]
 }
+
+orderConfig: {
+  orderNumberMode: "manualAllowed",
+  orderNumberPrefix: "DEV-",
+  defaultDailyTruckLimit: 10,
+  defaultDailyWeightLimit: 100,
+  defaultMonthlyLimit: 2000,
+  defaultTripLimit: 2,
+  defaultWeightPerTruck: 30,
+  preBookingMode: "compulsory",
+  advanceBookingHours: 24,
+  defaultSealRequired: true,
+  defaultSealQuantity: 2
+}
+
+systemSettings: {
+  fleetNumberEnabled: true,
+  fleetNumberLabel: "Fleet No.",
+  transporterGroupEnabled: true,
+  transporterGroupLabel: "Group",
+  groupOptions: ["North", "South"]
+}
+
+securityAlerts: {
+  primaryContactId: "u_dev",
+  secondaryContactIds: ["u_dev_secondary"],
+  escalationMinutes: 15,
+  qrMismatchContacts: ["u_security"],
+  documentFailureContacts: [],
+  sealDiscrepancyContacts: [],
+  requiredResponseMinutes: 5
+}
 ```
 
 ### clients (documents)
@@ -128,6 +169,7 @@ logisticsCoordinatorConfig: {
 | Field              | Type            | Required | Description                     | Example              |
 | ------------------ | --------------- | -------- | ------------------------------- | -------------------- |
 | id                 | string (doc id) | yes      | Unique client id                | cl_123               |
+| companyId          | string          | yes      | Owning company reference        | c_123                |
 | name               | string          | yes      | Client company name             | XYZ Corporation      |
 | registrationNumber | string          | yes      | Company registration number     | 2019/111111/07       |
 | vatNumber          | string          | no       | VAT registration number         | 4111111111           |
@@ -149,8 +191,8 @@ logisticsCoordinatorConfig: {
 | Field              | Type            | Required | Description                                        | Example         |
 | ------------------ | --------------- | -------- | -------------------------------------------------- | --------------- |
 | id                 | string (doc id) | yes      | Unique asset id                                    | a_123           |
-| assetType          | enum            | yes      | truck\|trailer\|driver                             | truck           |
 | companyId          | string          | yes      | Company reference (transporter/logistics operator) | c_456           |
+| assetType          | enum            | yes      | truck\|trailer\|driver                             | truck           |
 | qrCode             | string          | yes      | QR code data                                       | qr_string       |
 | vehicleDiskData    | string          | no       | Vehicle disk data                                  | disk_string     |
 | driverLicenseData  | string          | no       | Driver license data                                | license_string  |
@@ -175,6 +217,7 @@ logisticsCoordinatorConfig: {
 | Field             | Type            | Required | Description                               | Example         |
 | ----------------- | --------------- | -------- | ----------------------------------------- | --------------- |
 | id                | string (doc id) | yes      | Unique order id                           | o_123           |
+| companyId         | string          | yes      | Owning company reference                  | c_123           |
 | orderNumber       | string          | yes      | Order number (auto or manual)             | ORD-2024-001    |
 | orderType         | enum            | yes      | receiving\|dispatching                    | dispatching     |
 | clientCompanyId   | string          | yes      | Client company reference (mine/logistics) | c_789           |
@@ -217,29 +260,31 @@ logisticsCoordinatorConfig: {
 
 ### pre_bookings (documents)
 
-| Field               | Type            | Required | Description                       | Example             |
-| ------------------- | --------------- | -------- | --------------------------------- | ------------------- |
-| id                  | string (doc id) | yes      | Unique pre-booking id             | pb_123              |
-| orderId             | string          | yes      | Order reference                   | o_123               |
-| assetId             | string          | yes      | Truck/asset reference             | a_456               |
-| companyId           | string          | yes      | Company reference                 | c_456               |
-| scheduledDate       | timestamp       | yes      | Scheduled arrival date            | 2024-01-15          |
-| scheduledTime       | string          | yes      | Scheduled arrival time            | 08:00               |
-| tripsPerDay         | number          | yes      | Number of trips planned           | 2                   |
-| specialInstructions | string          | no       | Special instructions              | Load from bay 3     |
-| status              | enum            | yes      | pending\|arrived\|late\|completed | pending             |
-| arrivalTime         | timestamp       | no       | Actual arrival time               | 2024-01-15T08:15:00 |
-| createdById         | string          | yes      | User who created booking          | u_789               |
-| createdAt           | number          | yes      | Client event time (ms)            | Date.now()          |
-| updatedAt           | number          | yes      | Last client event time (ms)       | Date.now()          |
-| dbCreatedAt         | timestamp       | yes      | Server creation time              | serverTimestamp     |
-| dbUpdatedAt         | timestamp       | yes      | Last server update time           | serverTimestamp     |
+| Field                | Type            | Required | Description                       | Example             |
+| -------------------- | --------------- | -------- | --------------------------------- | ------------------- |
+| id                   | string (doc id) | yes      | Unique pre-booking id             | pb_123              |
+| companyId            | string          | yes      | Owning company reference          | c_123               |
+| orderId              | string          | yes      | Order reference                   | o_123               |
+| assetId              | string          | yes      | Truck/asset reference             | a_456               |
+| transporterCompanyId | string          | yes      | Transporter company reference     | c_456               |
+| scheduledDate        | timestamp       | yes      | Scheduled arrival date            | 2024-01-15          |
+| scheduledTime        | string          | yes      | Scheduled arrival time            | 08:00               |
+| tripsPerDay          | number          | yes      | Number of trips planned           | 2                   |
+| specialInstructions  | string          | no       | Special instructions              | Load from bay 3     |
+| status               | enum            | yes      | pending\|arrived\|late\|completed | pending             |
+| arrivalTime          | timestamp       | no       | Actual arrival time               | 2024-01-15T08:15:00 |
+| createdById          | string          | yes      | User who created booking          | u_789               |
+| createdAt            | number          | yes      | Client event time (ms)            | Date.now()          |
+| updatedAt            | number          | yes      | Last client event time (ms)       | Date.now()          |
+| dbCreatedAt          | timestamp       | yes      | Server creation time              | serverTimestamp     |
+| dbUpdatedAt          | timestamp       | yes      | Last server update time           | serverTimestamp     |
 
 ### products (documents)
 
 | Field          | Type            | Required | Description                 | Example         |
 | -------------- | --------------- | -------- | --------------------------- | --------------- |
 | id             | string (doc id) | yes      | Unique product id           | p_coal          |
+| companyId      | string          | yes      | Owning company reference    | c_123           |
 | name           | string          | yes      | Product name                | Coal Grade A    |
 | code           | string          | yes      | Product code                | COAL-A          |
 | categoryId     | string          | no       | Category reference          | cat_minerals    |
@@ -255,6 +300,7 @@ logisticsCoordinatorConfig: {
 | Field           | Type            | Required | Description                   | Example          |
 | --------------- | --------------- | -------- | ----------------------------- | ---------------- |
 | id              | string (doc id) | yes      | Unique site id                | site_123         |
+| companyId       | string          | yes      | Owning company reference      | c_123            |
 | name            | string          | yes      | Site name                     | Main Loading Bay |
 | siteType        | enum            | yes      | collection\|destination       | collection       |
 | physicalAddress | string          | yes      | Physical address              | 123 Mining Road  |
@@ -287,9 +333,9 @@ logisticsCoordinatorConfig: {
 | Field           | Type            | Required | Description                 | Example                |
 | --------------- | --------------- | -------- | --------------------------- | ---------------------- |
 | id              | string (doc id) | yes      | Unique weighing record id   | w_123                  |
+| companyId       | string          | yes      | Owning company reference    | c_123                  |
 | orderId         | string          | yes      | Order reference             | o_123                  |
 | assetId         | string          | yes      | Truck asset reference       | a_456                  |
-| companyId       | string          | yes      | Company reference           | c_456                  |
 | weighbridgeId   | string          | yes      | Weighbridge reference       | wb_01                  |
 | status          | enum            | yes      | tare_only\|completed        | completed              |
 | tareWeight      | number          | yes      | Empty weight in tons        | 8.5                    |
@@ -312,6 +358,7 @@ logisticsCoordinatorConfig: {
 | Field                | Type            | Required | Description                      | Example          |
 | -------------------- | --------------- | -------- | -------------------------------- | ---------------- |
 | id                   | string (doc id) | yes      | Unique weighbridge id            | wb_01            |
+| companyId            | string          | yes      | Owning company reference         | c_123            |
 | name                 | string          | yes      | Weighbridge name                 | Main Weighbridge |
 | location             | string          | yes      | Physical location                | Gate 1           |
 | axleSetup            | enum            | yes      | single\|multiple                 | multiple         |
@@ -332,6 +379,7 @@ logisticsCoordinatorConfig: {
 | Field             | Type            | Required | Description                    | Example         |
 | ----------------- | --------------- | -------- | ------------------------------ | --------------- |
 | id                | string (doc id) | yes      | Unique calibration id          | cal_123         |
+| companyId         | string          | yes      | Owning company reference       | c_123           |
 | weighbridgeId     | string          | yes      | Weighbridge reference          | wb_01           |
 | knownWeight       | number          | yes      | Known test weight (tons)       | 10.0            |
 | measuredWeight    | number          | yes      | Measured weight (tons)         | 10.02           |
@@ -347,6 +395,7 @@ logisticsCoordinatorConfig: {
 | Field            | Type            | Required | Description               | Example             |
 | ---------------- | --------------- | -------- | ------------------------- | ------------------- |
 | id               | string (doc id) | yes      | Unique seal id            | seal_123            |
+| companyId        | string          | yes      | Owning company reference  | c_123               |
 | sealNumber       | string          | yes      | Seal number               | SEAL001             |
 | orderId          | string          | yes      | Order reference           | o_123               |
 | weighingRecordId | string          | yes      | Weighing record reference | w_123               |
@@ -363,6 +412,7 @@ logisticsCoordinatorConfig: {
 | Field              | Type            | Required | Description               | Example             |
 | ------------------ | --------------- | -------- | ------------------------- | ------------------- |
 | id                 | string (doc id) | yes      | Unique security check id  | sc_123              |
+| companyId          | string          | yes      | Owning company reference  | c_123               |
 | checkType          | enum            | yes      | entry\|exit               | entry               |
 | assetId            | string          | yes      | Truck asset reference     | a_456               |
 | driverId           | string          | yes      | Driver asset reference    | a_789               |
@@ -437,7 +487,6 @@ Example structure:
 
     // Administrative
     "admin.companies": { description: "Manage companies" },
-    "admin.companies": { description: "Manage companies" },
     "admin.users": { description: "Manage users" },
     "admin.products": { description: "Manage products" },
     "admin.orderSettings": { description: "Configure order settings" },
@@ -463,55 +512,12 @@ Example structure:
 }
 ```
 
-### settings/system (single document)
-
-Document path: `settings/system`
-
-| Field                   | Type     | Required | Description                        |
-| ----------------------- | -------- | -------- | ---------------------------------- |
-| fleetNumberEnabled      | boolean  | yes      | Enable fleet number field          |
-| fleetNumberLabel        | string   | no       | Custom label for fleet number      |
-| transporterGroupEnabled | boolean  | yes      | Enable transporter group field     |
-| transporterGroupLabel   | string   | no       | Custom label for transporter group |
-| groupOptions            | string[] | no       | Available group options            |
-
-### settings/order_config (single document)
-
-Document path: `settings/order_config`
-
-| Field                   | Type    | Required | Description                       |
-| ----------------------- | ------- | -------- | --------------------------------- |
-| orderNumberMode         | enum    | yes      | autoOnly\|manualAllowed           |
-| orderNumberPrefix       | string  | no       | Prefix for auto-generated numbers |
-| defaultDailyTruckLimit  | number  | yes      | Default daily truck limit         |
-| defaultDailyWeightLimit | number  | yes      | Default daily weight limit (tons) |
-| defaultMonthlyLimit     | number  | no       | Default monthly limit (tons)      |
-| defaultTripLimit        | number  | yes      | Default trips per day             |
-| defaultWeightPerTruck   | number  | yes      | Default weight per truck (tons)   |
-| preBookingMode          | enum    | yes      | compulsory\|optional              |
-| advanceBookingHours     | number  | yes      | Hours in advance for pre-booking  |
-| defaultSealRequired     | boolean | yes      | Default seal requirement          |
-| defaultSealQuantity     | number  | no       | Default number of seals           |
-
-### settings/security_alerts (single document)
-
-Document path: `settings/security_alerts`
-
-| Field                   | Type     | Required | Description                         |
-| ----------------------- | -------- | -------- | ----------------------------------- |
-| primaryContactId        | string   | yes      | Primary security contact user ID    |
-| secondaryContactIds     | string[] | no       | Secondary contact user IDs          |
-| escalationMinutes       | number   | yes      | Minutes before escalating to next   |
-| qrMismatchContacts      | string[] | no       | Specific contacts for QR mismatches |
-| documentFailureContacts | string[] | no       | Contacts for document failures      |
-| sealDiscrepancyContacts | string[] | no       | Contacts for seal issues            |
-| requiredResponseMinutes | number   | yes      | Required response time              |
-
 ### notification_templates (documents)
 
 | Field       | Type            | Required | Description                                 | Example         |
 | ----------- | --------------- | -------- | ------------------------------------------- | --------------- |
 | id          | string (doc id) | yes      | Template identifier                         | tpl_asset_added |
+| companyId   | string          | yes      | Owning company reference                    | c_123           |
 | name        | string          | yes      | Template name                               | Asset Added     |
 | subject     | string          | yes      | Email subject line                          | New Asset Added |
 | body        | string          | yes      | Email body with placeholders                | See below       |
@@ -544,6 +550,7 @@ Newton System
 | Field       | Type            | Required | Description               | Example                 |
 | ----------- | --------------- | -------- | ------------------------- | ----------------------- |
 | id          | string (doc id) | yes      | Unique audit log id       | log_123                 |
+| companyId   | string          | yes      | Owning company reference  | c_123                   |
 | userId      | string          | yes      | User who performed action | u_123                   |
 | action      | string          | yes      | Action performed          | order.created           |
 | entityType  | string          | yes      | Entity type affected      | order                   |
@@ -557,7 +564,7 @@ Newton System
 
 ## Default Roles Configuration
 
-The system should be initialized with these default roles:
+The system should be initialized with these default roles. Each role document should be created separately for every company that needs it (e.g. seed them under `c_dev`).
 
 1. **Newton Administrator** (r_newton_admin): All permissions
 2. **Site Administrator** (r_site_admin): Site-level permissions

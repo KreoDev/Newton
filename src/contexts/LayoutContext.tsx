@@ -13,27 +13,20 @@ const LayoutContext = createContext<LayoutContextType | undefined>(undefined)
 
 export function LayoutProvider({ children }: { children: ReactNode }) {
   const [layout, setLayoutState] = useState<LayoutType>("sidebar")
-  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-    // Load layout preference from localStorage
-    const savedLayout = localStorage.getItem("newton-layout-preference") as LayoutType
-    if (savedLayout && (savedLayout === "sidebar" || savedLayout === "top")) {
+    if (typeof window === "undefined") return
+    const savedLayout = localStorage.getItem("newton-layout-preference") as LayoutType | null
+    if (savedLayout === "sidebar" || savedLayout === "top") {
       setLayoutState(savedLayout)
     }
   }, [])
 
   const setLayout = (newLayout: LayoutType) => {
     setLayoutState(newLayout)
-    if (mounted) {
+    if (typeof window !== "undefined") {
       localStorage.setItem("newton-layout-preference", newLayout)
     }
-  }
-
-  // Don't render until mounted to prevent hydration mismatch
-  if (!mounted) {
-    return null
   }
 
   return <LayoutContext.Provider value={{ layout, setLayout }}>{children}</LayoutContext.Provider>

@@ -1,9 +1,15 @@
 import { signal, Signal } from "@preact/signals-react"
 import { log } from "@/services/console.service"
-import { db } from "@/lib/firebase"
+
+export interface CompanySummary {
+  id: string
+  name: string
+}
 
 class Data {
   private static instance: Data
+
+  companies: Signal<CompanySummary[]> = signal([])
 
   private constructor() {
     log.loaded("Data")
@@ -14,6 +20,10 @@ class Data {
       Data.instance = new Data()
     }
     return Data.instance
+  }
+
+  setCompanies(companies: CompanySummary[]) {
+    this.companies.value = companies
   }
 }
 

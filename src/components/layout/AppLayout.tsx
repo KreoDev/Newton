@@ -5,14 +5,13 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useLayout } from "@/contexts/LayoutContext"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Home, Truck, Users, Settings, Menu, X, LogOut, FileType, Lock, ChevronDown } from "lucide-react"
+import { Home, Settings, Menu, X, LogOut, ChevronDown } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useCompany } from "@/contexts/CompanyContext"
-import { data } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
 import React from "react"
 
@@ -65,14 +64,7 @@ interface AppLayoutProps {
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
-  { name: "Users", href: "/users", icon: Users },
-  { name: "Roles", href: "/roles", icon: Lock },
-  { name: "Asset Types", href: "/asset-types", icon: Settings },
-  { name: "Doc Types", href: "/document-types", icon: FileType },
-  { name: "Transporters", href: "/transporters", icon: Truck },
-  { name: "Assets", href: "/assets", icon: Truck },
   { name: "Settings", href: "/settings", icon: Settings },
-  { name: "Test", href: "/test", icon: FileType },
 ]
 
 interface NavigationItem {
@@ -110,8 +102,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, logout } = useAuth()
-  const { companyDB, switchCompany } = useCompany()
-  const { companies } = data
+  const { company, companies, switchCompany } = useCompany()
+  const activeCompanyName = company?.name || user?.companyId || "Select company"
+  const canSwitchCompanies = Boolean(user?.isGlobal && companies.length > 0)
 
   const handleLogout = async () => {
     try {
@@ -157,20 +150,22 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </Button>
 
             {/* Company switcher */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="mr-4 ml-4">
-                  {companies.value.find(c => c.dbName === companyDB)?.name || companyDB}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {companies.value.map(c => (
-                  <DropdownMenuItem key={c.dbName} onClick={() => switchCompany(c.dbName)}>
-                    {c.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {canSwitchCompanies && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="mr-4 ml-4">
+                    {activeCompanyName}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {companies.map(c => (
+                    <DropdownMenuItem key={c.id} onClick={() => switchCompany(c.id)}>
+                      {c.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             {/* User Info and Avatar - Right side */}
             <div className="flex items-center space-x-3 ml-auto">
@@ -251,22 +246,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
           {/* Right Side: Company Switcher + User Menu */}
           <div className="flex items-center space-x-3">
-            {/* Company switcher */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  {companies.value.find(c => c.dbName === companyDB)?.name || companyDB}
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {companies.value.map(c => (
-                  <DropdownMenuItem key={c.dbName} onClick={() => switchCompany(c.dbName)}>
-                    {c.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {canSwitchCompanies && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    {activeCompanyName}
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {companies.map(c => (
+                    <DropdownMenuItem key={c.id} onClick={() => switchCompany(c.id)}>
+                      {c.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             {/* Mobile Menu Button */}
             <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
