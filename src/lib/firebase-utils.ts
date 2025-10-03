@@ -11,10 +11,10 @@ export const createDocument = async (collectionName: string, data: Record<string
     const docRef = await addDoc(collection(db, collectionName), {
       ...data,
       ...(inferredCompanyId ? { companyId: inferredCompanyId } : {}),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      createdDate: Date.now(),
-      modifiedDate: Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      dbCreatedAt: serverTimestamp(),
+      dbUpdatedAt: serverTimestamp(),
     })
 
     toast.success(successMessage || `${collectionName.slice(0, -1)} created successfully`, {
@@ -35,8 +35,8 @@ export const updateDocument = async (collectionName: string, id: string, data: R
   try {
     const updateData = {
       ...data,
-      updatedAt: serverTimestamp(),
-      modifiedDate: Date.now(),
+      updatedAt: Date.now(),
+      dbUpdatedAt: serverTimestamp(),
     }
 
     await updateDoc(doc(db, collectionName, id), updateData)
