@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useLayout } from "@/contexts/LayoutContext"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Home, Settings, Menu, X, LogOut, ChevronDown } from "lucide-react"
+import { Home, Settings, Menu, X, LogOut, ChevronDown, Building2, Users } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -64,6 +64,8 @@ interface AppLayoutProps {
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
+  { name: "Companies", href: "/admin/companies", icon: Building2 },
+  { name: "Users", href: "/admin/users", icon: Users },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 

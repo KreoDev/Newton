@@ -20,6 +20,7 @@ interface ProgressData {
       roles: number
     }
     seeded: {
+      permissions: number
       companies: number
       users: number
       transporters: number
@@ -137,8 +138,97 @@ const DEFAULT_TEMPLATES = [
 ]
 
 const DEFAULT_ROLES = [
-  { id: "r_newton_admin", name: "Newton Administrator", permissionKeys: ["*"], description: "Full system access" },
-  { id: "r_site_admin", name: "Site Administrator", permissionKeys: ["assets.view", "orders.view"], description: "Site-level control" },
+  {
+    id: "r_newton_admin",
+    name: "Newton Administrator",
+    permissionKeys: ["*"],
+    description: "Full system access and configuration",
+  },
+  {
+    id: "r_site_admin",
+    name: "Site Administrator",
+    permissionKeys: [
+      "assets.view",
+      "assets.add",
+      "assets.edit",
+      "orders.view",
+      "orders.viewAll",
+      "preBooking.view",
+      "weighbridge.tare",
+      "weighbridge.gross",
+      "security.in",
+      "security.out",
+      "reports.daily",
+      "reports.monthly",
+      "reports.export",
+      "admin.sites",
+      "admin.weighbridge",
+    ],
+    description: "Site-level management and operations",
+  },
+  {
+    id: "r_logistics_coordinator",
+    name: "Logistics Coordinator",
+    permissionKeys: [
+      "assets.view",
+      "orders.view",
+      "orders.create",
+      "orders.allocate",
+      "orders.viewAll",
+      "preBooking.view",
+      "preBooking.create",
+      "preBooking.edit",
+      "reports.daily",
+      "reports.monthly",
+      "reports.export",
+    ],
+    description: "Order and pre-booking management",
+  },
+  {
+    id: "r_allocation_officer",
+    name: "Allocation Officer",
+    permissionKeys: ["orders.view", "orders.allocate", "orders.viewAll", "preBooking.view", "reports.daily"],
+    description: "Order allocation and distribution",
+  },
+  {
+    id: "r_transporter",
+    name: "Transporter",
+    permissionKeys: ["assets.view", "orders.view", "preBooking.view", "reports.daily"],
+    description: "View assigned orders and assets only",
+  },
+  {
+    id: "r_induction_officer",
+    name: "Induction Officer",
+    permissionKeys: ["assets.view", "assets.add", "assets.edit", "assets.delete", "reports.daily"],
+    description: "Asset induction and management",
+  },
+  {
+    id: "r_weighbridge_supervisor",
+    name: "Weighbridge Supervisor",
+    permissionKeys: [
+      "weighbridge.tare",
+      "weighbridge.gross",
+      "weighbridge.calibrate",
+      "weighbridge.override",
+      "reports.daily",
+      "reports.monthly",
+      "reports.export",
+      "admin.weighbridge",
+    ],
+    description: "Weighbridge operations and calibration",
+  },
+  {
+    id: "r_weighbridge_operator",
+    name: "Weighbridge Operator",
+    permissionKeys: ["weighbridge.tare", "weighbridge.gross", "reports.daily"],
+    description: "Weight capture operations only",
+  },
+  {
+    id: "r_security",
+    name: "Security Personnel",
+    permissionKeys: ["security.in", "security.out", "reports.daily"],
+    description: "Security checkpoint operations",
+  },
 ]
 
 async function clearCollection(collectionName: string, sendProgress: (data: ProgressData) => void) {
@@ -355,6 +445,72 @@ async function seedNotificationTemplates(sendProgress: (data: ProgressData) => v
   return count
 }
 
+async function seedPermissions(sendProgress: (data: ProgressData) => void) {
+  const permissionsData = {
+    permissions: {
+      // Asset Management
+      "assets.view": { description: "View assets" },
+      "assets.add": { description: "Add new assets" },
+      "assets.edit": { description: "Edit existing assets" },
+      "assets.delete": { description: "Delete assets" },
+
+      // Order Management
+      "orders.view": { description: "View orders" },
+      "orders.create": { description: "Create new orders" },
+      "orders.allocate": { description: "Allocate orders" },
+      "orders.cancel": { description: "Cancel orders" },
+      "orders.viewAll": { description: "View all orders (not just assigned)" },
+
+      // Pre-Booking
+      "preBooking.view": { description: "View pre-bookings" },
+      "preBooking.create": { description: "Create pre-bookings" },
+      "preBooking.edit": { description: "Edit pre-bookings" },
+
+      // Operational Flows
+      "security.in": { description: "Perform security in checks" },
+      "security.out": { description: "Perform security out checks" },
+      "weighbridge.tare": { description: "Capture tare weight" },
+      "weighbridge.gross": { description: "Capture gross weight" },
+      "weighbridge.calibrate": { description: "Perform weighbridge calibration" },
+      "weighbridge.override": { description: "Manual weight override" },
+
+      // Administrative
+      "admin.companies": { description: "Manage companies" },
+      "admin.users": { description: "Manage users" },
+      "admin.products": { description: "Manage products" },
+      "admin.orderSettings": { description: "Configure order settings" },
+      "admin.clients": { description: "Manage clients" },
+      "admin.sites": { description: "Manage sites" },
+      "admin.weighbridge": { description: "Configure weighbridge" },
+      "admin.notifications": { description: "Configure notifications" },
+      "admin.system": { description: "System-wide settings" },
+      "admin.securityAlerts": { description: "Configure security alerts" },
+
+      // Reports
+      "reports.daily": { description: "View daily reports" },
+      "reports.monthly": { description: "View monthly reports" },
+      "reports.custom": { description: "Create custom reports" },
+      "reports.export": { description: "Export report data" },
+
+      // Special
+      "emergency.override": { description: "Emergency override access" },
+      "orders.editCompleted": { description: "Edit completed orders" },
+      "records.delete": { description: "Delete records permanently" },
+      "preBooking.bypass": { description: "Bypass pre-booking requirements" },
+    },
+  }
+
+  await adminDb.doc("settings/permissions").set(permissionsData)
+
+  sendProgress({
+    stage: "seeding_permissions",
+    message: "Seeded permissions document",
+    completed: true,
+  })
+
+  return 1
+}
+
 async function seedRoles(sendProgress: (data: ProgressData) => void) {
   let count = 0
   for (const role of DEFAULT_ROLES) {
@@ -401,7 +557,7 @@ export async function GET() {
 
       const results = {
         cleared: { companies: 0, users: 0, transporters: 0, assets: 0, templates: 0, roles: 0 },
-        seeded: { companies: 0, users: 0, transporters: 0, assets: 0, templates: 0, roles: 0 },
+        seeded: { permissions: 0, companies: 0, users: 0, transporters: 0, assets: 0, templates: 0, roles: 0 },
       }
 
       try {
@@ -414,6 +570,7 @@ export async function GET() {
         results.cleared.templates = await clearCollection("notification_templates", sendProgress)
         results.cleared.roles = await clearCollection("roles", sendProgress)
 
+        results.seeded.permissions = await seedPermissions(sendProgress)
         results.seeded.companies = await seedCompany(sendProgress)
         results.seeded.users = await seedDefaultUser(sendProgress)
         results.seeded.transporters = await seedTransporters(sendProgress)

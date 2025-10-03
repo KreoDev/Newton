@@ -6,10 +6,16 @@ export interface CompanySummary {
   name: string
 }
 
+export interface RoleSummary {
+  id: string
+  name: string
+}
+
 class Data {
   private static instance: Data
 
   companies: Signal<CompanySummary[]> = signal([])
+  roles: Signal<RoleSummary[]> = signal([])
 
   private constructor() {
     log.loaded("Data")
@@ -24,6 +30,10 @@ class Data {
 
   setCompanies(companies: CompanySummary[]) {
     this.companies.value = companies
+  }
+
+  setRoles(roles: RoleSummary[]) {
+    this.roles.value = roles
   }
 }
 
