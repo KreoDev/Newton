@@ -1,2597 +1,2779 @@
-# Newton Development Implementation Plan (AI-Optimized)
+# Newton Development Implementation Plan
 
-## How to Use This Plan
+## Document Purpose
 
-This document is designed for AI-assisted development. Each phase contains:
+This document provides a comprehensive, phase-by-phase implementation guide for the Newton Weighbridge System. It covers ALL features from `docs/user-flow-web.md` and `docs/data-model.md` in a MECE (Mutually Exclusive, Collectively Exhaustive) manner.
 
-1. **Specific file paths** to create or modify
-2. **Step-by-step implementation instructions** with clear requirements
-3. **Data structures and types** to use
-4. **Testing checklist** to verify implementation
-
-**Important Notes for AI Implementation:**
-
-- Always import required dependencies at the top of files
-- Use existing UI components from `src/components/ui/`
-- Follow TypeScript strictly - add proper types for all functions
-- Use existing services pattern from `src/services/`
-- Apply glass morphism design from `design.json`
-- Use existing auth context from `src/contexts/AuthContext.tsx`
-- **Firebase file usage (IMPORTANT):**
-  - `src/lib/firebase.ts` - Client SDK exports (auth, db, storage) - use in client components and services
-  - `src/lib/firebase-utils.ts` - **USE THESE FIRST** - Helper functions for CRUD with built-in toast notifications:
-    - `createDocument(collectionName, data, successMessage?)` - Adds doc with timestamps and toast
-    - `updateDocument(collectionName, id, data, successMessage?)` - Updates doc with toast
-    - `deleteDocument(collectionName, id, successMessage?)` - Deletes doc with toast
-    - Pre-configured operations: `userOperations`, `assetOperations`, `roleOperations`, etc.
-    - **Timestamps:** Automatically adds per data-model spec: `createdAt`/`updatedAt` (client times via `Date.now()`), `dbCreatedAt`/`dbUpdatedAt` (server times via `serverTimestamp()`)
-  - `src/lib/firebase-admin.ts` - Admin SDK (adminDb, adminAuth) - **ONLY use in API routes** (`src/app/api/`)
-- Use `sonner` toast for user feedback (firebase-utils already includes this)
-- Add proper error handling with try-catch blocks
-- **Search functionality (IMPORTANT):**
-  - `src/services/search.service.ts` - Core search logic with nested field support, weighting, transformers
-  - `src/hooks/useOptimizedSearch.ts` - React hook for optimized search with debouncing and performance features
-  - `src/config/search-configs.ts` - Centralized search configurations for all entities
-  - **Always use optimized search** - For any page with search/filter functionality, use `useOptimizedSearch` hook with appropriate config from `search-configs.ts`
-  - Features: debouncing (300ms), exact match, case sensitivity, result limiting, search highlighting, requestIdleCallback for non-blocking search
-- **Loading states (IMPORTANT):**
-  - `src/components/ui/loading-spinner.tsx` - Centralized loading UI components with glass morphism design
-  - Components: `LoadingSpinner` (full-screen and inline with sizes), `InlineSpinner` (for buttons), `SkeletonLoader` (content placeholders)
-  - `src/hooks/usePermission.ts` - Returns `{ hasPermission: boolean; loading: boolean }` for permission checks
-  - **Always show loading states** - Use LoadingSpinner for page loads, InlineSpinner for button actions, and permission loading states
-  - Features: Glass morphism design, multiple sizes (sm, md, lg, xl), contextual messages, full-screen overlay option
+**Important Notes:**
+- This document does NOT include implementation code - only file names, class names, method names, and functional requirements
+- Phases are ordered by logical dependencies - prerequisites must be completed first
+- Everything currently in the codebase constitutes Phase 1 (✅ COMPLETED)
+- For asset induction, reference `/Users/joe/iDev/hybrid_appz/NewtonWeighbridges/src/services/scan.service.ts` and use expo-sadl for driver license field extraction
+- Real production data available in `/Users/joe/iDev/hybrid_appz/Newton/data/assets-data.json`
 
 ---
 
-## Firebase Architecture & Usage Guide
+## Technology Stack
 
-### Three Firebase Files - When to Use Each
+### Core Framework
+- **Next.js 15.5.4** with App Router
+- **React 19**
+- **TypeScript 5.9.2** (strict mode)
+- **Tailwind CSS 4.1.13**
+- **Bun** package manager
 
-#### 1. `src/lib/firebase.ts` - Client SDK Exports
+### Key Libraries
+- **Firebase 12.3.0** (client SDK)
+- **firebase-admin 13.5.0** (server SDK, API routes only)
+- **Radix UI** (component primitives)
+- **Framer Motion 12.23.22** (animations)
+- **react-hook-form 7.63.0** + **Zod 4.1.11** (forms & validation)
+- **Preact Signals** (reactive state)
+- **expo-sadl** (South African driver's license parsing)
+- **Sonner** (toast notifications)
 
-**Use in:** Client components, services, hooks **Exports:** `auth`, `db`, `storage`, `app` **Purpose:** Direct access to Firebase client SDK
+### Firebase Architecture
+- **`src/lib/firebase.ts`**: Client SDK exports (`auth`, `db`, `storage`) - use in components/services
+- **`src/lib/firebase-utils.ts`**: CRUD helpers with auto-timestamps - USE THESE FIRST
+- **`src/lib/firebase-admin.ts`**: Admin SDK (`adminDb`, `adminAuth`) - API routes ONLY
 
-```typescript
-import { db, auth } from "@/lib/firebase"
-import { collection, getDocs, query, where } from "firebase/firestore"
-
-// Use for complex queries
-const q = query(collection(db, "assets"), where("companyId", "==", companyId))
-const snapshot = await getDocs(q)
-```
-
-#### 2. `src/lib/firebase-utils.ts` - CRUD Helpers (USE THESE FIRST!)
-
-**Use in:** Client components, services when doing simple CRUD operations **Exports:** `createDocument`, `updateDocument`, `deleteDocument`, `userOperations`, `assetOperations`, etc. **Purpose:** Simplified CRUD with automatic timestamps, toast notifications, and error handling
-
-```typescript
-import { createDocument, updateDocument } from "@/lib/firebase-utils"
-import { assetOperations } from "@/lib/firebase-utils"
-
-// Simple CRUD - automatically adds timestamps and shows toast
-const id = await createDocument("companies", companyData, "Company created")
-await updateDocument("companies", id, updates, "Company updated")
-
-// Pre-configured operations
-await assetOperations.create(assetData)
-await assetOperations.update(assetId, updates)
-await assetOperations.delete(assetId)
-```
-
-**Why use firebase-utils?**
-
-- ✅ Automatic timestamp handling per data model spec:
-  - `createdAt`, `updatedAt`: Client event times (`Date.now()`)
-  - `dbCreatedAt`, `dbUpdatedAt`: Server timestamps (`serverTimestamp()`)
-- ✅ Built-in toast notifications (success/error)
-- ✅ Error handling included
-- ✅ Consistent data structure across app
-- ✅ Less code to write
-
-#### 3. `src/lib/firebase-admin.ts` - Admin SDK (Server-Side Only)
-
-**Use in:** API routes (`src/app/api/**/*.ts`) and server-side operations ONLY **Exports:** `adminDb`, `adminAuth`, `app` **Purpose:** Server-side operations with elevated permissions
-
-```typescript
-import { adminDb, adminAuth } from "@/lib/firebase-admin"
-import { FieldValue } from "firebase-admin/firestore"
-
-// Only use in API routes - has admin privileges
-await adminDb.collection("companies").doc(id).set(data)
-await adminAuth.createUser({ email, password })
-```
-
-### Decision Tree: Which Firebase File to Use?
-
-```
-Are you in an API route (src/app/api/)?
-├─ YES → Use firebase-admin.ts (adminDb, adminAuth)
-└─ NO → Are you doing simple CRUD (create/update/delete single document)?
-    ├─ YES → Use firebase-utils.ts (createDocument, updateDocument, etc.)
-    └─ NO → Use firebase.ts (db) for complex queries, real-time listeners, etc.
-```
+### Critical Patterns
+- Use centralized `src/services/data.service.ts` for companies, users, and roles (NO duplicate queries)
+- Use `useOptimizedSearch` hook from `src/hooks/useOptimizedSearch.ts` with configs from `src/config/search-configs.ts`
+- All loading states must use components from `src/components/ui/loading-spinner.tsx`
+- Follow timestamp convention: `createdAt`/`updatedAt` (client), `dbCreatedAt`/`dbUpdatedAt` (server)
+- Soft deletes via `isActive` flag; hard delete only for immediate induction errors
 
 ---
 
-## Search Infrastructure & Usage Guide
+## Phase 1: Core Infrastructure ✅ COMPLETED
 
-### Optimized Search System
+### Status: PRODUCTION READY
 
-Newton uses a centralized, optimized search infrastructure for consistent, performant search across all entities.
+All foundational systems are implemented and tested. The following components are live:
 
-#### Three Search Files - How They Work Together
+### 1.1 Authentication & Authorization ✅
+**User Flow**: Flow 1 - User Login
 
-**1. `src/services/search.service.ts` - Core Search Logic**
+**Completed Components:**
+- `src/contexts/AuthContext.tsx` - User session management
+- `src/hooks/usePermission.ts` - Permission checking hook (returns `{ hasPermission, loading }`)
+- `src/components/auth/PermissionGate.tsx` - Conditional rendering based on permissions
+- `src/services/permission.service.ts` - Permission evaluation logic
+- `src/lib/permissions.ts` - Permission constants and labels
 
-- Performs weighted field matching
-- Supports nested field access (e.g., "user.firstName")
-- Custom field transformers (e.g., convert numbers to searchable strings)
-- Exact match, case sensitivity options
-- Result limiting and ranking
+**Completed Features:**
+- Firebase Authentication integration
+- Role-based permission system
+- Global admin support (isGlobal users)
+- Permission overrides per user
+- Loading states for permission checks
 
-**2. `src/hooks/useOptimizedSearch.ts` - React Hook**
+### 1.2 Company Management ✅
+**User Flows**: Flows 7, 8, 9 - Company Configuration (Mine, Transporter, Logistics Coordinator)
 
-Features:
-- 300ms debouncing to prevent excessive re-renders
+**Completed Components:**
+- `src/app/(authenticated)/admin/companies/page.tsx` - Company listing with search/filter
+- `src/components/companies/CompanyFormModal.tsx` - Tabbed creation/edit modal
+- `src/services/company.service.ts` - Company CRUD operations
+- `src/contexts/CompanyContext.tsx` - Company state & switcher
+
+**Completed Features:**
+- Full CRUD for companies (mine, transporter, logistics_coordinator)
+- Dual-role support (transporter can also be LC, and vice versa)
+- Company switcher for multi-company users
+- Tabbed form with 4 sections:
+  - **Basic Info**: Name, type, registration, contacts (main + secondaries)
+  - **Order Config**: Order number settings, limits, pre-booking, seals (mine companies only)
+  - **Fleet Settings**: Fleet number, transporter groups (transporter/dual-role LC)
+  - **Security Alerts**: Escalation contacts and timing
+- Inactive company filtering (hidden from switcher, visible in admin pages)
+- Real-time updates via Preact Signals
+
+### 1.3 User Management ✅
+**User Flow**: Flow 10 - User Management Configuration
+
+**Completed Components:**
+- `src/app/(authenticated)/admin/users/page.tsx` - User listing
+- `src/components/users/AddUserModal.tsx` - User creation
+- `src/components/users/ChangePasswordModal.tsx` - Password management
+- `src/components/users/ChangeEmailModal.tsx` - Email updates
+- `src/services/user.service.ts` - User operations (if exists, or use firebase-utils directly)
+
+**Completed Features:**
+- User creation with Firebase Auth
+- Role assignment
+- Email/password management
+- Profile picture support
+- Company-scoped user listing
+- Permission override UI (basic)
+
+**Partial Implementation:**
+- Notification preferences UI needs full implementation (see Phase 2.6)
+- Granular permission editing UI needs enhancement
+
+### 1.4 Centralized Data Management ✅
+**Technical Infrastructure**
+
+**Completed Components:**
+- `src/services/data.service.ts` - Singleton reactive data service
+- `src/lib/firebase-utils.ts` - `createCollectionListener` factory
+- `src/contexts/CompanyContext.tsx` - Integration with global data service
+
+**Completed Features:**
+- Preact Signals-based reactive state
+- Real-time Firebase listeners for companies, users, roles
+- Smart loading state tracking (no arbitrary timeouts)
+- Automatic cleanup on company switch/unmount
+- Single source of truth for all company/user/role data
+
+### 1.5 Search Infrastructure ✅
+**Technical Infrastructure**
+
+**Completed Components:**
+- `src/services/search.service.ts` - Core weighted search logic
+- `src/hooks/useOptimizedSearch.ts` - React hook with debouncing
+- `src/config/search-configs.ts` - Centralized search configurations
+
+**Completed Features:**
+- 300ms debouncing
 - requestIdleCallback for non-blocking search
-- Loading states (isSearching)
-- Memoized results
-- Auto-cleanup on unmount
+- Weighted field matching
+- Nested field support
+- Custom transformers
+- Result limiting
 
-**3. `src/config/search-configs.ts` - Centralized Configurations**
+### 1.6 Loading States System ✅
+**Technical Infrastructure**
 
-Contains search configs for all entities:
-- `users`, `roles`, `companies`, `clients`, `assets`, `assetTypes`
-- `orders`, `preBookings`, `products`, `sites`
-- `weighingRecords`, `weighbridges`, `securityChecks`
-- `transporters`, `documentTypes`
+**Completed Components:**
+- `src/components/ui/loading-spinner.tsx` - `LoadingSpinner`, `InlineSpinner`, `SkeletonLoader`
+- Updated `usePermission.ts` to return loading state
+- Updated `AppLayout.tsx` with auth loading screen
 
-Each config specifies:
-- **fields**: Array of `{ path, weight, transformer? }` objects
-- **debounceMs**: Debounce delay (typically 200-300ms)
-- **minSearchLength**: Minimum characters before search activates
-- **maxResults**: Maximum results to return
-
-#### How to Use Optimized Search
-
-**Step 1:** Import the hook and config:
-
-```typescript
-import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
-import { SEARCH_CONFIGS } from "@/config/search-configs"
-```
-
-**Step 2:** Use the hook in your component:
-
-```typescript
-const { searchTerm, setSearchTerm, filteredItems, isSearching } =
-  useOptimizedSearch(dataArray, SEARCH_CONFIGS.entityName)
-```
-
-**Step 3:** Render search UI:
-
-```typescript
-<Input
-  placeholder="Search..."
-  value={searchTerm}
-  onChange={e => setSearchTerm(e.target.value)}
-/>
-
-{isSearching ? (
-  <div>Searching...</div>
-) : (
-  <div>
-    {filteredItems.map(item => (
-      <div key={item.id}>{/* Render item */}</div>
-    ))}
-  </div>
-)}
-```
-
-#### Example: Companies Page with Optimized Search
-
-```typescript
-"use client"
-
-import { useState, useEffect } from "react"
-import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
-import { SEARCH_CONFIGS } from "@/config/search-configs"
-import type { Company } from "@/types"
-
-export default function CompaniesPage() {
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [filterType, setFilterType] = useState<string>("all")
-
-  // Optimized search hook
-  const { searchTerm, setSearchTerm, filteredItems: searchedCompanies, isSearching } =
-    useOptimizedSearch(companies, SEARCH_CONFIGS.companies)
-
-  // Additional filters (type filter)
-  const filteredCompanies = searchedCompanies.filter(company =>
-    filterType === "all" || company.companyType === filterType
-  )
-
-  return (
-    <div>
-      {/* Search input */}
-      <Input
-        placeholder="Search by name or registration..."
-        value={searchTerm}
-        onChange={e => setSearchTerm(e.target.value)}
-      />
-
-      {/* Type filter */}
-      <select value={filterType} onChange={e => setFilterType(e.target.value)}>
-        <option value="all">All Types</option>
-        <option value="mine">Mine</option>
-        <option value="transporter">Transporter</option>
-      </select>
-
-      {/* Results with loading state */}
-      {isSearching ? (
-        <div>Loading...</div>
-      ) : (
-        <div>
-          {filteredCompanies.map(company => (
-            <div key={company.id}>{company.name}</div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-```
-
-#### When to Use Optimized Search
-
-✅ **Always use for:**
-- Any page with search functionality
-- Lists with 10+ items
-- User-facing search interfaces
-- Data tables with filtering
-
-❌ **Don't use for:**
-- Static data (< 5 items)
-- One-time filter operations
-- Server-side only operations
-
----
-
-## Loading States Infrastructure & Usage Guide
-
-### Centralized Loading Components
-
-Newton uses a centralized loading state system for consistent user feedback across all operations.
-
-#### Loading Components (`src/components/ui/loading-spinner.tsx`)
-
-**1. `LoadingSpinner` - Primary Loading Component**
-
-Features:
-- Glass morphism design matching app UI
-- Multiple sizes: sm, md, lg, xl
+**Completed Features:**
+- Glass morphism design
+- Multiple sizes (sm, md, lg, xl)
 - Full-screen and inline modes
-- Optional contextual messages
-- Animated gradient glow effect
+- Contextual messages
+- Button loading states
 
-Usage:
-```typescript
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
+### 1.7 Seed Script ✅
+**Development Infrastructure**
 
-// Full-screen loading
-<LoadingSpinner fullScreen message="Loading data..." />
+**Completed Components:**
+- `src/app/api/seed/route.ts` - Seed API endpoint
+- `src/app/seed/page.tsx` - Seed UI
 
-// Inline loading with size
-<LoadingSpinner size="lg" message="Searching..." />
-
-// Simple inline
-<LoadingSpinner />
-```
-
-**2. `InlineSpinner` - For Buttons and Small Spaces**
-
-Usage:
-```typescript
-import { InlineSpinner } from "@/components/ui/loading-spinner"
-
-<Button disabled={isSubmitting}>
-  {isSubmitting ? (
-    <>
-      <InlineSpinner className="mr-2" />
-      Saving...
-    </>
-  ) : (
-    "Save"
-  )}
-</Button>
-```
-
-**3. `SkeletonLoader` - Content Placeholders**
-
-Usage:
-```typescript
-import { SkeletonLoader } from "@/components/ui/loading-spinner"
-
-<SkeletonLoader className="h-20 w-full" />
-```
-
-#### Permission Loading Pattern
-
-The `usePermission` hook returns loading state:
-
-```typescript
-import { usePermission } from "@/hooks/usePermission"
-import { PERMISSIONS } from "@/lib/permissions"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
-
-const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_COMPANIES)
-
-if (permissionLoading) {
-  return <LoadingSpinner fullScreen message="Checking permissions..." />
-}
-
-if (!canManage) {
-  return <div>Access denied</div>
-}
-```
-
-#### Page Loading Pattern
-
-Standard pattern for data fetching pages:
-
-```typescript
-export default function MyPage() {
-  const [data, setData] = useState([])
-  const [loading, setLoading] = useState(true)
-  const { searchTerm, setSearchTerm, filteredItems, isSearching } = useOptimizedSearch(data, SEARCH_CONFIGS.myEntity)
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true)
-        const result = await MyService.getAll()
-        setData(result)
-      } catch (error) {
-        toast.error("Failed to load data")
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchData()
-  }, [])
-
-  return (
-    <div>
-      {/* Search input */}
-      <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-
-      {/* Results with loading states */}
-      {loading || isSearching ? (
-        <LoadingSpinner size="lg" message={loading ? "Loading data..." : "Searching..."} />
-      ) : filteredItems.length === 0 ? (
-        <div>No items found</div>
-      ) : (
-        <div>{/* Render items */}</div>
-      )}
-    </div>
-  )
-}
-```
-
-#### Modal/Form Loading Pattern
-
-```typescript
-const [isSubmitting, setIsSubmitting] = useState(false)
-
-async function handleSubmit() {
-  try {
-    setIsSubmitting(true)
-    await SomeService.create(data)
-    toast.success("Created successfully")
-    onClose()
-  } catch (error) {
-    toast.error("Failed to create")
-  } finally {
-    setIsSubmitting(false)
-  }
-}
-
-return (
-  <DialogFooter>
-    <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-      Cancel
-    </Button>
-    <Button onClick={handleSubmit} disabled={isSubmitting}>
-      {isSubmitting ? (
-        <>
-          <InlineSpinner className="mr-2" />
-          Saving...
-        </>
-      ) : (
-        "Save"
-      )}
-    </Button>
-  </DialogFooter>
-)
-```
-
-#### AppLayout Loading Pattern
-
-The AppLayout shows a loading spinner while auth initializes:
-
-```typescript
-export default function AppLayout({ children }: AppLayoutProps) {
-  const { user, logout, loading } = useAuth()
-
-  if (loading) {
-    return <LoadingSpinner fullScreen message="Loading..." />
-  }
-
-  // Render layout
-}
-```
-
-#### When to Use Loading States
-
-✅ **Always show loading for:**
-- Initial page data fetching
-- Permission checks (before rendering content)
-- Form submissions
-- Search operations
-- Auth state initialization
-- Modal/dialog actions
-
-✅ **Use appropriate component:**
-- `LoadingSpinner` - Page-level loading, permission checks
-- `InlineSpinner` - Button actions, inline operations
-- `SkeletonLoader` - Content placeholders during load
-
-❌ **Don't use for:**
-- Instant operations (< 100ms)
-- Operations already handled by browser (navigation)
-- Background sync operations
-
-#### Search Config Structure
-
-Example from `search-configs.ts`:
-
-```typescript
-export const SEARCH_CONFIGS = {
-  companies: {
-    fields: [
-      { path: "name", weight: 2 },                    // High priority
-      { path: "registrationNumber", weight: 2 },      // High priority
-      { path: "companyType", weight: 1 },             // Lower priority
-      { path: "physicalAddress", weight: 1 },
-      { path: "vatNumber", weight: 1 },
-    ],
-    debounceMs: 300,           // Wait 300ms after typing stops
-    minSearchLength: 2,        // Require 2+ characters
-    maxResults: 500,           // Return max 500 results
-  } as SearchConfig,
-
-  assets: {
-    fields: [
-      { path: "registrationNumber", weight: 2 },
-      { path: "licenseNumber", weight: 2 },
-      { path: "qrCode", weight: 1 },
-      { path: "fleetNumber", weight: 1 },
-    ],
-    debounceMs: 300,
-    minSearchLength: 1,
-    maxResults: 1000,
-  } as SearchConfig,
-
-  orders: {
-    fields: [
-      { path: "orderNumber", weight: 3 },             // Highest priority
-      { path: "orderType", weight: 1 },
-      { path: "status", weight: 1 },
-      {
-        path: "totalWeight",
-        weight: 1,
-        transformer: (weight: number) => weight ? `${weight} tons` : "",
-      },
-    ],
-    debounceMs: 300,
-    minSearchLength: 1,
-    maxResults: 500,
-  } as SearchConfig,
-}
-```
-
-#### Custom Transformers
-
-For complex fields that need special handling:
-
-```typescript
-{
-  path: "fields",
-  weight: 1,
-  transformer: (fields: Array<{ label: string; fieldType: string }>) => {
-    if (!Array.isArray(fields)) return ""
-    return fields.map(f => `${f.label} ${f.fieldType}`).join(" ")
-  }
-}
-```
-
-This transforms array/object fields into searchable strings.
-
-#### Performance Benefits
-
-- **Debouncing:** Prevents excessive re-renders during typing
-- **requestIdleCallback:** Non-blocking search (doesn't freeze UI)
-- **Weighted matching:** Most relevant results appear first
-- **Memoization:** Cached results until data/search term changes
-- **Configurable limits:** Prevent rendering thousands of results
-
-### Examples by Use Case
-
-**Use Case: Create a new company**
-
-```typescript
-// ✅ GOOD - Use firebase-utils
-import { createDocument } from "@/lib/firebase-utils"
-const id = await createDocument("companies", companyData, "Company created")
-
-// ❌ AVOID - Too much manual work
-import { db } from "@/lib/firebase"
-import { addDoc, collection, serverTimestamp } from "firebase/firestore"
-const docRef = await addDoc(collection(db, "companies"), {
-  ...companyData,
-  createdAt: Date.now(),
-  updatedAt: Date.now(),
-  dbCreatedAt: serverTimestamp(),
-  dbUpdatedAt: serverTimestamp(),
-})
-toast.success("Company created")
-```
-
-**Use Case: Complex query with filters**
-
-```typescript
-// ✅ GOOD - Use firebase.ts for complex queries
-import { db } from "@/lib/firebase"
-import { collection, query, where, orderBy, getDocs } from "firebase/firestore"
-
-const q = query(collection(db, "assets"), where("companyId", "==", companyId), where("isActive", "==", true), orderBy("createdAt", "desc"))
-const snapshot = await getDocs(q)
-```
-
-**Use Case: Seed script (server-side)**
-
-```typescript
-// ✅ GOOD - Use firebase-admin in API routes
-import { adminDb } from "@/lib/firebase-admin"
-import { FieldValue } from "firebase-admin/firestore"
-
-await adminDb
-  .collection("companies")
-  .doc(id)
-  .set({
-    ...data,
-    createdAt: Date.now(), // Client event time
-    updatedAt: Date.now(), // Client event time
-    dbCreatedAt: FieldValue.serverTimestamp(), // Server timestamp
-    dbUpdatedAt: FieldValue.serverTimestamp(), // Server timestamp
-  })
-```
+**Completed Features:**
+- Seed permissions document (`settings/permissions`)
+- Seed 9 default roles per company
+- Seed default company with proper contact IDs
+- Seed default user with correct permissions
+- Proper timestamp handling (client + server)
 
 ---
 
-## Technology Stack Reference
-
-### Already Installed & Available
-
-- **Next.js 15.5.4** (App Router) - Use "use client" for client components
-- **React 19** - Modern hooks available
-- **TypeScript 5.9.2** - Strict mode enabled
-- **Tailwind CSS 4.1.13** - Use for all styling
-- **Radix UI** - Pre-configured components in `src/components/ui/`
-- **Framer Motion 12.23.22** - Use for animations
-- **Lucide React** - Icon library
-- **Firebase 12.3.0** - Client SDK
-- **firebase-admin 13.5.0** - Server SDK (API routes only)
-- **react-hook-form 7.63.0** - Form handling
-- **zod 4.1.11** - Validation schemas
-- **date-fns 4.1.0** - Date manipulation
-- **uuid 13.0.0** - ID generation
-- **lodash 4.17.21** - Utility functions
-- **sonner** - Toast notifications (use `import { toast } from "sonner"`)
-
-### Schema Alignment Prerequisite
-
-Before implementing any feature work, synchronise `src/types/index.ts` with `docs/data-model.md`:
-
-- Ensure every interface includes all required fields (e.g., `Company.orderConfig`, `Company.systemSettings`, `Company.securityAlerts`, `User.notificationPreferences`, timestamp fields).
-- Respect `companyId` on every company-scoped entity; use discriminated unions where the model defines enums.
-- Add `isActive` flags where required and mark optional fields correctly.
-- Re-export any shared map structures (e.g., notification preference keys) to keep UI forms consistent with schema.
-
-This guarantees the remainder of the plan compiles against the documented data shape.
-
----
-
-## Phase 1: Core Infrastructure & Permissions
+## Phase 2: Administrative Configuration
 
 ### Overview
-
-Set up permission system, enhance company management, and improve user management with full role-based access control.
-
----
-
-### Task 1.1: Permission System Core
-
-Update existing permission infrastructure to match `docs/data-model.md` and `src/types/index.ts`.
-
-#### Step 1: Define Permission Metadata
-
-**File:** `docs/data-model.md` already lists permission keys. Mirror that list in `src/lib/permissions.ts` and expose helper types:
-
-```typescript
-import type { PermissionKey } from "@/types"
-
-export const PERMISSIONS: Record<string, PermissionKey> = {
-  // follow data-model.md ordering (Asset, Orders, PreBooking, Operational, Administrative, Reports, Special)
-}
-
-export const PERMISSION_LABELS: Record<PermissionKey, string> = {
-  // descriptions pulled from data-model
-}
-```
-
-Use the union from the `PermissionKey` type exported in `src/types/index.ts` so definitions stay single-sourced.
-
-#### Step 2: Role Permissions Hook
-
-**File:** `src/hooks/usePermission.ts`
-
-- Fetch the active role via Firestore using `companyId` and `roleId` (`roles/${user.roleId}`) and cast to the `Role` interface.
-- Evaluate permissions in this order: `user.isGlobal` → `user.permissionOverrides` → `role.permissionKeys` (supports `"*"`).
-- Cache role results per `roleId` with `useState` and `useEffect`.
-
-#### Step 3: Permission Gate Component
-
-**File:** `src/components/auth/PermissionGate.tsx`
-
-- Client component that renders children if `usePermission(permission)` is true, otherwise renders an optional `fallback`.
-
-#### Step 4: Permission Service (Shared Runtime)
-
-**File:** `src/services/permission.service.ts`
-
-- Implement `evaluatePermission(user: User, role: Role | null, permission: PermissionKey)` plus helper methods `evaluateMultiple`, `hasAnyPermission`, `hasAllPermissions`.
-- Apply the same evaluation order as the hook for deterministic behaviour across server/client logic.
-
-#### Step 5: Seed Global Permissions Document
-
-**File:** `src/app/api/seed/route.ts`
-
-Add `seedPermissions` to create the singleton document `settings/permissions` exactly as described in `docs/data-model.md` (map of permission key → description). Return `1` so seeded counts display correctly.
-
-Call this function during the seed routine after clearing collections and before seeding roles.
-
-#### Step 6: Seed Default Roles per Company
-
-**File:** `src/app/api/seed/route.ts`
-
-Replace `DEFAULT_ROLES` with an array that aligns with the data model defaults and includes every required field:
-
-```typescript
-const DEFAULT_ROLES: Array<Omit<Role, "createdAt" | "updatedAt" | "dbCreatedAt" | "dbUpdatedAt">> = [
-  {
-    id: "r_newton_admin",
-    companyId: DEFAULT_COMPANY_ID,
-    name: "Newton Administrator",
-    permissionKeys: ["*"],
-    description: "Full system access and configuration",
-    isActive: true,
-  },
-  // ... remaining roles with permissionKeys drawn from PERMISSIONS
-]
-```
-
-When seeding additional companies (Phase 2 and beyond), clone these defaults with the target `companyId` so each tenant receives its own role set.
-
-Persist each role with timestamps using `FieldValue.serverTimestamp()` and `Date.now()` to satisfy the data model's timestamp requirements.
+Implement all administrative configuration modules required BEFORE orders can be created. These are the master data tables that orders depend on.
 
 ---
 
-### Task 1.2: Enhance Seed Script with Permissions and Roles ✅ COMPLETED
+### 2.1 Product Management
+**User Flow**: Flow 11 - Product Management Configuration
 
-**File to Update:** `src/app/api/seed/route.ts`
+**Goal**: Simple catalog of minerals (Gold, Platinum, Diamond, Iron Ore, Chrome, etc.) for use in orders.
 
-**Key Changes Made:**
+**Files to Create/Modify:**
+- `src/app/(authenticated)/admin/products/page.tsx`
+- `src/components/products/ProductFormModal.tsx`
 
-1. **Fixed Company Contact IDs**:
-   - Changed `DEFAULT_COMPANY` to set `mainContactId: ""` and `securityAlerts.primaryContactId: ""` initially
-   - Updated seed flow to set these fields AFTER creating the user with actual Firebase Auth UID
-   - Prevents undefined contact ID references in the database
+**Implementation Pattern:**
+- Use `createDocument()`, `updateDocument()` from firebase-utils directly in components
+- No service file needed - simple CRUD operations only
+- Search: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.products`
 
-2. **Removed Firestore `undefined` Values**:
-   - Removed `isAlsoLogisticsCoordinator: undefined` and `isAlsoTransporter: undefined` from DEFAULT_COMPANY
-   - Firestore rejects `undefined` values - only omit fields or use actual values
+**UI Requirements:**
+- Simple list view with search by name/code
+- Filter: Active/Inactive
+- Modal form with fields:
+  - Product name* (string, e.g., "Gold Ore")
+  - Product code* (string, e.g., "AU-001")
+  - Specifications (optional textarea, e.g., "Grade A")
+  - isActive (checkbox)
+- Usage validation: Query orders collection before delete
+- Show badge if product used in orders
 
-3. **Updated seedDefaultUser Return Type**:
-   - Changed return type from `number` to `Promise<string>` to return the created user's UID
-   - Allows updating company with actual contact IDs after user creation
+**Data Model:**
+Reference `docs/data-model.md` → `products` collection
 
-Add these functions to the seed script:
+**Acceptance Criteria:**
+- ✅ Products can be created with name, code, specifications
+- ✅ Products can be edited/deactivated
+- ✅ Search by name or code works
+- ✅ Products in use cannot be deleted
+- ✅ Inactive products don't appear in order dropdowns
 
+---
+
+### 2.2 Client Management
+**User Flow**: Flow 13 - Client Management Configuration
+
+**Goal**: Manage client companies (buyers/receivers of materials).
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/admin/clients/page.tsx`
+- `src/components/clients/ClientFormModal.tsx`
+
+**Implementation Pattern:**
+- Use `createDocument()`, `updateDocument()` from firebase-utils directly in components
+- No service file needed - simple CRUD operations only
+- Search: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.clients`
+
+**UI Requirements:**
+- List view with search by name/registration/VAT
+- Filter: Active/Inactive
+- Modal form with fields:
+  - Client name* (string)
+  - Company registration number* (string)
+  - VAT number (optional)
+  - Physical address* (string)
+  - Contact person name* (string)
+  - Contact email* (email validation)
+  - Contact phone* (phone validation)
+  - Allowed sites (multi-select dropdown of active sites)
+  - isActive (checkbox)
+- Usage validation: Query orders collection before delete
+- Show badge if client has orders
+
+**Data Model:**
+Reference `docs/data-model.md` → `clients` collection
+
+**Acceptance Criteria:**
+- ✅ Clients can be created with all contact info
+- ✅ Phone number validation works (react-hook-form + Zod)
+- ✅ Email validation works
+- ✅ Clients can link to multiple allowed sites
+- ✅ Clients in use cannot be deleted
+- ✅ Inactive clients don't appear in order dropdowns
+
+---
+
+### 2.3 Site Management
+**User Flow**: Flow 14 - Site Management Configuration
+
+**Goal**: Configure collection sites (loading places) and destination sites.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/admin/sites/page.tsx`
+- `src/components/sites/SiteFormModal.tsx`
+- `src/components/sites/OperatingHoursEditor.tsx`
+
+**Implementation Pattern:**
+- Use `createDocument()`, `updateDocument()` from firebase-utils directly in components
+- No service file needed - simple CRUD operations only
+- Search: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.sites`
+- Operating hours validation: Implement in OperatingHoursEditor component
+
+**UI Requirements:**
+- List view with tabs/filter: All, Collection, Destination
+- Search by site name/address
+- Modal form with fields:
+  - Site name* (string)
+  - Site type* (radio: collection | destination)
+  - Physical address* (string)
+  - Contact person* (dropdown from users - must have phone)
+  - Operating hours* (day-by-day time picker):
+    - Monday-Sunday: open time, close time
+    - "Closed" checkbox per day
+    - "24 Hours" checkbox per day (sets open: "00:00", close: "23:59")
+    - Default: 06:00-18:00 (Mon-Fri), 06:00-14:00 (Sat), Closed (Sun)
+  - isActive (checkbox)
+- Validate contact has phone number (per user-flow-web.md Flow 14)
+- If no phone, show inline error and link to user edit
+- Show operating hours in list view (collapsed/expandable)
+- Prevent deletion if site used in orders
+
+**Data Model:**
+Reference `docs/data-model.md` → `sites` collection
+
+**Operating Hours Structure:**
 ```typescript
-// Add this function to seed permissions
-async function seedPermissions(sendProgress: (data: ProgressData) => void) {
-  const permissionsData = {
-    permissions: {
-      // Asset Management
-      "assets.view": { description: "View assets" },
-      "assets.add": { description: "Add new assets" },
-      "assets.edit": { description: "Edit existing assets" },
-      "assets.delete": { description: "Delete assets" },
-
-      // Order Management
-      "orders.view": { description: "View orders" },
-      "orders.create": { description: "Create new orders" },
-      "orders.allocate": { description: "Allocate orders" },
-      "orders.cancel": { description: "Cancel orders" },
-      "orders.viewAll": { description: "View all orders (not just assigned)" },
-
-      // Pre-Booking
-      "preBooking.view": { description: "View pre-bookings" },
-      "preBooking.create": { description: "Create pre-bookings" },
-      "preBooking.edit": { description: "Edit pre-bookings" },
-
-      // Operational Flows
-      "security.in": { description: "Perform security in checks" },
-      "security.out": { description: "Perform security out checks" },
-      "weighbridge.tare": { description: "Capture tare weight" },
-      "weighbridge.gross": { description: "Capture gross weight" },
-      "weighbridge.calibrate": { description: "Perform weighbridge calibration" },
-      "weighbridge.override": { description: "Manual weight override" },
-
-      // Administrative
-      "admin.companies": { description: "Manage companies" },
-      "admin.users": { description: "Manage users" },
-      "admin.products": { description: "Manage products" },
-      "admin.orderSettings": { description: "Configure order settings" },
-      "admin.clients": { description: "Manage clients" },
-      "admin.sites": { description: "Manage sites" },
-      "admin.weighbridge": { description: "Configure weighbridge" },
-      "admin.notifications": { description: "Configure notifications" },
-      "admin.system": { description: "System-wide settings" },
-      "admin.securityAlerts": { description: "Configure security alerts" },
-
-      // Reports
-      "reports.daily": { description: "View daily reports" },
-      "reports.monthly": { description: "View monthly reports" },
-      "reports.custom": { description: "Create custom reports" },
-      "reports.export": { description: "Export report data" },
-
-      // Special
-      "emergency.override": { description: "Emergency override access" },
-      "orders.editCompleted": { description: "Edit completed orders" },
-      "records.delete": { description: "Delete records permanently" },
-      "preBooking.bypass": { description: "Bypass pre-booking requirements" },
-    },
-  }
-
-  await adminDb.doc("settings/permissions").set(permissionsData)
-
-  sendProgress({
-    stage: "seeding_permissions",
-    message: "Seeded permissions document",
-    completed: true,
-  })
-
-  return 1
+{
+  monday: { open: "06:00", close: "18:00" },
+  tuesday: { open: "06:00", close: "18:00" },
+  // ...
+  sunday: { open: "closed", close: "closed" }
 }
-
-// Update the DEFAULT_ROLES array with complete permission mappings
-const DEFAULT_ROLES = [
-  {
-    id: "r_newton_admin",
-    name: "Newton Administrator",
-    permissionKeys: ["*"],
-    description: "Full system access and configuration",
-  },
-  {
-    id: "r_site_admin",
-    name: "Site Administrator",
-    permissionKeys: ["assets.view", "assets.add", "assets.edit", "orders.view", "orders.viewAll", "preBooking.view", "weighbridge.tare", "weighbridge.gross", "security.in", "security.out", "reports.daily", "reports.monthly", "reports.export", "admin.sites", "admin.weighbridge"],
-    description: "Site-level management and operations",
-  },
-  {
-    id: "r_logistics_coordinator",
-    name: "Logistics Coordinator",
-    permissionKeys: ["assets.view", "orders.view", "orders.create", "orders.allocate", "orders.viewAll", "preBooking.view", "preBooking.create", "preBooking.edit", "reports.daily", "reports.monthly", "reports.export"],
-    description: "Order and pre-booking management",
-  },
-  {
-    id: "r_allocation_officer",
-    name: "Allocation Officer",
-    permissionKeys: ["orders.view", "orders.allocate", "orders.viewAll", "preBooking.view", "reports.daily"],
-    description: "Order allocation and distribution",
-  },
-  {
-    id: "r_transporter",
-    name: "Transporter",
-    permissionKeys: ["assets.view", "orders.view", "preBooking.view", "reports.daily"],
-    description: "View assigned orders and assets only",
-  },
-  {
-    id: "r_induction_officer",
-    name: "Induction Officer",
-    permissionKeys: ["assets.view", "assets.add", "assets.edit", "assets.delete", "reports.daily"],
-    description: "Asset induction and management",
-  },
-  {
-    id: "r_weighbridge_supervisor",
-    name: "Weighbridge Supervisor",
-    permissionKeys: ["weighbridge.tare", "weighbridge.gross", "weighbridge.calibrate", "weighbridge.override", "reports.daily", "reports.monthly", "reports.export", "admin.weighbridge"],
-    description: "Weighbridge operations and calibration",
-  },
-  {
-    id: "r_weighbridge_operator",
-    name: "Weighbridge Operator",
-    permissionKeys: ["weighbridge.tare", "weighbridge.gross", "reports.daily"],
-    description: "Weight capture operations only",
-  },
-  {
-    id: "r_security",
-    name: "Security Personnel",
-    permissionKeys: ["security.in", "security.out", "reports.daily"],
-    description: "Security checkpoint operations",
-  },
-]
-
-// Update seedRoles function (already exists, just ensure it uses DEFAULT_ROLES)
 ```
 
-Then update the main GET function to call seedPermissions:
+**Acceptance Criteria:**
+- ✅ Sites can be created as collection or destination
+- ✅ Operating hours can be set per day
+- ✅ Contact person must have phone number
+- ✅ Sites in use cannot be deleted
+- ✅ Inactive sites don't appear in order dropdowns
+- ✅ Operating hours validation prevents invalid times
 
+---
+
+### 2.4 Comprehensive User Management
+**User Flow**: Flow 10 - User Management Configuration (expanded)
+
+**Goal**: Complete user administration including company transfers, role management, and permission overrides.
+
+**Files to Modify:**
+- `src/app/(authenticated)/admin/users/page.tsx` - Enhanced user listing
+- `src/components/users/EditUserModal.tsx` - Complete user editing
+- `src/components/users/MoveUserModal.tsx` - Transfer users between companies
+- `src/components/users/RoleManager.tsx` - Add/remove user roles
+- `src/components/users/PermissionOverrideEditor.tsx` - Granular permission overrides
+
+**Implementation Pattern:**
+- Use `updateDocument("users", userId, updates)` from firebase-utils for all updates
+- No service file needed - simple updates to user document
+- Access current data via `globalData.users.value` (from data.service.ts)
+- Role data via `globalData.roles.value` (from data.service.ts)
+
+**UI Requirements:**
+
+**Enhanced User List Page:**
+- Company filter dropdown (global admins only):
+  - "All Companies" (show all users across system)
+  - Individual company selector (show users for specific company)
+  - Default: Current user's company
+- Search by name, email, phone
+- Table columns:
+  - Profile picture (thumbnail)
+  - Name
+  - Email
+  - Company name (visible to global admins)
+  - Roles (badges)
+  - Active status (toggle)
+  - Actions dropdown:
+    - Edit User
+    - Change Password
+    - Change Email
+    - Move to Another Company (global admins only)
+    - Manage Roles
+    - Edit Permissions
+    - Deactivate/Reactivate
+- Add User button
+
+**Edit User Modal:**
+- All basic fields from Phase 1 (name, email, phone, profile picture)
+- Company dropdown (global admins only - for moves)
+- Active/Inactive toggle
+- Save button
+
+**Move User Modal (Global Admins Only):**
+- Current company (read-only display)
+- New company dropdown (all active companies)
+- Confirmation checkbox: "I understand this will remove all current roles and reset permissions for this user"
+- Warning message: "Moving a user will:
+  - Remove all roles from current company
+  - Reset permission overrides
+  - Remove from notification lists
+  - Clear company-specific settings"
+- Move button
+
+**On Move:**
+- Update `user.companyId` to new company
+- Clear `user.roles` array
+- Clear `user.permissionOverrides` object
+- Clear `user.notificationPreferences` (will reset to defaults)
+- Create audit log entry
+
+**Role Manager Modal:**
+- User name and current company (header)
+- Available roles section:
+  - List of all roles for user's company (from globalData.roles.value)
+  - Each role shows:
+    - Role name
+    - Description
+    - Add/Remove button (toggle)
+- Current roles section:
+  - Chips/badges of assigned roles
+  - Remove icon on each chip
+- "Quick Assign" presets (optional):
+  - Standard combinations like "Basic User", "Manager", "Administrator"
+- Save button (updates user.roles array)
+
+**Permission Override Editor:**
+- User name and current company (header)
+- Permission tree view (by category):
+
+  **Asset Management:**
+  - No Access / View Only / Add & Edit / Full Access (dropdown per permission)
+
+  **Order Management:**
+  - No Access / View Only / Create Orders / Allocate Orders / Full Access
+
+  **Pre-Booking Management:**
+  - No Access / View Only / Create & Edit / Full Access
+
+  **Operational Flow Permissions:**
+  - Security In - Enable/Disable (toggle)
+  - Security Out - Enable/Disable
+  - Weighbridge Tare Weight - Enable/Disable
+  - Weighbridge Gross Weight - Enable/Disable
+
+  **Administrative Permissions:**
+  - User Management - No Access / View Only / Full Access
+  - Product Management - No Access / View Only / Full Access
+  - Order Settings - No Access / View Only / Full Access
+  - Client Management - No Access / View Only / Full Access
+  - Site Management - No Access / View Only / Full Access
+  - Notification Infrastructure - No Access / View Only / Full Access
+  - System-Wide Settings - No Access / View Only / Full Access
+  - Security Alert Configuration - No Access / View Only / Full Access
+
+  **Transporter-Specific:**
+  - View Only Assigned Orders - Enable/Disable
+  - View Other Transporters' Data - Enable/Disable
+
+- For each permission:
+  - Show inherited value from roles (grayed out, non-editable)
+  - Dropdown to override: "Use Role Default" | custom value
+  - Visual indicator when overridden (e.g., yellow badge)
+- Reset to Defaults button (clear all overrides)
+- Save button (updates user.permissionOverrides object)
+
+**Data Model:**
+Reference `docs/data-model.md` → `users` collection:
+- `companyId: string` - Can be updated for company moves
+- `roles: string[]` - Array of role IDs
+- `permissionOverrides: Record<string, any>` - Custom permissions that override role defaults
+- `isActive: boolean` - Can be toggled
+- `notificationPreferences: object` - See Phase 2.6
+
+**Acceptance Criteria:**
+- ✅ Users can be viewed per specific company
+- ✅ Users can be edited (all fields)
+- ✅ Global admins can move users between companies
+- ✅ User roles can be added and removed
+- ✅ Permission overrides can be set per user
+- ✅ Moving users clears company-specific data
+- ✅ Permission inheritance from roles is visible
+- ✅ Overrides are visually distinguished from role defaults
+- ✅ All changes are audited
+
+---
+
+### 2.5 Notification Templates
+**User Flow**: Flow 15 - Notification System Infrastructure
+
+**Goal**: Configure email templates for all system notifications.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/admin/notifications/page.tsx`
+- `src/components/notifications/TemplateEditor.tsx`
+- `src/components/notifications/TemplatePreview.tsx`
+- `src/components/notifications/TemplateCategoryTabs.tsx`
+- `src/lib/template-placeholders.ts` (helper functions)
+
+**Implementation Pattern:**
+- Use `createDocument()`, `updateDocument()` from firebase-utils directly in components
+- No service file needed - simple CRUD operations only
+- Helper functions in `template-placeholders.ts`:
+  - `parsePlaceholders(template: string, data: Record<string, any>)` - Replace {{placeholders}}
+  - `sendTestEmail(templateId: string, userEmail: string)` - Send test email
+- Search: Use existing `useOptimizedSearch` hook with search config
+
+**Template Categories (per data-model.md):**
+- **Asset**: asset.added, asset.inactive, asset.edited, asset.deleted
+- **Order**: order.created, order.allocated, order.cancelled, order.completed, order.expiring
+- **Weighbridge**: weighbridge.overload, weighbridge.underweight, weighbridge.violations, weighbridge.manualOverride
+- **Security**: security.invalidLicense, security.unbookedArrival, security.noActiveOrder, security.sealMismatch, security.incorrectSealsNo, security.unregisteredAsset, security.inactiveEntity, security.incompleteTruck
+- **Pre-Booking**: preBooking.created, preBooking.lateArrival
+- **Driver**: driver.licenseExpiring7, driver.licenseExpiring30
+
+**UI Requirements:**
+- Category tabs (Asset, Order, Weighbridge, Security, PreBooking, Driver)
+- List of templates per category
+- Editor modal with fields:
+  - Template name* (string, read-only for system templates)
+  - Email subject* (string with placeholder support)
+  - Email body* (rich text editor with placeholder support)
+  - Available placeholders (sidebar):
+    - {{userName}}, {{companyName}}, {{date}}, {{time}}
+    - {{assetType}}, {{registrationNumber}}, {{fleetNumber}}
+    - {{orderNumber}}, {{productName}}, {{weight}}
+    - {{reason}} (for deletions/inactivations)
+    - {{daysUntilExpiry}}, {{expiryDate}}
+    - {{sealNumbers}}, {{weighbridgeName}}
+  - Logo upload (company logo for emails)
+  - Preview pane (live rendering with sample data)
+- "Send Test Email" button (uses user's email)
+- Reset to default button (for system templates)
+
+**Seed Requirements:**
+Create default templates for all notification types in seed script
+
+**Data Model:**
+Reference `docs/data-model.md` → `notification_templates` collection
+
+**Acceptance Criteria:**
+- ✅ All notification types have default templates
+- ✅ Templates can be edited with placeholders
+- ✅ Preview shows rendered HTML
+- ✅ Test emails send successfully
+- ✅ Placeholders correctly replaced
+- ✅ Company logo appears in emails
+- ✅ Templates persist per company
+
+---
+
+### 2.6 User Notification Preferences
+**User Flow**: Flow 10 - User Management Configuration (Notification Settings)
+
+**Goal**: Allow users to opt-in/opt-out of notification types.
+
+**Files to Modify:**
+- `src/app/(authenticated)/admin/users/page.tsx` (add Notifications tab/modal)
+- `src/components/users/NotificationPreferencesEditor.tsx` (new component)
+- Update `src/components/users/AddUserModal.tsx` to include default preferences
+
+**Implementation Pattern:**
+- Use `updateDocument("users", userId, { notificationPreferences: prefs })` directly
+- No service file needed - simple field update
+- Default preferences: Create helper function `getDefaultNotificationPreferences()` in component or lib
+
+**UI Requirements:**
+- Notification Preferences modal/section in user edit
+- Grouped checkboxes by category:
+
+  **Asset Notifications:**
+  - ☑ Asset Added
+  - ☐ Asset Made Inactive
+  - ☑ Asset Edited
+  - ☑ Asset Deleted
+
+  **Order Notifications:**
+  - ☑ Order Created
+  - ☑ Order Allocated (always sent if directly allocated)
+  - ☐ Order Cancelled
+  - ☑ Order Completed
+  - ☑ Order Expiring Soon
+
+  **Weighbridge Notifications:**
+  - ☑ Overload Detected
+  - ☑ Underweight Detected
+  - ☑ Weight Limit Violations
+  - ☑ Manual Weight Override Used
+
+  **Pre-Booking & Scheduling:**
+  - ☑ Pre-Booking Created
+  - ☑ Pre-Booking Late Arrival (24+ hours)
+
+  **Security & Compliance:**
+  - ☑ Invalid/Expired License
+  - ☑ Unbooked Truck Arrival
+  - ☑ Truck Arrival No Active Order
+  - ☑ Incorrect Seals
+  - ☑ Seal Number Mismatch
+  - ☑ Unregistered Asset Attempting Entry
+  - ☑ Inactive Entity Attempted Entry
+  - ☑ Truck Left Without Completing Process
+
+  **Asset & Driver Alerts:**
+  - ☑ Driver License Expiring (7 days)
+  - ☑ Driver License Expiring (30 days)
+
+  **Preferred Email:**
+  - Email address field (defaults to user email)
+
+- "Select All" / "Deselect All" per category
+- Note: "Users always receive notifications when orders are allocated directly to them"
+
+**Data Model:**
+Reference `docs/data-model.md` → `users.notificationPreferences`
+
+**Acceptance Criteria:**
+- ✅ All notification types can be toggled
+- ✅ Preferences persist in user document
+- ✅ Default preferences set on user creation
+- ✅ Preferred email can be different from login email
+- ✅ Direct order allocations always send regardless of setting
+
+---
+
+### 2.7 System-Wide Settings
+**User Flow**: Flow 16 - System-Wide Settings Configuration
+
+**Goal**: Configure global UI/feature toggles that affect all users.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/admin/settings/page.tsx`
+- `src/components/settings/SystemSettingsForm.tsx`
+
+**Implementation Pattern:**
+- Use `updateDocument("companies", companyId, { systemSettings })` directly
+- No service file needed - simple field update on company document
+- Access current settings via `CompanyContext` or `globalData.companies.value`
+
+**UI Requirements:**
+- Single-page form with sections:
+
+  **Fleet Management:**
+  - ☑ Enable Fleet Number field (checkbox)
+  - Fleet Number Label (text input, default: "Fleet No.")
+
+  **Transporter Groups:**
+  - ☑ Enable Transporter Group field (checkbox)
+  - Transporter Group Label (text input, default: "Group")
+  - Group Options (tag input, comma-separated)
+    - Example: North, South, East, West
+
+  **UI Simplification:**
+  - ☐ Hide advanced features (checkbox)
+  - ☐ Simplified dashboard (checkbox)
+
+  **Role-Specific Views:**
+  - Dashboard widgets per role (drag-and-drop configurator - future enhancement)
+
+- Save button (updates company.systemSettings)
+- Preview mode toggle to show/hide fields based on settings
+
+**Data Model:**
+Reference `docs/data-model.md` → `companies.systemSettings`
+
+**Acceptance Criteria:**
+- ✅ Settings can be updated and saved
+- ✅ Fleet number field shows/hides based on setting
+- ✅ Custom labels appear in asset forms
+- ✅ Group options populate dropdowns
+- ✅ Settings persist per company
+- ✅ Changes reflect immediately in UI (reactive)
+
+---
+
+## Phase 3: Asset Management
+
+### Overview
+Implement complete asset induction, management, and deletion flows. Use wizard-based approach with expo-sadl integration for driver license parsing.
+
+---
+
+### 3.1 Asset Type Configuration
+**Supporting Infrastructure**
+
+**Goal**: Configure asset types that determine which fields appear in wizard.
+
+**Files to Create/Modify:**
+- `src/types/asset-types.ts` (TypeScript definitions)
+- `src/lib/asset-field-mappings.ts` (expo-sadl field mappings)
+
+**Asset Types (from data/assets-data.json):**
+- **Truck**: registration, engineNo, make, model, colour, licenceDiskNo, firstQRCode, secondQRCode, expiryDate
+- **Trailer**: registration, make, model, colour, licenceDiskNo, firstQRCode, secondQRCode, expiryDate
+- **Driver**: licenceNumber, idNumber, name, surname, initials, gender, birthDate, dateOfExpiry, issueDate, driverRestrictions, ntCode, licenceType, firstQRCode, secondQRCode
+
+**expo-sadl Field Mappings:**
+Per South African driver's license standard (see NewtonWeighbridges/src/services/scan.service.ts):
+- `VehicleInformation`: registration, make, model, colour, vehicleDiskNo, expiryDate, engineNo
+- `PersonInformation`: idNumber, name, surname, initials, gender, birthDate
+- `LicenceInformation`: licenceNumber, issueDate, expiryDate, driverRestrictions, licenceType, ntCode (NaTIS transaction code)
+
+**Methods/Functions:**
+- `AssetFieldMapper.parseVehicleDisk(barcodeData: string)` - Extract vehicle info
+- `AssetFieldMapper.parseDriverLicense(barcodeData: string)` - Extract driver info via expo-sadl
+- `AssetFieldMapper.validateExpiry(expiryDate: string)` - Check not expired
+- `AssetFieldMapper.getRequiredFields(assetType: 'truck' | 'trailer' | 'driver')` - Return required field list
+
+**Data Model:**
+Reference `data/assets-data.json` for real production structure
+
+**Acceptance Criteria:**
+- ✅ Barcode data correctly parsed
+- ✅ All fields mapped per asset type
+- ✅ Expiry validation works
+- ✅ Expo-sadl integration functional
+
+---
+
+### 3.2 Asset Induction Wizard
+**User Flow**: Flow 2 - Complete Asset Induction Process
+
+**Goal**: Multi-step wizard to induct new assets with QR/barcode scanning and validation.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/assets/induct/page.tsx`
+- `src/components/assets/InductionWizard.tsx`
+- `src/components/assets/wizard-steps/Step1CompanySelect.tsx`
+- `src/components/assets/wizard-steps/Step2QRScan.tsx`
+- `src/components/assets/wizard-steps/Step3LicenseScan.tsx`
+- `src/components/assets/wizard-steps/Step4AssetTypeDetection.tsx`
+- `src/components/assets/wizard-steps/Step5FieldConfirmation.tsx`
+- `src/components/assets/wizard-steps/Step6OptionalFields.tsx`
+- `src/components/assets/wizard-steps/Step7Review.tsx`
+- `src/components/assets/QRScanner.tsx` (camera integration)
+- `src/components/assets/BarcodeScanner.tsx` (camera integration)
+- `src/services/asset.service.ts`
+- Add to `src/config/search-configs.ts` (assets config)
+
+**Wizard Steps (per Flow 2):**
+
+**Step 1: Company Selection**
+- Dropdown: Select company (companyType = transporter OR logistics_coordinator)
+- Only companies with transporter flag shown
+- Next button
+
+**Step 2: QR Code Scan (First)**
+- Camera view or manual input
+- Scan QR code (firstQRCode)
+- Validation: Check not already in system
+- If duplicate: Error + return to start
+- Retry button
+- Next button
+
+**Step 3: QR Code Verification (Second)**
+- Camera view or manual input
+- Scan QR code again (secondQRCode)
+- Validation: Must match firstQRCode
+- If mismatch: Error + return to Step 2
+- Next button
+
+**Step 4: License/Disk Scan (First)**
+- Camera view or manual input
+- Scan license disc barcode (vehicle) OR driver license barcode
+- Auto-parse via expo-sadl / vehicle disk parser
+- Display extracted fields
+- Next button
+
+**Step 5: License/Disk Verification (Second)**
+- Camera view or manual input
+- Scan same barcode again
+- Validation: Must match first scan data
+- If mismatch: Error + return to Step 4
+- Next button
+
+**Step 6: Asset Type Detection**
+- Automatically identify type:
+  - If `VehicleInformation` → Truck or Trailer (user selects)
+  - If `PersonInformation` → Driver
+- Display detected type with icon
+- User confirms or overrides
+- Next button
+
+**Step 7: Field Confirmation & Validation**
+- Display all auto-extracted fields
+- Editable fields (pre-filled from barcode data)
+- Expiry date validation:
+  - If expired: Red banner + error message
+  - Block save (per Flow 2: "If Invalid (Expired): Process Blocked")
+  - Send notification to users with "security.invalidLicense" enabled
+  - Return to start button
+- If valid but <30 days: Yellow warning banner
+- If valid but <7 days: Red warning banner (still allows save)
+- Next button (disabled if expired)
+
+**Step 8: Optional Fields**
+- Fleet Number (text input) - only if `systemSettings.fleetNumberEnabled`
+- Group (dropdown from `systemSettings.groupOptions`) - only if `systemSettings.transporterGroupEnabled`
+- Skip button / Next button
+
+**Step 9: Review & Submit**
+- Summary card showing:
+  - Company
+  - Asset type
+  - QR code
+  - All extracted fields
+  - Expiry status badge
+  - Optional fields
+- Edit button (returns to relevant step)
+- Submit button
+
+**On Successful Submit:**
+- Call `AssetService.create(assetData)`
+- Send notification to users with "asset.added" enabled
+- Show success message
+- Option to "Add Another" or "View Asset List"
+
+**Methods/Functions:**
+- `AssetService.create(data: AssetInput)` - Create asset
+- `AssetService.validateQRCode(qrCode: string)` - Check uniqueness
+- `AssetService.checkExpiry(expiryDate: string)` - Validate not expired
+- `AssetService.sendExpiryNotifications(asset: Asset, daysUntilExpiry: number)` - Trigger notifications
+
+**Data Model:**
+Reference `docs/data-model.md` → `assets` collection
+
+**Acceptance Criteria:**
+- ✅ Wizard navigates through all 9 steps
+- ✅ QR code scanned twice and verified
+- ✅ License/disk scanned twice and verified
+- ✅ Asset type auto-detected correctly
+- ✅ Expired licenses block save
+- ✅ Valid licenses allow save with warnings
+- ✅ Fleet number/group fields conditional on settings
+- ✅ Notifications sent on success
+- ✅ Duplicate QR codes prevented
+
+---
+
+### 3.3 Asset Listing & Search
+**User Flow**: Implicit (view existing assets)
+
+**Goal**: Display all assets with search, filter, and expiry warnings.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/assets/page.tsx`
+- `src/components/assets/AssetListTable.tsx`
+- `src/components/assets/AssetCard.tsx`
+- `src/components/assets/AssetFilters.tsx`
+- `src/components/assets/ExpiryBadge.tsx`
+
+**Methods/Functions:**
+- `AssetService.getByCompany(companyId: string)` - All assets
+- `AssetService.getByType(companyId: string, type: 'truck' | 'trailer' | 'driver')` - Filter by type
+- `AssetService.getExpiringAssets(companyId: string, daysThreshold: number)` - Assets expiring soon
+- `AssetService.getExpiredAssets(companyId: string)` - Expired assets
+
+**UI Requirements:**
+- Search bar (useOptimizedSearch with config for registrationNumber, licenseNumber, qrCode, fleetNumber)
+- Filters:
+  - Asset type (All, Trucks, Trailers, Drivers)
+  - Status (All, Active, Inactive, Expired)
+  - Expiry (All, Expiring <7 days, Expiring <30 days, Expired)
+- Table/card view toggle
+- Columns:
+  - Icon (truck/trailer/driver)
+  - Registration/License Number
+  - QR Code
+  - Fleet Number (if enabled)
+  - Group (if enabled)
+  - Expiry Date
+  - Status badge (Active/Inactive/Expired)
+  - Actions (View, Edit, Delete)
+- Expiry badge colors:
+  - Green: >30 days
+  - Yellow: 7-30 days
+  - Orange: 1-7 days
+  - Red: Expired
+- Click row to view details
+- Bulk actions: Export to Excel
+
+**Acceptance Criteria:**
+- ✅ Assets listed with all fields
+- ✅ Search by registration/license/QR/fleet works
+- ✅ Filters work correctly
+- ✅ Expiry badges show correct color
+- ✅ Active/inactive toggle works
+- ✅ Pagination for large lists
+
+---
+
+### 3.4 Asset Details & Edit
+**User Flow**: Implicit (view/edit existing asset)
+
+**Goal**: View full asset details and edit non-barcode fields.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/assets/[id]/page.tsx`
+- `src/components/assets/AssetDetailsCard.tsx`
+- `src/components/assets/AssetEditModal.tsx`
+- `src/components/assets/AssetHistoryTimeline.tsx` (optional)
+
+**Methods/Functions:**
+- `AssetService.getById(id: string)` - Fetch single asset
+- `AssetService.update(id: string, data: Partial<Asset>)` - Update asset
+- `AssetService.getHistory(id: string)` - Audit log (future)
+
+**UI Requirements:**
+- Asset details card:
+  - Large icon for type
+  - All fields (read-only barcode fields, editable optional fields)
+  - Expiry status prominent
+  - QR codes displayed
+  - Company name
+  - Created/updated timestamps
+- Edit button (opens modal)
+- Edit modal:
+  - Fleet Number (editable)
+  - Group (editable dropdown)
+  - Cannot edit: registration, license, QR, barcode data
+  - Note: "Barcode fields cannot be edited. Delete and re-induct to change."
+- History timeline (optional):
+  - Created date
+  - Edited dates
+  - Inactivated date (if applicable)
+
+**Acceptance Criteria:**
+- ✅ Asset details display correctly
+- ✅ Barcode fields are read-only
+- ✅ Optional fields are editable
+- ✅ Updates trigger "asset.edited" notification
+- ✅ Edit modal validates inputs
+
+---
+
+### 3.5 Asset Deletion & Inactivation
+**User Flow**: Flow 3 - Asset Deletion (Induction Error Correction)
+
+**Goal**: Delete assets with no transactions, or inactivate if transactions exist.
+
+**Files to Create/Modify:**
+- `src/components/assets/DeleteAssetModal.tsx`
+- `src/components/assets/InactivateAssetModal.tsx`
+- Modify `AssetService` with deletion methods
+
+**Methods/Functions:**
+- `AssetService.checkHasTransactions(assetId: string)` - Returns `{ hasTransactions: boolean, count: number }`
+- `AssetService.delete(id: string, reason: string)` - Hard delete (only if no transactions)
+- `AssetService.inactivate(id: string, reason: string)` - Soft delete (set isActive = false)
+
+**UI Requirements:**
+
+**Delete Flow (per Flow 3):**
+- User clicks "Delete" on asset
+- Scan QR code to confirm (modal with camera)
+- If QR matches:
+  - System checks for transactions:
+    - Query `weighing_records` where `assetId` = id
+    - Query `security_checks` where `assetId`, `driverId`, `trailer1Id`, or `trailer2Id` = id
+
+  **If No Transactions:**
+  - Show reason input modal:
+    - "Why are you deleting this asset?" (textarea, required)
+    - Delete button (red, destructive)
+  - On confirm:
+    - Hard delete from Firestore
+    - Log deletion in audit_logs with reason
+    - Send notification to users with "asset.deleted" enabled
+    - Show success toast: "Asset deleted successfully"
+    - Redirect to asset list
+
+  **If Transactions Exist:**
+  - Show error modal:
+    - Title: "Cannot Delete - Asset Has Transactions"
+    - Message: "This asset has {count} transaction(s) and cannot be deleted."
+    - Option: "Mark as Inactive Instead" button
+    - Cancel button
+  - If user clicks "Mark as Inactive":
+    - Show inactivate modal (see below)
+
+**Inactivate Flow:**
+- Show reason input modal:
+  - "Why are you marking this asset inactive?" (textarea, required)
+  - Examples: "License expired", "Vehicle sold", "Driver resigned"
+  - Inactivate button (yellow, warning)
+- On confirm:
+  - Update Firestore: `isActive = false`, `inactiveReason = reason`, `inactiveDate = now()`
+  - Send notification to users with "asset.inactive" enabled
+  - Show success toast: "Asset marked as inactive"
+  - Redirect to asset list
+
+**Data Model:**
+Reference `docs/data-model.md` → `assets` collection fields: `isActive`, `inactiveReason`, `inactiveDate`, `deletedReason`
+
+**Acceptance Criteria:**
+- ✅ QR scan required to delete
+- ✅ Transaction check prevents deletion
+- ✅ Hard delete only if no transactions
+- ✅ Inactivation available as alternative
+- ✅ Reason required for both actions
+- ✅ Notifications sent correctly
+- ✅ Audit log created
+- ✅ Inactive assets hidden from operational dropdowns
+
+---
+
+## Phase 4: Order Management
+
+### Overview
+Implement order creation, allocation, and tracking. Orders depend on products, clients, sites being configured (Phase 2).
+
+---
+
+### 4.1 Order Creation
+**User Flow**: Flow 4 - Order Creation
+
+**Goal**: Create receiving/dispatching orders with complex configuration.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/orders/new/page.tsx`
+- `src/components/orders/OrderCreationWizard.tsx`
+- `src/components/orders/wizard-steps/Step1OrderNumber.tsx`
+- `src/components/orders/wizard-steps/Step2BasicInfo.tsx`
+- `src/components/orders/wizard-steps/Step3Sites.tsx`
+- `src/components/orders/wizard-steps/Step4Product.tsx`
+- `src/components/orders/wizard-steps/Step5Limits.tsx`
+- `src/components/orders/wizard-steps/Step6TripConfig.tsx`
+- `src/components/orders/wizard-steps/Step7Allocation.tsx`
+- `src/components/orders/wizard-steps/Step8Review.tsx`
+- `src/services/order.service.ts`
+- Add to `src/config/search-configs.ts` (orders config)
+
+**Wizard Steps (per Flow 4):**
+
+**Step 1: Order Number Configuration**
+- Check `company.orderConfig.orderNumberMode`:
+
+  **If "autoOnly":**
+  - Display auto-generated order number (read-only)
+  - Format: `{orderConfig.orderNumberPrefix}YYYY-NNNN` (e.g., DEV-2024-0001)
+  - Next button
+
+  **If "manualAllowed":**
+  - Radio buttons:
+    - ◉ Use Auto-Generated: `{prefix}YYYY-NNNN`
+    - ◯ Enter Manual Order Number: (text input)
+  - If manual selected:
+    - Text input for order number
+    - On blur: Check for duplicates
+    - If duplicate: Show error "Order Number Already Exists"
+    - Block next until unique
+  - Next button
+
+**Step 2: Basic Information**
+- Order Type* (radio):
+  - ◯ Receiving
+  - ◉ Dispatching
+- Client* (dropdown from active clients)
+- Dispatch Date Range* (date range picker):
+  - Start Date
+  - End Date
+  - Validation: End >= Start
+- Total Weight* (number input, tons)
+  - Validation: > 0
+- Next button
+
+**Step 3: Sites**
+- Collection Site* (dropdown from active sites where siteType = 'collection')
+  - Display: Site name, address, operating hours (collapsed)
+- Destination Site* (dropdown from active sites where siteType = 'destination')
+  - Display: Site name, address
+- Validation: Collection ≠ Destination
+- Next button
+
+**Step 4: Product**
+- Product* (dropdown from active products)
+  - Display: Product name, code, category
+- Next button
+
+**Step 5: Seal Requirements**
+- Seal Required* (checkbox)
+  - Pre-filled from `company.orderConfig.defaultSealRequired`
+- Seal Quantity (number input)
+  - Pre-filled from `company.orderConfig.defaultSealQuantity`
+  - Disabled if "Seal Required" unchecked
+  - Validation: If checked, quantity > 0
+- Next button
+
+**Step 6: Limits**
+- Daily Truck Limit* (number input)
+  - Pre-filled from `company.orderConfig.defaultDailyTruckLimit`
+  - Validation: > 0
+- Daily Weight Limit* (number input, tons)
+  - Pre-filled from `company.orderConfig.defaultDailyWeightLimit`
+  - Validation: > 0
+- Monthly Limit (number input, tons, optional)
+  - Pre-filled from `company.orderConfig.defaultMonthlyLimit`
+- Next button
+
+**Step 7: Trip Configuration**
+- Radio buttons:
+
+  **Option 1: Maximum Trips Per Day**
+  - Number input (pre-filled from `company.orderConfig.defaultTripLimit`, default 1)
+  - Validation: >= 1
+  - Applied uniformly across all order days
+
+  **Option 2: Trip Duration (hours)**
+  - Number input (hours, e.g., 4)
+  - System calculates possible trips based on:
+    - Collection site operating hours (from sites.operatingHours)
+    - Order date range (start to end)
+    - Formula: `possibleTrips = floor(operatingHours / tripDuration)`
+  - Display calculated trips per day
+  - Display total trips for order
+  - Note: "If trip duration exceeds daily operating window, it spans to next operating day"
+  - Validation: Trip duration > 0 and <= 24
+
+- Display summary:
+  - "This order allows {tripsPerDay} trips per day"
+  - "Total trips across {days} days: {totalTrips}"
+
+- Next button
+
+**Step 8: Allocation Method**
+- Radio buttons:
+
+  **Option 1: Assign to Logistics Coordinator**
+  - Dropdown: Select company (companyType = 'logistics_coordinator')
+  - Note: "LC will distribute weight to transporters later"
+  - On save:
+    - Create order with `allocations = []`
+    - Send notification to LC contacts (always sent)
+    - Send notification to users with "order.allocated" enabled
+
+  **Option 2: Assign to Transporter Companies**
+  - Add Transporter button:
+    - Opens mini-modal:
+      - Company dropdown (companyType = 'transporter')
+      - Allocated weight (number input, tons)
+      - Loading dates (multi-date picker from order date range)
+      - Add button
+  - List of added transporters:
+    - Company name
+    - Allocated weight
+    - Loading dates (comma-separated)
+    - Remove button
+  - Validation: Sum(allocatedWeights) = totalWeight
+  - If mismatch: Show error "Weight allocation doesn't match total ({sum}/{total})"
+  - Block next until match
+  - On save:
+    - Create order with `allocations` array
+    - Send notification to each transporter (always sent)
+    - Send notification to users with "order.allocated" enabled
+
+- Next button (disabled if allocation invalid)
+
+**Step 9: Review & Submit**
+- Summary sections:
+  - Order Number
+  - Order Type, Client
+  - Date Range
+  - Total Weight
+  - Collection Site, Destination Site
+  - Product
+  - Seal Requirements
+  - Limits (daily truck, daily weight, monthly)
+  - Trip Config
+  - Allocations (if any)
+- Edit button for each section (returns to step)
+- Submit button
+
+**On Submit:**
+- Call `OrderService.create(orderData)`
+- Set order status:
+  - If allocated to LC or transporters: `status = 'allocated'`
+  - Otherwise: `status = 'pending'`
+- Send notifications:
+  - To users with "order.created" enabled
+  - To allocated companies (always)
+  - To users with "order.allocated" enabled
+- Show success message
+- Redirect to order details page
+
+**Methods/Functions:**
+- `OrderService.create(data: OrderInput)` - Create order
+- `OrderService.generateOrderNumber(prefix: string)` - Auto-generate with sequence
+- `OrderService.validateOrderNumber(orderNumber: string)` - Check uniqueness
+- `OrderService.calculatePossibleTrips(siteId: string, tripDuration: number, dateRange: DateRange)` - Trip calculation
+- `OrderService.validateAllocation(allocations: Allocation[], totalWeight: number)` - Weight sum validation
+
+**Data Model:**
+Reference `docs/data-model.md` → `orders` collection
+
+**Acceptance Criteria:**
+- ✅ Order number auto-generation works
+- ✅ Manual order number validated for duplicates
+- ✅ All required fields validated
+- ✅ Date range validation works
+- ✅ Sites cannot be same
+- ✅ Trip calculations correct
+- ✅ Weight allocation sums to total
+- ✅ Allocations saved correctly
+- ✅ Notifications sent to correct recipients
+- ✅ Order status set correctly
+
+---
+
+### 4.2 Order Allocation (Post-Creation)
+**User Flow**: Flow 5 - Order Allocation Process (Post-Creation)
+
+**Goal**: Allow Logistics Coordinators to redistribute weight to transporters.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/orders/allocate/[id]/page.tsx`
+- `src/components/orders/AllocationWizard.tsx`
+- `src/components/orders/TransporterAllocationForm.tsx`
+- Modify `OrderService` with allocation methods
+
+**UI Requirements:**
+- Only accessible by users in LC companies
+- Only shows orders where `allocations = []` OR order assigned to LC company
+- Allocation form:
+  - Display order summary (read-only):
+    - Order number
+    - Total weight
+    - Date range
+    - Product
+  - Add Transporter section:
+    - Company dropdown (companyType = 'transporter')
+    - Allocated weight (number input)
+    - Loading dates (multi-date picker)
+    - Add button
+  - List of allocations:
+    - Company name
+    - Weight allocated
+    - Loading dates
+    - Edit / Remove buttons
+  - Total allocated weight display
+  - Progress bar: {allocated}/{total} tons
+  - Validation: Sum = total weight
+- Submit button (disabled until valid)
+- On submit:
+  - Update order.allocations array
+  - Update order.status = 'allocated'
+  - Send notifications to each transporter (always sent)
+  - Send notification to users with "order.allocated" enabled
+  - Show success message
+
+**Methods/Functions:**
+- `OrderService.allocate(orderId: string, allocations: Allocation[])` - Update order
+- `OrderService.validateAllocation(allocations: Allocation[], totalWeight: number)` - Weight sum
+
+**Data Model:**
+Reference `docs/data-model.md` → `orders.allocations`
+
+**Acceptance Criteria:**
+- ✅ Only LCs can access allocation page
+- ✅ Weight sum validated
+- ✅ Loading dates within order date range
+- ✅ Allocations saved correctly
+- ✅ Order status updated to 'allocated'
+- ✅ Notifications sent
+
+---
+
+### 4.3 Order Listing & Search
+**User Flow**: Implicit (view existing orders)
+
+**Goal**: Display all orders with search, filter, and status tracking.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/orders/page.tsx`
+- `src/components/orders/OrderListTable.tsx`
+- `src/components/orders/OrderCard.tsx`
+- `src/components/orders/OrderFilters.tsx`
+- `src/components/orders/OrderStatusBadge.tsx`
+
+**Methods/Functions:**
+- `OrderService.getByCompany(companyId: string)` - All orders for company
+- `OrderService.getByStatus(companyId: string, status: OrderStatus)` - Filter by status
+- `OrderService.getMyAllocatedOrders(userId: string)` - Orders allocated to user's company
+- `OrderService.getExpiringOrders(companyId: string, daysThreshold: number)` - Orders expiring soon
+
+**UI Requirements:**
+- Search bar (useOptimizedSearch with config for orderNumber, productName, clientName)
+- Filters:
+  - Status (All, Pending, Allocated, Completed, Cancelled)
+  - Order Type (All, Receiving, Dispatching)
+  - Date Range (custom date picker)
+  - Allocated to Me (checkbox for transporters)
+- Table view:
+  - Order Number
+  - Type
+  - Client
+  - Product
+  - Total Weight
+  - Allocated Weight / Completed Weight
+  - Progress bar
+  - Dispatch Date Range
+  - Status badge
+  - Actions (View, Allocate if LC, Cancel)
+- Status badge colors:
+  - Gray: Pending
+  - Blue: Allocated
+  - Green: Completed
+  - Red: Cancelled
+- Expiring soon badge (<7 days from end date)
+- Click row to view details
+
+**Acceptance Criteria:**
+- ✅ Orders listed with all fields
+- ✅ Search by order number/product/client works
+- ✅ Filters work correctly
+- ✅ Transporters see only allocated orders
+- ✅ LCs see all orders they manage
+- ✅ Status badges show correct color
+- ✅ Progress bar accurate
+
+---
+
+### 4.4 Order Details & Tracking
+**User Flow**: Implicit (view order details)
+
+**Goal**: View full order details and track progress.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/orders/[id]/page.tsx`
+- `src/components/orders/OrderDetailsCard.tsx`
+- `src/components/orders/OrderProgressChart.tsx`
+- `src/components/orders/AllocationsList.tsx`
+- `src/components/orders/PreBookingsList.tsx`
+- `src/components/orders/WeighingRecordsList.tsx`
+
+**UI Requirements:**
+- Order details card:
+  - Order number (large, prominent)
+  - Status badge
+  - Type, client, dates
+  - Product, weight, seals
+  - Limits (daily truck, weight, trip)
+  - Collection/destination sites
+  - Created by, created date
+- Progress section:
+  - Total weight: {completed}/{total} tons
+  - Progress bar
+  - Completed trips: {trips}
+  - Daily usage chart (bar chart showing trucks/weight per day)
+- Allocations section:
+  - List of transporters
+  - Weight allocated to each
+  - Weight completed by each
+  - Progress per transporter
+- Pre-bookings section:
+  - List of booked trucks
+  - Scheduled dates/times
+  - Status (pending/arrived/late/completed)
+  - Link to pre-booking details
+- Weighing records section:
+  - List of completed weighings
+  - Ticket number, asset, driver, weight
+  - Timestamp
+  - Link to ticket PDF
+- Actions:
+  - Allocate (if LC and pending)
+  - Create Pre-Booking (if transporter)
+  - Cancel Order (if permitted)
+  - Export to PDF
+
+**Methods/Functions:**
+- `OrderService.getById(id: string)` - Fetch order
+- `OrderService.getProgress(id: string)` - Calculate completion stats
+- `OrderService.getPreBookings(orderId: string)` - Related pre-bookings
+- `OrderService.getWeighingRecords(orderId: string)` - Related weighing records
+- `OrderService.cancel(id: string, reason: string)` - Cancel order
+
+**Acceptance Criteria:**
+- ✅ Order details display completely
+- ✅ Progress chart accurate
+- ✅ Allocations show correct data
+- ✅ Pre-bookings listed
+- ✅ Weighing records listed
+- ✅ Cancel flow requires reason
+- ✅ Cancelled orders send notifications
+
+---
+
+## Phase 5: Pre-Booking System
+
+### Overview
+Implement truck pre-booking and scheduling for orders.
+
+---
+
+### 5.1 Pre-Booking Creation
+**User Flow**: Flow 6 - Pre-Booking Process
+
+**Goal**: Allow LCs/transporters to schedule truck arrivals.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/pre-bookings/new/page.tsx`
+- `src/components/pre-bookings/PreBookingWizard.tsx`
+- `src/components/pre-bookings/wizard-steps/Step1OrderSelect.tsx`
+- `src/components/pre-bookings/wizard-steps/Step2DateSelect.tsx`
+- `src/components/pre-bookings/wizard-steps/Step3TruckSearch.tsx`
+- `src/components/pre-bookings/wizard-steps/Step4TripConfig.tsx`
+- `src/components/pre-bookings/wizard-steps/Step5Review.tsx`
+- `src/components/pre-bookings/TruckAvailabilityCalendar.tsx`
+- `src/services/pre-booking.service.ts`
+- Add to `src/config/search-configs.ts` (pre-bookings config)
+
+**Wizard Steps (per Flow 6):**
+
+**Step 1: Order Selection**
+- Dropdown: Active orders
+  - Filter: Orders with available weight (allocatedWeight > completedWeight)
+  - Display: Order number, product, remaining weight
+- Display order details:
+  - Date range
+  - Collection site (with operating hours)
+  - Trip limits
+- Next button
+
+**Step 2: Date & Time Selection**
+- Calendar view showing order date range
+- Available dates highlighted (within order range)
+- Click date to select
+- Time picker (must be within collection site operating hours)
+- Validation:
+  - Date within order.dispatchStartDate and order.dispatchEndDate
+  - Time within site.operatingHours for selected day
+  - If time outside hours: Error "Site operates {open}-{close} on {day}"
+- Next button
+
+**Step 3: Truck Search & Selection**
+- Filters:
+  - Transporter Company (dropdown)
+  - Truck Type (dropdown: All, Truck only, Truck+Trailer)
+  - Availability (checkbox: "Show only available")
+- Search by registration/fleet number
+- List of trucks:
+  - Registration, fleet number
+  - Type (icon)
+  - Company name
+  - Availability badge:
+    - Green: Available
+    - Yellow: Booked (show other bookings)
+    - Red: Inactive/Expired
+- Select truck (radio button)
+- Next button (disabled if no truck selected)
+
+**Step 4: Trip Configuration**
+- Trips per day (number input)
+  - Default from order.tripLimit
+  - Validation: Cannot exceed order.tripLimit
+  - Validation: Total capacity (trips × truck capacity) <= remaining weight
+- Display calculated capacity:
+  - "This truck will carry approximately {capacity} tons across {trips} trips"
+- Special instructions (textarea, optional)
+- Next button
+
+**Step 5: Review & Submit**
+- Summary:
+  - Order number
+  - Scheduled date & time
+  - Truck (registration)
+  - Trips per day
+  - Special instructions
+- Edit buttons
+- Submit button
+
+**On Submit:**
+- Call `PreBookingService.create(preBookingData)`
+- Set status = 'pending'
+- Send notification to users with "preBooking.created" enabled
+- Send notification 24 hours before scheduled time
+- Show success message
+- Redirect to pre-bookings list
+
+**Methods/Functions:**
+- `PreBookingService.create(data: PreBookingInput)` - Create pre-booking
+- `PreBookingService.checkTruckAvailability(assetId: string, date: string, time: string)` - Returns boolean
+- `PreBookingService.validateTripsAgainstLimit(orderId: string, tripsPerDay: number)` - Validate against order limit
+- `PreBookingService.scheduleReminder(preBookingId: string, scheduledTime: Date)` - Schedule 24h reminder
+
+**Data Model:**
+Reference `docs/data-model.md` → `pre_bookings` collection
+
+**Acceptance Criteria:**
+- ✅ Orders with available weight shown
+- ✅ Date/time validated against site hours
+- ✅ Truck availability checked
+- ✅ Trip limit validated
+- ✅ Pre-booking created successfully
+- ✅ Notifications sent
+- ✅ 24h reminder scheduled
+
+---
+
+### 5.2 Pre-Booking Listing
+**User Flow**: Implicit (view pre-bookings)
+
+**Goal**: Display all pre-bookings with status tracking.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/pre-bookings/page.tsx`
+- `src/components/pre-bookings/PreBookingListTable.tsx`
+- `src/components/pre-bookings/PreBookingCalendar.tsx`
+- `src/components/pre-bookings/PreBookingStatusBadge.tsx`
+
+**Methods/Functions:**
+- `PreBookingService.getByCompany(companyId: string)` - All pre-bookings
+- `PreBookingService.getByDate(date: string)` - Daily schedule
+- `PreBookingService.getLateArrivals()` - Arrivals >24h late
+- `PreBookingService.updateStatus(id: string, status: PreBookingStatus, arrivalTime?: Date)` - Update status
+
+**UI Requirements:**
+- View toggle: List / Calendar
+- List view:
+  - Search by order number / truck registration
+  - Filters:
+    - Status (All, Pending, Arrived, Late, Completed)
+    - Date range
+  - Table columns:
+    - Order number
+    - Truck (registration)
+    - Scheduled date/time
+    - Actual arrival time (if arrived)
+    - Status badge
+    - Actions (View, Mark Arrived, Cancel)
+- Calendar view:
+  - Monthly calendar
+  - Date cells show count of bookings
+  - Click date to see day's bookings
+  - Color-coded by status
+- Status badge colors:
+  - Blue: Pending
+  - Green: Arrived (on time)
+  - Yellow: Late (<24h)
+  - Red: Late (>24h)
+  - Gray: Completed
+- Late arrival detection:
+  - If arrival >24h after scheduled: Send notification to users with "preBooking.lateArrival" enabled
+
+**Acceptance Criteria:**
+- ✅ Pre-bookings listed correctly
+- ✅ Calendar view shows daily counts
+- ✅ Search and filters work
+- ✅ Status updates work
+- ✅ Late arrival notifications sent
+- ✅ Mark arrived button updates status
+
+---
+
+## Phase 6: Operational Flows (Security & Weighbridge)
+
+### Overview
+Implement security checkpoint and weighbridge operations that tie together assets, orders, and pre-bookings.
+
+---
+
+### 6.1 Security Checkpoint - Entry
+**User Flow**: Flow implied from security flow in user-flow-web.md
+
+**Goal**: Verify trucks, drivers, trailers at entry gate.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/operations/security-in/page.tsx`
+- `src/components/security/SecurityCheckWizard.tsx`
+- `src/components/security/wizard-steps/Step1DriverScan.tsx`
+- `src/components/security/wizard-steps/Step2TruckScan.tsx`
+- `src/components/security/wizard-steps/Step3TrailerScan.tsx`
+- `src/components/security/wizard-steps/Step4OrderVerification.tsx`
+- `src/components/security/wizard-steps/Step5PreBookingCheck.tsx`
+- `src/components/security/wizard-steps/Step6SealVerification.tsx`
+- `src/components/security/wizard-steps/Step7ApprovalDenial.tsx`
+- `src/services/security-check.service.ts`
+
+**Wizard Steps:**
+
+**Step 1: Driver Scan**
+- QR scanner for driver
+- On scan:
+  - Look up asset by qrCode
+  - Validate assetType = 'driver'
+  - Check isActive
+  - Check license expiry
+  - If expired: Error + Send "security.invalidLicense" notification
+  - If expiring <7 days: Warning
+  - Display driver info:
+    - Name, surname
+    - License number
+    - Expiry date
+- Next button
+
+**Step 2: Truck Scan**
+- QR scanner for truck
+- On scan:
+  - Look up asset by qrCode
+  - Validate assetType = 'truck'
+  - Check isActive
+  - Check disk expiry
+  - If expired: Error + Send "security.invalidLicense" notification
+  - Display truck info:
+    - Registration
+    - Make, model
+    - Fleet number
+- Next button
+
+**Step 3: Trailer Scan (Optional)**
+- QR scanner for trailer 1
+- QR scanner for trailer 2 (optional)
+- For each trailer:
+  - Look up asset by qrCode
+  - Validate assetType = 'trailer'
+  - Check isActive
+  - Check disk expiry
+  - Display trailer info
+- Skip button / Next button
+
+**Step 4: Order Verification**
+- Search for active orders:
+  - Query orders where:
+    - companyId matches truck's company
+    - status = 'allocated'
+    - dispatchStartDate <= today <= dispatchEndDate
+- Display list of applicable orders:
+  - Order number
+  - Product
+  - Remaining weight
+  - Select radio button
+- If no orders found:
+  - Show error: "No active orders for this company"
+  - Send notification to users with "security.noActiveOrder" enabled
+  - Deny entry button
+- If orders found: Select order and next
+
+**Step 5: Pre-Booking Check**
+- Check if order requires pre-booking (company.orderConfig.preBookingMode = 'compulsory')
+- If compulsory:
+  - Query pre_bookings where:
+    - orderId = selected order
+    - assetId = truck
+    - scheduledDate = today
+    - status = 'pending'
+  - If no booking:
+    - Show error: "No pre-booking found for this truck on this order today"
+    - Send notification to users with "security.unbookedArrival" enabled
+    - Option to bypass (if user has "preBooking.bypass" permission)
+    - Deny entry button
+  - If booking found:
+    - Display booking details
+    - Update pre-booking status = 'arrived', arrivalTime = now
+    - Check if >24h late: Send "preBooking.lateArrival" notification
+- If optional:
+  - Display "Pre-booking is optional for this order"
+- Next button
+
+**Step 6: Seal Verification (if order requires seals)**
+- If order.sealRequired = false: Skip this step
+- If order.sealRequired = true:
+  - Input seal numbers (multiple text inputs based on order.sealQuantity)
+  - Validate:
+    - Count matches order.sealQuantity
+    - No duplicates
+  - If incorrect count:
+    - Show error: "Expected {quantity} seals, found {count}"
+    - Send notification to users with "security.incorrectSealsNo" enabled
+    - Deny entry option
+  - If correct:
+    - Save seal numbers to security check record
+- Next button
+
+**Step 7: Approval/Denial**
+- Summary of all scans:
+  - Driver (name, license, expiry)
+  - Truck (registration, expiry)
+  - Trailers (if any)
+  - Order (number, product)
+  - Pre-booking (status)
+  - Seals (numbers)
+- Verification status:
+  - ✅ All checks passed
+  - ❌ Issues found: (list issues)
+- Buttons:
+  - Approve Entry (green) - only if all checks passed
+  - Deny Entry (red) - requires reason
+- On approve:
+  - Create security_check record with checkType = 'entry', verificationStatus = 'passed'
+  - Update pre-booking arrivalTime
+  - Show success message: "Entry approved. Proceed to weighbridge."
+- On deny:
+  - Show reason modal (textarea required)
+  - Create security_check record with checkType = 'entry', verificationStatus = 'denied', denialReason = reason
+  - Send notifications for denial reasons
+  - Show message: "Entry denied. Truck must leave premises."
+
+**Methods/Functions:**
+- `SecurityCheckService.create(data: SecurityCheckInput)` - Create check record
+- `SecurityCheckService.verifyAsset(qrCode: string, expectedType: 'truck' | 'trailer' | 'driver')` - Validate asset
+- `SecurityCheckService.findActiveOrders(companyId: string)` - Get applicable orders
+- `SecurityCheckService.checkPreBooking(orderId: string, assetId: string, date: string)` - Find booking
+- `SecurityCheckService.validateSeals(sealNumbers: string[], requiredQuantity: number)` - Seal validation
+- `SecurityCheckService.approve(checkData: SecurityCheck)` - Approve entry
+- `SecurityCheckService.deny(checkData: SecurityCheck, reason: string)` - Deny entry
+
+**Data Model:**
+Reference `docs/data-model.md` → `security_checks` collection
+
+**Acceptance Criteria:**
+- ✅ All assets scanned and validated
+- ✅ Expired assets blocked
+- ✅ Order verification works
+- ✅ Pre-booking requirement enforced
+- ✅ Seal count validated
+- ✅ Approval creates security check record
+- ✅ Denial sends notifications
+- ✅ All security alerts trigger correctly
+
+---
+
+### 6.2 Security Checkpoint - Exit
+**User Flow**: Implicit (mirror of entry)
+
+**Goal**: Verify truck completed process before exit.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/operations/security-out/page.tsx`
+- `src/components/security/SecurityExitWizard.tsx`
+- Reuse/modify entry components
+
+**Wizard Steps:**
+
+**Step 1: Truck QR Scan**
+- Scan truck QR code
+- Look up most recent entry security check (checkType = 'entry', status = 'passed')
+- If no entry record:
+  - Error: "No entry record found. Truck should not be on premises."
+  - Send alert to security contacts
+  - Deny exit
+- If entry record exists:
+  - Display entry details
+  - Next button
+
+**Step 2: Weighing Verification**
+- Check for weighing record:
+  - Query weighing_records where assetId = truck, status = 'completed'
+  - If no record:
+    - Warning: "No weighing record found. Has this truck been weighed?"
+    - Option to bypass (if user has permission)
+    - Send notification to users with "security.incompleteTruck" enabled
+  - If record found:
+    - Display ticket number, weight, timestamp
+    - Next button
+
+**Step 3: Seal Verification (if applicable)**
+- If order required seals at entry:
+  - Scan/input seal numbers on exit
+  - Compare with entry seal numbers
+  - If mismatch:
+    - Error: "Seal numbers don't match entry seals"
+    - Send notification to users with "security.sealMismatch" enabled
+    - Deny exit
+  - If match:
+    - Next button
+- If no seals required: Skip
+
+**Step 4: Exit Approval**
+- Summary:
+  - Entry time
+  - Weighing ticket
+  - Seals verified (if applicable)
+- Buttons:
+  - Approve Exit (green)
+  - Deny Exit (red, requires reason)
+- On approve:
+  - Create security_check record with checkType = 'exit', verificationStatus = 'passed'
+  - Show success message: "Exit approved. Safe travels."
+- On deny:
+  - Reason modal
+  - Create security_check with checkType = 'exit', verificationStatus = 'denied', denialReason = reason
+  - Send alert to security contacts
+  - Show message: "Exit denied. Contact supervisor."
+
+**Methods/Functions:**
+- `SecurityCheckService.findEntryRecord(assetId: string)` - Find matching entry
+- `SecurityCheckService.verifyWeighingCompleted(assetId: string)` - Check weighing record exists
+- `SecurityCheckService.compareSeals(entrySeals: string[], exitSeals: string[])` - Validate seals match
+- `SecurityCheckService.approveExit(checkData: SecurityCheck)` - Approve exit
+- `SecurityCheckService.denyExit(checkData: SecurityCheck, reason: string)` - Deny exit
+
+**Acceptance Criteria:**
+- ✅ Entry record verified
+- ✅ Weighing record checked
+- ✅ Seal verification works
+- ✅ Approval creates exit record
+- ✅ Denial sends alerts
+- ✅ Incomplete process detected and flagged
+
+---
+
+### 6.3 Weighbridge - Tare Weight
+**User Flow**: Implied from weighbridge operations
+
+**Goal**: Capture empty truck weight before loading.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/operations/weighbridge-tare/page.tsx`
+- `src/components/weighbridge/TareWeightForm.tsx`
+- `src/components/weighbridge/WeighbridgeScaleDisplay.tsx`
+- `src/components/weighbridge/SerialPortReader.tsx`
+- `src/services/weighbridge.service.ts`
+- `src/services/weighing-record.service.ts`
+
+**UI Requirements:**
+
+**Step 1: Security Check Verification**
+- Scan truck QR code
+- Look up most recent entry security check
+- If no entry or entry denied:
+  - Error: "Truck has not been cleared by security"
+  - Block process
+- If entry approved:
+  - Display truck details
+  - Display order details
+  - Next button
+
+**Step 2: Weighbridge Selection**
+- Dropdown: Select weighbridge (active weighbridges only)
+- Display weighbridge details:
+  - Name, location
+  - Axle setup
+  - Calibration status (warn if due/overdue)
+- Next button
+
+**Step 3: Weight Capture**
+- Live scale display (if serial port configured):
+  - Large numeric display of current weight
+  - Unit (tons/kg - configurable)
+  - "Reading from {weighbridgeName}"
+  - Refresh button (re-read serial port)
+- Manual entry option:
+  - Text input for weight
+  - Validation: > 0, reasonable range (e.g., 1-50 tons for trucks)
+- Tare weight field (number input)
+- Capture button
+
+**Step 4: Ticket Generation**
+- On capture:
+  - Generate ticket number: `TKT-YYYY-NNNNNN`
+  - Create weighing_record with:
+    - orderId, assetId, weighbridgeId
+    - status = 'tare_only'
+    - tareWeight = captured weight
+    - tareTimestamp = now
+    - ticketNumber
+    - operatorId = current user
+  - Display ticket:
+    - Ticket number (large, prominent)
+    - Truck registration
+    - Order number
+    - Tare weight
+    - Timestamp
+    - Operator name
+    - Weighbridge name
+  - Print button (PDF generation)
+  - "Weigh Again" button (clears and restarts)
+  - "Finish" button (redirect to list)
+
+**Methods/Functions:**
+- `WeighingRecordService.create(data: WeighingRecordInput)` - Create record
+- `WeighingRecordService.generateTicketNumber()` - Auto-generate ticket number
+- `WeighbridgeService.readWeight(weighbridgeId: string)` - Read from serial port (if configured)
+- `WeighbridgeService.validateWeight(weight: number, weighbridgeId: string)` - Check tolerance
+- `WeighingRecordService.generateTicketPDF(recordId: string)` - Create PDF ticket
+
+**Serial Port Integration:**
+- Use Node.js `serialport` library (server-side API route)
+- API endpoint: `POST /api/weighbridge/read-weight`
+- Request: `{ weighbridgeId: string }`
+- Response: `{ weight: number, unit: string, timestamp: Date }`
+- Parse weight from serial string based on weighbridge.serialPortConfig.decodingRules
+
+**Data Model:**
+Reference `docs/data-model.md` → `weighing_records` collection
+
+**Acceptance Criteria:**
+- ✅ Security check verified before weighing
+- ✅ Weight captured from scale or manual entry
+- ✅ Ticket number generated
+- ✅ Weighing record created with status 'tare_only'
+- ✅ PDF ticket printable
+- ✅ Serial port reading works (if configured)
+
+---
+
+### 6.4 Weighbridge - Gross Weight
+**User Flow**: Implied from weighbridge operations
+
+**Goal**: Capture loaded truck weight after loading, calculate net weight.
+
+**Files to Create/Modify:**
+- Modify `src/app/(authenticated)/operations/weighbridge-gross/page.tsx`
+- `src/components/weighbridge/GrossWeightForm.tsx`
+- Reuse tare components
+
+**UI Requirements:**
+
+**Step 1: Find Tare Record**
+- Scan truck QR code
+- Look up weighing_record where:
+  - assetId = truck
+  - status = 'tare_only'
+  - tareTimestamp within last 24 hours (configurable)
+- If no record:
+  - Error: "No tare record found. Truck must weigh empty first."
+  - Redirect to tare page
+- If record found:
+  - Display tare details:
+    - Ticket number
+    - Tare weight
+    - Tare timestamp
+  - Next button
+
+**Step 2: Weighbridge Selection**
+- Same as tare
+- Ideally same weighbridge as tare (but not required)
+
+**Step 3: Gross Weight Capture**
+- Same UI as tare weight capture
+- Live scale display or manual entry
+- Gross weight field (number input)
+- Capture button
+
+**Step 4: Net Weight Calculation & Validation**
+- Calculate: netWeight = grossWeight - tareWeight
+- Display:
+  - Tare Weight: {tare} tons
+  - Gross Weight: {gross} tons
+  - **Net Weight: {net} tons** (large, prominent)
+- Validation checks:
+
+  **Overload Check:**
+  - Compare net weight to order daily weight limit OR truck capacity
+  - If > threshold (e.g., weighbridge.overloadThreshold = 5%):
+    - Show red alert: "OVERLOAD DETECTED: {net} tons exceeds limit by {percentage}%"
+    - Send notification to users with "weighbridge.overload" enabled
+    - Display: "Truck MUST offload excess weight before proceeding"
+    - Block ticket completion
+    - "Offload & Re-Weigh" button
+
+  **Underweight Check:**
+  - If < threshold (e.g., weighbridge.underweightThreshold = 10% of expected):
+    - Show yellow warning: "Underweight: {net} tons is {percentage}% below expected"
+    - Send notification to users with "weighbridge.underweight" enabled
+    - Allow to proceed with confirmation
+
+  **Weight Limit Violation:**
+  - Check against order.dailyWeightLimit
+  - If today's total weight + net > dailyWeightLimit:
+    - Show warning: "Daily weight limit exceeded"
+    - Send notification to users with "weighbridge.violations" enabled
+    - Option to override (if user has "weighbridge.override" permission)
+
+- If all validations pass or overridden:
+  - Next button
+
+**Step 5: Seal Recording (if applicable)**
+- If order.sealRequired = true:
+  - Display seal numbers from security entry
+  - Confirm seals intact (checkbox)
+  - If seals broken/missing:
+    - Red alert + send notification to users with "security.sealMismatch" enabled
+    - Require supervisor override
+- If no seals required: Skip
+
+**Step 6: Ticket Completion**
+- Update weighing_record:
+  - status = 'completed'
+  - grossWeight = captured weight
+  - netWeight = calculated
+  - grossTimestamp = now
+  - overloadFlag = true/false
+  - underweightFlag = true/false
+  - sealNumbers = from entry (if applicable)
+- Update order:
+  - completedWeight += netWeight
+  - completedTrips += 1
+  - If completedWeight >= totalWeight: status = 'completed', send "order.completed" notification
+- Display final ticket:
+  - Ticket number
+  - Truck, driver, order
+  - Tare, gross, net weights
+  - Seal numbers
+  - Operator name
+  - Timestamp
+  - Overload/underweight warnings (if any)
+- Print button (PDF)
+- "Complete Another" button
+
+**Methods/Functions:**
+- `WeighingRecordService.findTareRecord(assetId: string)` - Find incomplete tare
+- `WeighingRecordService.complete(id: string, grossData: GrossWeightInput)` - Update to completed
+- `WeighingRecordService.calculateNetWeight(gross: number, tare: number)` - Net calculation
+- `WeighingRecordService.checkOverload(netWeight: number, limit: number, threshold: number)` - Overload validation
+- `WeighingRecordService.checkUnderweight(netWeight: number, expected: number, threshold: number)` - Underweight validation
+- `OrderService.updateProgress(orderId: string, netWeight: number)` - Update order stats
+- `OrderService.checkCompletion(orderId: string)` - Check if order complete
+
+**Data Model:**
+Reference `docs/data-model.md` → `weighing_records` collection
+
+**Acceptance Criteria:**
+- ✅ Tare record found and linked
+- ✅ Gross weight captured
+- ✅ Net weight calculated correctly
+- ✅ Overload detection works and blocks ticket
+- ✅ Underweight warning shown
+- ✅ Daily limit validation works
+- ✅ Override permission respected
+- ✅ Seals verified if required
+- ✅ Order progress updated
+- ✅ Order completion detected
+- ✅ Notifications sent for violations
+
+---
+
+## Phase 7: Dashboard
+
+### Overview
+Implement role-based dashboards with different views for mine companies, transporter companies, and logistics coordinator companies. Each company type sees relevant metrics and data.
+
+---
+
+### 7.1 Dashboard for Mine Companies
+**User Flow**: Implicit - landing page after login for mine users
+
+**Goal**: Provide mine operators with operational overview and order/weighing metrics.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/page.tsx` (update with role-based rendering)
+- `src/components/dashboard/MineDashboard.tsx`
+- `src/components/dashboard/widgets/` (shared widget components)
+
+**Dashboard Sections:**
+
+**Key Metrics (Top Cards):**
+- Today's total weight (tons)
+- Today's trip count
+- Active orders count
+- Pending pre-bookings count
+
+**Active Orders Widget:**
+- Table of active orders:
+  - Order number
+  - Client
+  - Product
+  - Progress bar (% complete by weight)
+  - Trips today
+  - Status
+- Link to view order details
+
+**Today's Weighing Activity Widget:**
+- Recent weighing records table (last 10):
+  - Time
+  - Ticket number
+  - Truck registration
+  - Gross/Tare/Net weight
+  - Order number
+- Link to view all weighing records
+
+**7-Day Trends Widget:**
+- Line chart: Daily weight totals (last 7 days)
+- Bar chart: Daily trip counts (last 7 days)
+
+**Alerts & Notifications Widget:**
+- Recent security alerts (overloads, underweights, seal mismatches)
+- Orders expiring soon (within 7 days)
+- Count of pending alerts with link to details
+
+**Acceptance Criteria:**
+- ✅ Dashboard loads quickly (<2 seconds)
+- ✅ All metrics display correctly
+- ✅ Charts render properly
+- ✅ Links navigate to correct pages
+- ✅ Real-time updates (via Preact Signals)
+- ✅ Mobile responsive layout
+
+---
+
+###7.2 Dashboard for Transporter Companies
+**User Flow**: Implicit - landing page after login for transporter users
+
+**Goal**: Provide transporters with asset utilization, assigned orders, and trip tracking.
+
+**Files to Create/Modify:**
+- `src/components/dashboard/TransporterDashboard.tsx`
+
+**Dashboard Sections:**
+
+**Key Metrics (Top Cards):**
+- Total active trucks
+- Trucks on trips today
+- Today's trips completed
+- Today's weight hauled (tons)
+
+**Assigned Orders Widget:**
+- Table of orders allocated to this transporter:
+  - Order number
+  - Collection site
+  - Destination
+  - Allocated weight
+  - Weight completed
+  - Progress bar
+  - Trips remaining (estimated)
+- Link to view order details
+
+**Fleet Activity Widget:**
+- Table of today's truck activity:
+  - Truck registration
+  - Driver name
+  - Current order (if on trip)
+  - Trips today
+  - Weight hauled today
+  - Last weighing time
+- Real-time status indicators (in transit, at site, idle)
+
+**Pre-Bookings Calendar Widget:**
+- Upcoming pre-bookings (next 7 days):
+  - Date
+  - Truck registration
+  - Order number
+  - Collection site
+  - Driver assigned
+- Link to create new pre-booking
+
+**Performance Metrics Widget:**
+- Pie chart: Weight by product (current month)
+- Bar chart: Trips per truck (top 10 trucks, current month)
+
+**Acceptance Criteria:**
+- ✅ Dashboard loads quickly
+- ✅ Fleet activity updates in real-time
+- ✅ Pre-bookings display correctly
+- ✅ Performance charts render
+- ✅ Links navigate correctly
+- ✅ Mobile responsive
+
+---
+
+### 7.3 Dashboard for Logistics Coordinator Companies
+**User Flow**: Implicit - landing page after login for LC users
+
+**Goal**: Provide coordinators with order allocation overview, transporter performance, and pending allocations.
+
+**Files to Create/Modify:**
+- `src/components/dashboard/LogisticsCoordinatorDashboard.tsx`
+
+**Dashboard Sections:**
+
+**Key Metrics (Top Cards):**
+- Orders assigned to me (pending allocation)
+- Active orders under my coordination
+- Transporters managed
+- Today's total weight across all transporters
+
+**Pending Allocations Widget:**
+- Table of orders awaiting distribution to transporters:
+  - Order number
+  - Client
+  - Product
+  - Total weight
+  - Dispatch date range
+  - Days until dispatch start
+  - Action: "Allocate" button
+- Highlights orders approaching dispatch date (yellow/red)
+
+**Active Allocations Widget:**
+- Table of orders allocated to transporters:
+  - Order number
+  - Transporter name
+  - Allocated weight
+  - Weight completed
+  - Progress bar
+  - Status
+- Filter by transporter
+
+**Transporter Performance Widget:**
+- Table of transporters under coordination:
+  - Company name
+  - Active orders
+  - Total weight allocated (current month)
+  - Total weight delivered (current month)
+  - Average completion time (days)
+  - On-time delivery rate (%)
+- Sortable columns
+
+**Pre-Booking Overview Widget:**
+- Calendar view of upcoming pre-bookings across all transporters
+- Color-coded by transporter company
+- Filter by date range and transporter
+
+**Acceptance Criteria:**
+- ✅ Dashboard loads quickly
+- ✅ Pending allocations prominently displayed
+- ✅ Performance metrics accurate
+- ✅ Calendar interactive and filterable
+- ✅ Links navigate correctly
+- ✅ Mobile responsive
+
+---
+
+### 7.4 Global Admin Dashboard (Optional Enhancement)
+**Goal**: System-wide overview for global administrators.
+
+**Dashboard Sections:**
+
+**System Health Metrics:**
+- Total companies in system
+- Total active users
+- Total active assets
+- Total active orders
+
+**Activity Feed:**
+- Recent system-wide actions:
+  - Company created/updated
+  - User added
+  - Asset inducted
+  - Order created
+  - Security alerts
+- Timestamp and user info for each action
+
+**Company Performance:**
+- Table of all companies:
+  - Company name
+  - Type (mine/transporter/LC)
+  - Active orders
+  - Active assets
+  - Users count
+- Link to switch to company view
+
+**Acceptance Criteria:**
+- ✅ Global metrics accurate
+- ✅ Activity feed real-time
+- ✅ Company switcher integrated
+- ✅ Mobile responsive
+
+---
+
+## Phase 8: Notifications
+
+### Overview
+Implement automated email notification system triggered by events throughout the application.
+
+---
+
+### 8.1 Notification Sending Service
+**User Flow**: Flow 16 - Notification System Infrastructure (backend)
+
+**Goal**: Automated email sending based on events.
+
+**Files to Create/Modify:**
+- `src/services/notification.service.ts`
+- `src/lib/email-sender.ts`
+- `src/app/api/notifications/send/route.ts` (API endpoint)
+- Configure email provider (e.g., SendGrid, AWS SES, Resend)
+
+**Trigger Points (from all phases):**
+
+**Asset Events:**
+- asset.added - When asset created in induction
+- asset.inactive - When asset marked inactive
+- asset.edited - When asset updated
+- asset.deleted - When asset hard deleted
+
+**Order Events:**
+- order.created - When order created
+- order.allocated - When order allocated to company/LC
+- order.cancelled - When order cancelled
+- order.completed - When order reaches 100% weight
+- order.expiring - 7 days before dispatchEndDate
+
+**Weighbridge Events:**
+- weighbridge.overload - When overload detected
+- weighbridge.underweight - When underweight detected
+- weighbridge.violations - When daily limit exceeded
+- weighbridge.manualOverride - When weight manually overridden
+
+**Security Events:**
+- security.invalidLicense - Expired license scanned
+- security.unbookedArrival - No pre-booking found
+- security.noActiveOrder - No active order for company
+- security.sealMismatch - Seals don't match
+- security.incorrectSealsNo - Wrong seal count
+- security.unregisteredAsset - Asset not in system
+- security.inactiveEntity - Inactive asset scanned
+- security.incompleteTruck - Truck exits without weighing
+
+**Pre-Booking Events:**
+- preBooking.created - New pre-booking made
+- preBooking.lateArrival - Arrival >24h late
+
+**Driver Events:**
+- driver.licenseExpiring7 - License expires in 7 days
+- driver.licenseExpiring30 - License expires in 30 days
+
+**Methods/Functions:**
+- `NotificationService.send(eventType: string, data: object)` - Main send function
+  - Look up template by event type
+  - Filter recipients by notification preferences
+  - Parse placeholders
+  - Send email
+- `NotificationService.getRecipients(eventType: string, companyId: string)` - Find users with notification enabled
+- `NotificationService.parsePlaceholders(template: string, data: object)` - Replace {{placeholders}}
+- `EmailSender.sendEmail(to: string[], subject: string, body: string, cc?: string[])` - Actual email send
+- Schedule functions:
+  - `NotificationService.scheduleOrderExpiry()` - Cron job (daily) to check orders expiring in 7 days
+  - `NotificationService.scheduleDriverLicenseExpiry()` - Cron job (daily) to check licenses expiring in 7/30 days
+
+**Email Provider Setup:**
+- Use environment variables for API keys
+- Recommended: Resend (modern, developer-friendly)
+- Configuration in `src/lib/email-config.ts`
+
+**Acceptance Criteria:**
+- ✅ All event types trigger notifications
+- ✅ Recipients filtered by preferences
+- ✅ Direct allocations always send (override preference)
+- ✅ Placeholders replaced correctly
+- ✅ Emails delivered successfully
+- ✅ Scheduled notifications run daily
+- ✅ Notification history logged (for debugging)
+
+---
+
+### 8.2 Notification History
+**User Flow**: Implicit (admin debugging)
+
+**Goal**: View log of all sent notifications.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/admin/notifications/history/page.tsx`
+- `src/components/notifications/NotificationHistoryTable.tsx`
+- Create `notification_logs` collection (optional, or use audit_logs)
+
+**UI Requirements:**
+- Search by recipient email
+- Filters:
+  - Date range
+  - Event type (dropdown)
+  - Status (sent, failed, pending)
+- Table columns:
+  - Timestamp
+  - Event type
+  - Recipients (comma-separated)
+  - Subject
+  - Status
+  - Error (if failed)
+  - View button (opens modal with email body)
+- Retry button for failed notifications
+
+**Methods/Functions:**
+- `NotificationService.logNotification(eventType: string, recipients: string[], status: string, error?: string)` - Log to Firestore
+- `NotificationService.getHistory(filters: object)` - Fetch logs
+- `NotificationService.retryFailed(id: string)` - Resend failed notification
+
+**Acceptance Criteria:**
+- ✅ All notifications logged
+- ✅ Search and filters work
+- ✅ Failed notifications can be retried
+- ✅ Email body viewable
+
+---
+
+---
+
+## Phase 9: Audit Logging
+
+### Overview
+Comprehensive audit logging system to track all user actions for compliance, debugging, and security.
+
+---
+
+### 9.1 Audit Logging Implementation
+**User Flow**: Implicit (compliance and debugging)
+
+**Goal**: Track all user actions for compliance.
+
+**Files to Create/Modify:**
+- `src/services/audit.service.ts`
+- `src/app/api/audit/route.ts` (API endpoint)
+- `src/app/(authenticated)/admin/audit-logs/page.tsx`
+- `src/components/audit/AuditLogTable.tsx`
+
+**Logged Actions:**
+- User login/logout
+- Company created/updated/deactivated
+- User created/updated/deactivated
+- Role created/updated
+- Product created/updated/deactivated
+- Client created/updated/deactivated
+- Site created/updated/deactivated
+- Weighbridge created/updated/deactivated
+- Asset inducted/updated/deleted/inactivated
+- Order created/allocated/cancelled/completed
+- Pre-booking created/cancelled
+- Security check (entry/exit)
+- Weighing record (tare/gross)
+- Notification sent
+- Permission override used
+
+**Audit Log Structure (per data-model.md):**
 ```typescript
-// In the GET function, add after clearing collections:
-results.seeded.permissions = await seedPermissions(sendProgress)
+{
+  id: string
+  companyId: string
+  userId: string
+  action: string // e.g., "order.created"
+  entityType: string // e.g., "order"
+  entityId: string
+  changes: object // { field: newValue }
+  ipAddress: string
+  userAgent: string
+  timestamp: Date
+  createdAt: number
+  dbCreatedAt: serverTimestamp
+}
+```
+
+**UI Requirements:**
+- Search by user, action, entity type
+- Filters:
+  - Date range
+  - User (dropdown)
+  - Action type (dropdown)
+  - Entity type (dropdown)
+- Table columns:
+  - Timestamp
+  - User (name)
+  - Action
+  - Entity type
+  - Entity ID (link to entity)
+  - Changes (expandable JSON)
+  - IP address
+- Export to Excel/PDF
+- Retention policy UI (e.g., delete logs older than X days)
+
+**Methods/Functions:**
+- `AuditService.log(action: string, entityType: string, entityId: string, changes: object, userId: string)` - Create log
+- `AuditService.getLogs(filters: object)` - Fetch logs
+- `AuditService.getEntityHistory(entityType: string, entityId: string)` - History of single entity
+- `AuditService.deleteOldLogs(retentionDays: number)` - Cleanup (scheduled)
+
+**Implementation Pattern:**
+- Intercept all `createDocument`, `updateDocument`, `deleteDocument` calls
+- Extract changed fields by comparing old vs new
+- Capture IP and user agent from request
+- Write to `audit_logs` collection asynchronously (don't block user action)
+
+**Acceptance Criteria:**
+- ✅ All CRUD actions logged
+- ✅ Changes tracked accurately
+- ✅ IP and user agent captured
+- ✅ Search and filters work
+- ✅ Export works
+- ✅ Entity history viewable
+- ✅ Retention policy enforced
+
+---
+
+
+## Appendix A: File Structure Summary
+
+```
+Newton/
+├── src/
+│   ├── app/
+│   │   ├── (authenticated)/
+│   │   │   ├── page.tsx (Dashboard)
+│   │   │   ├── settings/page.tsx
+│   │   │   ├── admin/
+│   │   │   │   ├── companies/page.tsx
+│   │   │   │   ├── users/page.tsx
+│   │   │   │   ├── products/page.tsx
+│   │   │   │   ├── clients/page.tsx
+│   │   │   │   ├── sites/page.tsx
+│   │   │   │   ├── weighbridges/page.tsx
+│   │   │   │   ├── notifications/
+│   │   │   │   │   ├── page.tsx (template editor)
+│   │   │   │   │   └── history/page.tsx
+│   │   │   │   ├── settings/page.tsx (system-wide)
+│   │   │   │   └── audit-logs/page.tsx
+│   │   │   ├── assets/
+│   │   │   │   ├── page.tsx (list)
+│   │   │   │   ├── induct/page.tsx (wizard)
+│   │   │   │   └── [id]/page.tsx (details)
+│   │   │   ├── orders/
+│   │   │   │   ├── page.tsx (list)
+│   │   │   │   ├── new/page.tsx (creation wizard)
+│   │   │   │   ├── allocate/[id]/page.tsx
+│   │   │   │   └── [id]/page.tsx (details)
+│   │   │   ├── pre-bookings/
+│   │   │   │   ├── page.tsx (list + calendar)
+│   │   │   │   └── new/page.tsx (wizard)
+│   │   │   ├── operations/
+│   │   │   │   ├── security-in/page.tsx
+│   │   │   │   ├── security-out/page.tsx
+│   │   │   │   ├── weighbridge-tare/page.tsx
+│   │   │   │   ├── weighbridge-gross/page.tsx
+│   │   │   │   └── calibration/page.tsx
+│   │   │   └── reports/
+│   │   │       ├── daily/page.tsx
+│   │   │       ├── monthly/page.tsx
+│   │   │       └── custom/page.tsx
+│   │   ├── api/
+│   │   │   ├── seed/route.ts
+│   │   │   ├── weighbridge/read-weight/route.ts
+│   │   │   ├── notifications/send/route.ts
+│   │   │   └── audit/route.ts
+│   │   ├── login/page.tsx
+│   │   └── seed/page.tsx
+│   ├── components/
+│   │   ├── ui/ (Radix UI components)
+│   │   ├── layout/ (AppLayout, Header, Sidebar)
+│   │   ├── auth/ (PermissionGate)
+│   │   ├── companies/ (CompanyFormModal, etc.)
+│   │   ├── users/ (AddUserModal, NotificationPreferencesEditor, etc.)
+│   │   ├── products/ (ProductFormModal, CategoryManager, etc.)
+│   │   ├── clients/ (ClientFormModal, etc.)
+│   │   ├── sites/ (SiteFormModal, OperatingHoursEditor, etc.)
+│   │   ├── weighbridges/ (WeighbridgeFormModal, SerialPortConfig, etc.)
+│   │   ├── notifications/ (TemplateEditor, TemplatePreview, etc.)
+│   │   ├── assets/ (InductionWizard, wizard-steps/, QRScanner, etc.)
+│   │   ├── orders/ (OrderCreationWizard, wizard-steps/, etc.)
+│   │   ├── pre-bookings/ (PreBookingWizard, TruckAvailabilityCalendar, etc.)
+│   │   ├── security/ (SecurityCheckWizard, wizard-steps/, etc.)
+│   │   ├── weighbridge/ (TareWeightForm, GrossWeightForm, SerialPortReader, etc.)
+│   │   └── reports/ (DailyReportGenerator, MonthlyCharts, CustomReportBuilder, etc.)
+│   ├── contexts/
+│   │   ├── AuthContext.tsx
+│   │   ├── CompanyContext.tsx
+│   │   └── LayoutContext.tsx
+│   ├── hooks/
+│   │   ├── usePermission.ts
+│   │   └── useOptimizedSearch.ts
+│   ├── lib/
+│   │   ├── firebase.ts (client SDK)
+│   │   ├── firebase-admin.ts (server SDK)
+│   │   ├── firebase-utils.ts (CRUD helpers)
+│   │   ├── permissions.ts (constants)
+│   │   ├── asset-field-mappings.ts (expo-sadl integration)
+│   │   ├── template-placeholders.ts (notification placeholders)
+│   │   ├── email-sender.ts (email provider integration)
+│   │   └── utils.ts
+│   ├── services/
+│   │   ├── console.service.ts
+│   │   ├── data.service.ts (centralized reactive data)
+│   │   ├── search.service.ts
+│   │   ├── utility.service.ts
+│   │   ├── scan.service.ts
+│   │   ├── company.service.ts
+│   │   ├── permission.service.ts
+│   │   ├── product.service.ts
+│   │   ├── client.service.ts
+│   │   ├── site.service.ts
+│   │   ├── weighbridge.service.ts
+│   │   ├── notification-template.service.ts
+│   │   ├── asset.service.ts
+│   │   ├── order.service.ts
+│   │   ├── pre-booking.service.ts
+│   │   ├── security-check.service.ts
+│   │   ├── weighing-record.service.ts
+│   │   ├── calibration.service.ts
+│   │   ├── report.service.ts
+│   │   ├── notification.service.ts
+│   │   └── audit.service.ts
+│   ├── types/
+│   │   ├── index.ts (all domain types)
+│   │   └── asset-types.ts
+│   └── config/
+│       └── search-configs.ts
+├── docs/
+│   ├── data-model.md
+│   ├── user-flow-web.md
+│   ├── dev.md (THIS FILE)
+│   └── design.json
+├── data/
+│   └── assets-data.json (production sample data)
+└── public/
+
 ```
 
 ---
 
-### Task 1.3: Create Company Management Pages
+## Appendix B: Testing Checklist Template
 
-#### Step 1: Company List
+For each phase, use this checklist:
 
-**File:** `src/app/(authenticated)/admin/companies/page.tsx`
+### Pre-Implementation
+- [ ] Phase prerequisites completed (all dependencies ready)
+- [ ] Data model reviewed and understood
+- [ ] User flow reviewed
+- [ ] Required files and components identified
+- [ ] Service layer methods designed
 
-- Fetch companies via `CompanyService.listAccessibleCompanies(user)` which internally:
-  - Returns all companies for global users.
-  - Returns only `user.companyId` for non-global users.
-- Display key fields aligned with the data model: name, companyType, registrationNumber, isActive, primary contact, and badges indicating which embedded configs (`orderConfig`, `systemSettings`, `securityAlerts`) are populated.
-- Provide filters (search by name/registration, filter by companyType) to support **Flow 7: Company (Mine) Configuration** discovery needs from `docs/user-flow-web.md`.
-- Wrap content in `PermissionGate` for `PERMISSIONS.ADMIN_COMPANIES`.
+### During Implementation
+- [ ] TypeScript types defined
+- [ ] All required fields from data-model.md included
+- [ ] Timestamps added correctly (client + server)
+- [ ] Company scoping applied (companyId)
+- [ ] Soft delete pattern used (isActive)
+- [ ] Permission checks implemented
+- [ ] Loading states added
+- [ ] Error handling with try-catch
+- [ ] Toast notifications integrated
+- [ ] Search functionality (if applicable)
+- [ ] Firestore security rules updated (if needed)
 
-#### Step 2: Company Creation / Editing Modal ✅ COMPLETED
-
-**File:** `src/components/companies/CompanyFormModal.tsx`
-
-**Implementation Details:**
-
-The company form is a tabbed modal with 4 tabs (Basic Info, Order Config, Fleet, Escalation):
-
-**Tab 1: Basic Info**
-- Core fields: `name` (required), `companyType` (required), `registrationNumber` (optional), `vatNumber` (optional), `physicalAddress` (required)
-- Dual-role checkboxes:
-  - For transporters: "Is also a Logistics Coordinator" checkbox
-  - For logistics coordinators: "Is also a Transporter" checkbox
-- Contacts:
-  - `mainContactId`: Dropdown with optional selection
-  - `secondaryContactIds`: Dropdown + Add button pattern
-    - Can only add secondary contacts AFTER selecting main contact
-    - Added contacts shown in a list with remove (X) buttons
-    - Filters out already-added contacts and main contact from dropdown
-    - Scalable for many users (no scrollable checkbox list)
-
-**Tab 2: Order Config** (Only shown for Mine companies)
-- Order number settings: `orderNumberMode` (autoOnly/manualAllowed), `orderNumberPrefix`
-- Limits: `defaultDailyTruckLimit`, `defaultDailyWeightLimit`, `defaultMonthlyLimit`, `defaultTripLimit`, `defaultWeightPerTruck`
-- Pre-booking: `preBookingMode` (compulsory/optional), `advanceBookingHours`
-- Seals: `defaultSealRequired` (checkbox), `defaultSealQuantity`
-
-**Tab 3: Fleet** (Only shown for Transporter or dual-role LC)
-- Fleet number: `fleetNumberEnabled` (checkbox), `fleetNumberLabel`
-- Transporter group: `transporterGroupEnabled` (checkbox), `transporterGroupLabel`, `groupOptions` (comma-separated)
-
-**Tab 4: Escalation** (Security Alerts - Simplified)
-- `primaryContactId`: Dropdown for primary escalation contact
-- `escalationMinutes`: Time before escalating (number input)
-- `requiredResponseMinutes`: Maximum response time (number input)
-- **Note:** Secondary contacts and alert-specific contacts (QR mismatch, document failure, seal discrepancy) are reserved for future use and set to empty arrays in the data
-
-**Data Saving:**
-- Uses `CompanyService.create`/`CompanyService.update`
-- Automatically adds timestamps via firebase-utils
-- Properly handles optional fields (undefined if empty)
-- Conditional configs based on `companyType`:
-  - `orderConfig`: Only for mine companies
-  - `systemSettings`: Only for transporters or dual-role logistics coordinators
-  - `securityAlerts`: Always included with simplified fields
-
-#### Step 3: Company Service Layer
-
-**File:** `src/services/company.service.ts`
-
-Implement methods that respect the data model:
-
-```typescript
-import type { Company } from "@/types"
-
-export class CompanyService {
-  static async listAccessibleCompanies(user: User): Promise<Company[]> {
-    // global users: fetch all; others: fetch by user.companyId
-  }
-
-  static async create(data: Omit<Company, "id" | keyof Timestamped>): Promise<string> {
-    // use createDocument("companies", data)
-  }
-
-  static async update(id: string, data: Partial<Company>): Promise<void> {
-    // use updateDocument
-  }
-
-  static async getCompanyUsers(companyId: string): Promise<User[]> {
-    // helper for contact selectors
-  }
-}
-```
-
-Validate payloads against Zod schemas mirroring the data model to keep nested objects well-typed.
-
-#### Step 4: Navigation Update
-
-**File:** `src/components/layout/AppLayout.tsx`
-
-Add an Admin section only visible when `usePermission(PERMISSIONS.ADMIN_COMPANIES)` is true:
-
-```typescript
-const adminNavigation = [
-  { name: "Companies", href: "/admin/companies", icon: Building2 },
-  { name: "Users", href: "/admin/users", icon: Users },
-]
-```
-
-Render this group conditionally inside the sidebar and header menus.
-
-#### Step 5: Company Details Drawer (Optional but Recommended)
-
-Provide a quick panel to display nested configurations read-only so testers can verify seeds. (Implementation deferred to later phase but referenced here for completeness.)
+### Post-Implementation
+- [ ] No TypeScript errors
+- [ ] No console errors
+- [ ] All CRUD operations work
+- [ ] Form validation works
+- [ ] Permissions enforced correctly
+- [ ] Notifications sent correctly
+- [ ] Mobile responsive
+- [ ] Loading states display
+- [ ] Error states handled
+- [ ] Empty states handled
+- [ ] Firestore data structure matches data-model.md
+- [ ] Audit logs created (if applicable)
+- [ ] Manual testing completed
+- [ ] User flow verified end-to-end
 
 ---
 
-### Task 1.4: Centralized Real-Time Data Loading ✅ COMPLETED
+## Appendix C: Common Patterns Reference
 
-**Overview:**
-Implemented a centralized data service using Preact Signals for reactive state management with real-time Firebase listeners. All application data is now loaded through a single service, eliminating duplicate queries and providing consistent data access across components.
-
-#### Architecture
-
-**File:** `src/services/data.service.ts`
-
-Singleton service that manages all real-time Firebase listeners using Preact Signals:
-
+### Pattern: CRUD with firebase-utils
 ```typescript
-class Data {
-  companies: Signal<Company[]> = signal([])
-  roles: Signal<Role[]> = signal([])
-  users: Signal<User[]> = signal([])
-  loading: Signal<boolean> = signal(true)
+// Create
+import { createDocument } from "@/lib/firebase-utils"
+const id = await createDocument("collection_name", data, "Success message")
 
-  private loadedCollections = new Set<string>()
-  private expectedCollections = 3
+// Update
+import { updateDocument } from "@/lib/firebase-utils"
+await updateDocument("collection_name", id, updates, "Updated successfully")
 
-  private markCollectionLoaded(collectionName: string) {
-    this.loadedCollections.add(collectionName)
-    if (this.loadedCollections.size === this.expectedCollections) {
-      log.i("Data Service", "All data has been loaded")
-      this.loading.value = false
-    }
-  }
+// Delete (soft)
+await updateDocument("collection_name", id, { isActive: false }, "Deactivated")
 
-  initializeForCompany(companyId: string) {
-    // Clears previous listeners and resets loading state
-    // Sets up real-time listeners for the specified company
-    // Each listener calls markCollectionLoaded on first snapshot
-    // Returns cleanup function
-  }
-}
+// Delete (hard)
+import { deleteDocument } from "@/lib/firebase-utils"
+await deleteDocument("collection_name", id, "Deleted successfully")
 ```
 
-**Key Features:**
-- **Companies**: Loads ALL companies (including inactive) for admin pages
-- **Roles & Users**: Company-scoped, automatically filtered by `companyId`
-- **Real-time Updates**: Uses Firebase `onSnapshot` for live data synchronization
-- **Automatic Cleanup**: Properly unsubscribes listeners when company switches or component unmounts
-- **Smart Loading States**: Tracks when each collection loads, only sets loading to false when ALL collections are ready
-- **Loading Tracking**: Uses Set-based tracking with `onFirstLoad` callbacks instead of arbitrary timeouts
-
-#### Implementation Details
-
-**1. Generic Collection Listener Factory**
-
-**File:** `src/lib/firebase-utils.ts`
-
-```typescript
-export function createCollectionListener<T>(
-  collectionName: string,
-  signal: Signal<T[]>,
-  options?: {
-    companyScoped?: boolean
-    filter?: (item: T) => boolean
-    onFirstLoad?: () => void
-  }
-) {
-  return (companyId?: string) => {
-    // Creates Firebase query with optional company scoping
-    // Updates signal on data changes
-    // Calls onFirstLoad callback after first snapshot
-    // Returns unsubscribe function
-  }
-}
-```
-
-**Features:**
-- Generic type support for type-safe listeners
-- Optional company scoping via `where("companyId", "==", companyId)`
-- Optional filter function for client-side filtering
-- **onFirstLoad callback**: Notifies when collection has received its first snapshot
-- Automatic error handling (calls onFirstLoad even on error to prevent infinite loading)
-
-**2. Company Context Integration**
-
-**File:** `src/contexts/CompanyContext.tsx`
-
-Updated to use centralized data service:
-
-```typescript
-export function CompanyProvider({ children }: { children: ReactNode }) {
-  useSignals()
-
-  const companies = globalData.companies.value.filter(c => c.isActive !== false)
-
-  useEffect(() => {
-    const cleanup = globalData.initializeForCompany(user.companyId)
-    return cleanup
-  }, [user, user?.companyId])
-}
-```
-
-**Key Changes:**
-- Removed all direct Firebase queries
-- Now calls `globalData.initializeForCompany()`
-- Filters companies for switcher to show only active
-- All companies (including inactive) available in `globalData.companies.value` for admin pages
-
-**3. Global Loading Screen**
-
-**File:** `src/app/(authenticated)/layout.tsx`
-
-```typescript
-export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
-  useSignals()
-  const isLoading = globalData.loading.value
-
-  if (isLoading) {
-    return <LoadingSpinner fullScreen message="Loading application data..." />
-  }
-
-  return <AppLayout>{children}</AppLayout>
-}
-```
-
-Shows loading screen until all initial data is loaded.
-
-**4. Company Form Modal**
-
-**File:** `src/components/companies/CompanyFormModal.tsx`
-
-**Special Handling for Editing:**
-- When creating: Shows informational messages that contacts can be assigned after creation
-- When editing: Fetches users specifically for the company being edited (not from global data service)
-- Allows editing Company A's contacts while logged into Company B
-
-```typescript
-useEffect(() => {
-  if (!open || !isEditing || !company) return
-
-  const fetchUsersForCompany = async () => {
-    const q = query(collection(db, "users"), where("companyId", "==", company.id))
-    const snapshot = await getDocs(q)
-    setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as User[])
-  }
-
-  fetchUsersForCompany()
-}, [open, isEditing, company])
-```
-
-#### Loading State Management
-
-The data service implements smart loading state tracking to ensure the UI only renders when all data is ready:
-
-**How it works:**
-1. When `initializeForCompany()` is called:
-   - Sets `loading.value = true`
-   - Clears the `loadedCollections` Set
-   - Creates listeners with `onFirstLoad` callbacks
-
-2. Each listener (companies, roles, users):
-   - Calls `markCollectionLoaded(collectionName)` after receiving first snapshot
-   - This happens even on errors to prevent infinite loading
-
-3. `markCollectionLoaded()` method:
-   - Adds collection name to the Set
-   - Checks if all expected collections (3) have loaded
-   - Sets `loading.value = false` when complete
-   - Logs "All data has been loaded" to console
-
-**Why this approach:**
-- ✅ **Accurate**: Only shows content when data is actually available
-- ✅ **No race conditions**: Doesn't rely on arbitrary timeouts
-- ✅ **Error resilient**: Handles Firebase errors gracefully
-- ✅ **Performance**: Minimal overhead with Set-based tracking
-- ✅ **Debuggable**: Console log confirms when loading completes
-
-#### Benefits
-
-1. **No Duplicate Queries**: Single source of truth for all application data
-2. **Real-Time Sync**: All components automatically update when data changes
-3. **Better Performance**: Shared listeners reduce Firebase read operations
-4. **Consistent State**: All components see the same data at the same time
-5. **Company Switching**: Data automatically reloads when user switches companies
-6. **Clean Separation**: Company switcher only shows active, admin pages show all
-7. **Smart Loading**: Accurate loading states based on actual data availability, not arbitrary timeouts
-
-#### Usage in Components
-
+### Pattern: Reactive Data Service
 ```typescript
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
 
 export default function MyComponent() {
-  useSignals()
+  useSignals() // REQUIRED for reactivity
 
-  const companies = globalData.companies.value  // Reactive
-  const users = globalData.users.value          // Reactive
-  const loading = globalData.loading.value      // Reactive
+  const companies = globalData.companies.value
+  const users = globalData.users.value
+  const loading = globalData.loading.value
 
-  // Component automatically re-renders when signals change
+  // Component re-renders automatically when signals change
 }
 ```
 
----
-
-### Task 1.5: Update Navigation to Include Admin Routes
-
-**File to Update:** `src/components/layout/AppLayout.tsx`
-
-Find the `navigation` array and update it:
-
+### Pattern: Optimized Search
 ```typescript
-const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "Settings", href: "/settings", icon: Settings },
-  // Add these new items:
-  { name: "Companies", href: "/admin/companies", icon: Building2 },
-  { name: "Users", href: "/admin/users", icon: Users },
-]
-```
-
-Import the new icons at the top:
-
-```typescript
-import { Home, Settings, Menu, X, LogOut, ChevronDown, Building2, Users } from "lucide-react"
-```
-
----
-
-### Task 1.5: Implement Loading States System
-
-**Files to Create/Update:**
-
-#### Step 1: Create Loading Spinner Component
-
-**File:** `src/components/ui/loading-spinner.tsx`
-
-Create centralized loading components with glass morphism design:
-- `LoadingSpinner` - Primary component with full-screen and inline modes
-- `InlineSpinner` - For buttons and small spaces
-- `SkeletonLoader` - For content placeholders
-
-Features:
-- Multiple sizes (sm, md, lg, xl)
-- Glass morphism design with gradient glow
-- Optional contextual messages
-- Full-screen overlay option
-
-#### Step 2: Update usePermission Hook
-
-**File:** `src/hooks/usePermission.ts`
-
-Update return type to include loading state:
-
-```typescript
-export function usePermission(permission: PermissionKey): { hasPermission: boolean; loading: boolean } {
-  const [hasPermission, setHasPermission] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  // Check permission logic
-  // Always call setLoading(false) at the end
-
-  return { hasPermission, loading }
-}
-```
-
-#### Step 3: Update AppLayout with Loading State
-
-**File:** `src/components/layout/AppLayout.tsx`
-
-Add loading state while auth initializes:
-
-```typescript
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
-
-export default function AppLayout({ children }: AppLayoutProps) {
-  const { user, logout, loading } = useAuth()
-
-  if (loading) {
-    return <LoadingSpinner fullScreen message="Loading..." />
-  }
-
-  // Render layout
-}
-```
-
-#### Step 4: Update Pages with Loading States
-
-Update all pages to use loading states:
-
-**Companies Page:**
-```typescript
-const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_COMPANIES)
-
-if (permissionLoading) {
-  return <LoadingSpinner fullScreen message="Checking permissions..." />
-}
-
-{loading || isSearching ? (
-  <LoadingSpinner size="lg" message={loading ? "Loading companies..." : "Searching..."} />
-) : (
-  // Render content
-)}
-```
-
-#### Step 5: Update Modals with Loading States
-
-Add `InlineSpinner` to all form submission buttons:
-
-```typescript
-<Button onClick={handleSubmit} disabled={isSubmitting}>
-  {isSubmitting ? (
-    <>
-      <InlineSpinner className="mr-2" />
-      Saving...
-    </>
-  ) : (
-    "Save"
-  )}
-</Button>
-```
-
-Updated modals:
-- `AddUserModal.tsx`
-- `ChangePasswordModal.tsx`
-- `ChangeEmailModal.tsx`
-- `CompanyFormModal.tsx` (already had loading states)
-
----
-
-## Phase 1 Testing Checklist
-
-### Pre-Testing Setup
-
-1. ✅ Run seed script: Navigate to `/seed` and click "Seed Database"
-2. ✅ Verify seed completed successfully (check browser console)
-3. ✅ Login with: `dev@newton.co.za` / `NewtonDev123!` (or your configured password)
-
-### Permission System Tests
-
-#### Test 1.1: Permission Constants
-
-- [ ] Open browser console
-- [ ] Import and check permissions: All permission keys are defined
-- [ ] Expected: No TypeScript errors in IDE
-
-#### Test 1.2: Permission Hook
-
-- [ ] Navigate to any page
-- [ ] Open React DevTools
-- [ ] Check user context has `isGlobal: true`
-- [ ] Expected: Dev user should have all permissions (isGlobal=true)
-
-#### Test 1.3: Permission Gate
-
-- [ ] Check if admin menu items are visible in sidebar
-- [ ] Expected: "Companies" and "Users" links should be visible
-
-#### Test 1.4: Seed Data Verification
-
-- [ ] Open Firebase Console → Firestore Database
-- [ ] Check `settings/permissions` document exists
-- [ ] Expected: Document contains all permission keys with descriptions
-- [ ] Check `roles` collection has 9 documents
-- [ ] Expected: All default roles (r_newton_admin, r_site_admin, etc.) exist
-- [ ] Verify each role has proper `permissionKeys` array
-
-### Company Management Tests
-
-#### Test 1.5: Company Listing
-
-- [ ] Navigate to `/admin/companies`
-- [ ] Expected: Page loads without errors
-- [ ] Expected: See at least 1 company (Dev Company from seed)
-- [ ] Expected: Search box and filter dropdown are visible
-- [ ] Expected: "Add Company" button is visible
-
-#### Test 1.6: Company Search
-
-- [ ] Type "Dev" in search box
-- [ ] Expected: Dev Company appears in results
-- [ ] Type "XYZ" (non-existent)
-- [ ] Expected: "No companies found" message
-
-#### Test 1.7: Company Type Filter
-
-- [ ] Select "Mine" from filter dropdown
-- [ ] Expected: Only mine companies shown
-- [ ] Select "Transporter" from filter
-- [ ] Expected: Only transporter companies shown (may be 0)
-- [ ] Select "All Types"
-- [ ] Expected: All companies shown
-
-#### Test 1.8: Add Company
-
-- [ ] Click "Add Company" button
-- [ ] Expected: Modal opens with form
-- [ ] Leave required fields empty, click "Create Company"
-- [ ] Expected: Error toast "Please fill in all required fields"
-- [ ] Fill in all fields:
-  - Name: "Test Transporter Co"
-  - Type: Select "Transporter"
-  - Registration: "2024/TEST/001"
-  - VAT: "4000000001"
-  - Address: "123 Test Street, Test City"
-- [ ] Click "Create Company"
-- [ ] Expected: Success toast "Company created successfully"
-- [ ] Expected: Modal closes
-- [ ] Expected: New company appears in list
-
-#### Test 1.9: Permission Restriction (Non-Global User)
-
-- [ ] Create a new user (we'll do this in Phase 2, skip for now)
-- [ ] Or manually set your user's `isGlobal` to false in Firestore
-- [ ] Refresh page
-- [ ] Navigate to `/admin/companies`
-- [ ] Expected: See message "You don't have permission to manage companies"
-
-### Data Validation Tests
-
-#### Test 1.10: Firestore Data Structure
-
-- [ ] Open Firebase Console → Firestore
-- [ ] Navigate to `companies` collection
-- [ ] Click on any company document
-- [ ] Verify fields exist:
-  - `id` (document ID)
-  - `name` (string)
-  - `companyType` (string: mine/transporter/logistics_coordinator)
-  - `registrationNumber` (string)
-  - `physicalAddress` (string)
-  - `mainContactId` (string)
-  - `secondaryContactIds` (array)
-  - `createdAt` (number)
-  - `updatedAt` (number)
-  - `dbCreatedAt` (timestamp)
-  - `dbUpdatedAt` (timestamp)
-  - `isActive` (boolean: true)
-
-#### Test 1.11: Console Errors
-
-- [ ] Open browser console (F12)
-- [ ] Navigate through all pages created
-- [ ] Expected: No red errors in console
-- [ ] Expected: No TypeScript compilation errors
-
-### Performance Tests
-
-#### Test 1.12: Page Load Times
-
-- [ ] Clear browser cache
-- [ ] Navigate to `/admin/companies`
-- [ ] Check Network tab in DevTools
-- [ ] Expected: Page loads in < 2 seconds
-- [ ] Expected: No failed network requests (red items)
-
-### Mobile Responsiveness Tests
-
-#### Test 1.13: Mobile View
-
-- [ ] Open DevTools (F12)
-- [ ] Toggle device toolbar (Ctrl+Shift+M or Cmd+Shift+M)
-- [ ] Select iPhone or Android device
-- [ ] Navigate to `/admin/companies`
-- [ ] Expected: Layout adapts to mobile screen
-- [ ] Expected: All buttons are accessible
-- [ ] Expected: Modal is readable on mobile
-
-### Loading States Tests
-
-#### Test 1.14: Page Loading States
-
-- [ ] Clear browser cache
-- [ ] Navigate to `/admin/companies`
-- [ ] Expected: See full-screen loading spinner with "Checking permissions..." message
-- [ ] Expected: Loading spinner has glass morphism design with gradient glow
-- [ ] Expected: Spinner disappears when page loads
-- [ ] Expected: See "Loading companies..." message while fetching data
-
-#### Test 1.15: Search Loading States
-
-- [ ] Navigate to `/admin/companies`
-- [ ] Type in search box
-- [ ] Expected: See "Searching..." message while search is processing
-- [ ] Expected: Loading spinner appears during search
-- [ ] Expected: Results appear after search completes
-
-#### Test 1.16: Form Submission Loading States
-
-- [ ] Click "Add Company" button
-- [ ] Fill in required fields
-- [ ] Click "Create Company"
-- [ ] Expected: Button shows spinner icon with "Saving..." text
-- [ ] Expected: Button is disabled during submission
-- [ ] Expected: Cancel button is also disabled during submission
-- [ ] Expected: Success toast appears after save completes
-
-#### Test 1.17: Auth Loading State
-
-- [ ] Log out
-- [ ] Log back in
-- [ ] Expected: See full-screen loading spinner with "Loading..." message during auth initialization
-- [ ] Expected: App layout loads after auth completes
-
-#### Test 1.18: Modal Loading States
-
-- [ ] Navigate to `/settings`
-- [ ] Click "Change Password"
-- [ ] Fill in password fields
-- [ ] Click "Update Password"
-- [ ] Expected: Button shows spinner with "Updating..." text
-- [ ] Expected: All buttons disabled during update
-- [ ] Expected: Modal closes after successful update
-
----
-
-## Phase 1 Success Criteria
-
-✅ **All tests passing** - No errors in console or UI
-✅ **Permission system working** - Hooks return correct values with loading states
-✅ **Company CRUD functional** - Can list, create, edit, and activate/deactivate companies
-✅ **Data persisted correctly** - Firestore contains correct data structure
-✅ **UI matches design system** - Glass morphism applied, consistent styling
-✅ **Mobile responsive** - Works on mobile viewport
-✅ **Loading states implemented** - All async operations show appropriate loading feedback
-✅ **Optimized search working** - Fast, debounced search with loading states
-✅ **Dual-role company support** - Transporters can be LCs and vice versa
-✅ **Inactive company filtering** - Inactive companies don't appear in switcher
-
-### Known Limitations (Expected for Phase 1)
-
-- Company details page not implemented yet (view-only modal for configurations)
-- User management not fully enhanced yet (basic CRUD implemented)
-- Some company-specific configurations need UI refinement (mineConfig, transporterConfig optional fields)
-
----
-
-## Phase 2: Asset Management Module
-
-### Overview
-
-Implement complete asset management system including induction flow, asset listing, deletion with transaction checking, and expiry tracking.
-
----
-
-### Task 2.1: Asset Service Layer
-
-**File:** `src/services/asset.service.ts`
-
-```typescript
-import { db } from "@/lib/firebase"
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit } from "firebase/firestore"
-import { createDocument, updateDocument, deleteDocument } from "@/lib/firebase-utils"
-import type { Asset } from "@/types"
-
-export class AssetService {
-  static async getById(id: string): Promise<Asset | null> {
-    try {
-      const docRef = doc(db, "assets", id)
-      const docSnap = await getDoc(docRef)
-
-      if (!docSnap.exists()) return null
-
-      return { id: docSnap.id, ...docSnap.data() } as Asset
-    } catch (error) {
-      console.error("Error fetching asset:", error)
-      throw error
-    }
-  }
-
-  static async getByCompany(companyId: string): Promise<Asset[]> {
-    try {
-      const q = query(collection(db, "assets"), where("companyId", "==", companyId), where("isActive", "==", true), orderBy("createdAt", "desc"))
-      const snapshot = await getDocs(q)
-
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Asset[]
-    } catch (error) {
-      console.error("Error fetching assets:", error)
-      throw error
-    }
-  }
-
-  static async getByQRCode(qrCode: string): Promise<Asset | null> {
-    try {
-      const q = query(collection(db, "assets"), where("qrCode", "==", qrCode), limit(1))
-      const snapshot = await getDocs(q)
-
-      if (snapshot.empty) return null
-
-      const doc = snapshot.docs[0]
-      return { id: doc.id, ...doc.data() } as Asset
-    } catch (error) {
-      console.error("Error fetching asset by QR:", error)
-      throw error
-    }
-  }
-
-  static async create(data: Omit<Asset, "id" | "createdAt" | "updatedAt" | "dbCreatedAt" | "dbUpdatedAt">): Promise<string> {
-    try {
-      // Use firebase-utils helper - automatically adds timestamps and shows toast
-      const id = await createDocument("assets", data, "Asset created successfully")
-      return id
-    } catch (error) {
-      console.error("Error creating asset:", error)
-      throw error
-    }
-  }
-
-  static async update(id: string, data: Partial<Asset>): Promise<void> {
-    try {
-      // Use firebase-utils helper - automatically adds timestamps and shows toast
-      await updateDocument("assets", id, data, "Asset updated successfully")
-    } catch (error) {
-      console.error("Error updating asset:", error)
-      throw error
-    }
-  }
-
-  static async delete(id: string): Promise<void> {
-    try {
-      // Use firebase-utils helper - shows toast
-      await deleteDocument("assets", id, "Asset deleted successfully")
-    } catch (error) {
-      console.error("Error deleting asset:", error)
-      throw error
-    }
-  }
-
-  static async inactivate(id: string, reason: string): Promise<void> {
-    try {
-      // Use firebase-utils helper for update
-      await updateDocument(
-        "assets",
-        id,
-        {
-          isActive: false,
-          inactiveReason: reason,
-          inactiveDate: new Date().toISOString(),
-        },
-        "Asset inactivated successfully"
-      )
-    } catch (error) {
-      console.error("Error inactivating asset:", error)
-      throw error
-    }
-  }
-
-  static async checkHasTransactions(assetId: string): Promise<{ hasTransactions: boolean; count: number }> {
-    try {
-      // Check weighing_records
-      const weighingQuery = query(collection(db, "weighing_records"), where("assetId", "==", assetId), limit(1))
-      const weighingSnapshot = await getDocs(weighingQuery)
-
-      // Check security_checks
-      const securityQuery = query(collection(db, "security_checks"), where("assetId", "==", assetId), limit(1))
-      const securitySnapshot = await getDocs(securityQuery)
-
-      const hasTransactions = !weighingSnapshot.empty || !securitySnapshot.empty
-      const count = weighingSnapshot.size + securitySnapshot.size
-
-      return { hasTransactions, count }
-    } catch (error) {
-      console.error("Error checking transactions:", error)
-      throw error
-    }
-  }
-
-  static validateLicenseExpiry(expiryDate: string): { isValid: boolean; daysUntilExpiry: number } {
-    const expiry = new Date(expiryDate)
-    const now = new Date()
-    const daysUntilExpiry = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-
-    return {
-      isValid: daysUntilExpiry > 0,
-      daysUntilExpiry,
-    }
-  }
-
-  static async getExpiringAssets(companyId: string, daysThreshold: number = 30): Promise<Asset[]> {
-    try {
-      const q = query(collection(db, "assets"), where("companyId", "==", companyId), where("isActive", "==", true))
-      const snapshot = await getDocs(q)
-
-      const assets = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Asset[]
-
-      // Filter by expiry date (client-side since Firestore can't do date comparisons easily)
-      return assets.filter(asset => {
-        if (!asset.licenseExpiryDate) return false
-
-        const { daysUntilExpiry } = this.validateLicenseExpiry(asset.licenseExpiryDate)
-        return daysUntilExpiry > 0 && daysUntilExpiry <= daysThreshold
-      })
-    } catch (error) {
-      console.error("Error fetching expiring assets:", error)
-      throw error
-    }
-  }
-}
-```
-
----
-
-### Task 2.2: Asset Listing Page
-
-**File:** `src/app/(authenticated)/assets/page.tsx`
-
-```typescript
-"use client"
-
-import { useState, useEffect } from "react"
-import { useAuth } from "@/contexts/AuthContext"
-import { usePermission } from "@/hooks/usePermission"
-import { PERMISSIONS } from "@/lib/permissions"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Truck, Trailer, User as UserIcon, AlertTriangle } from "lucide-react"
-import { AssetService } from "@/services/asset.service"
-import type { Asset } from "@/types"
-import Link from "next/link"
-import { toast } from "sonner"
-import { format, parseISO } from "date-fns"
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
 
-export default function AssetsPage() {
-  const { user } = useAuth()
-  const canView = usePermission(PERMISSIONS.ASSETS_VIEW)
-  const canAdd = usePermission(PERMISSIONS.ASSETS_ADD)
-  const [assets, setAssets] = useState<Asset[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filterType, setFilterType] = useState<string>("all")
-
-  // Optimized search hook
-  const { searchTerm, setSearchTerm, filteredItems: searchedAssets, isSearching } =
-    useOptimizedSearch(assets, SEARCH_CONFIGS.assets)
-
-  useEffect(() => {
-    fetchAssets()
-  }, [user?.companyId])
-
-  async function fetchAssets() {
-    if (!user?.companyId) return
-
-    try {
-      setLoading(true)
-      const data = await AssetService.getByCompany(user.companyId)
-      setAssets(data)
-    } catch (error) {
-      console.error("Error fetching assets:", error)
-      toast.error("Failed to load assets")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Additional filters (type filter)
-  const filteredAssets = searchedAssets.filter(asset => {
-    const matchesType = filterType === "all" || asset.assetType === filterType
-    return matchesType
-  })
-
-  const getAssetIcon = (type: string) => {
-    switch (type) {
-      case "truck":
-        return <Truck className="h-5 w-5" />
-      case "trailer":
-        return <Trailer className="h-5 w-5" />
-      case "driver":
-        return <UserIcon className="h-5 w-5" />
-      default:
-        return <Truck className="h-5 w-5" />
-    }
-  }
-
-  const getExpiryStatus = (expiryDate?: string) => {
-    if (!expiryDate) return null
-
-    const { isValid, daysUntilExpiry } = AssetService.validateLicenseExpiry(expiryDate)
-
-    if (!isValid) {
-      return <Badge variant="destructive">Expired</Badge>
-    }
-
-    if (daysUntilExpiry <= 7) {
-      return (
-        <Badge variant="warning" className="flex items-center gap-1">
-          <AlertTriangle className="h-3 w-3" />
-          Expires in {daysUntilExpiry}d
-        </Badge>
-      )
-    }
-
-    if (daysUntilExpiry <= 30) {
-      return <Badge variant="warning">Expires in {daysUntilExpiry}d</Badge>
-    }
-
-    return null
-  }
-
-  if (!canView) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">You don't have permission to view assets.</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Assets</h1>
-          <p className="text-muted-foreground">Manage trucks, trailers, and drivers</p>
-        </div>
-        {canAdd && (
-          <Link href="/assets/induct">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Induct Asset
-            </Button>
-          </Link>
-        )}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search by registration, license, fleet number, or QR..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
-            </div>
-            <select value={filterType} onChange={e => setFilterType(e.target.value)} className="border rounded-md px-3 py-2">
-              <option value="all">All Types</option>
-              <option value="truck">Trucks</option>
-              <option value="trailer">Trailers</option>
-              <option value="driver">Drivers</option>
-            </select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading || isSearching ? (
-            <div className="text-center py-8">Loading...</div>
-          ) : filteredAssets.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No assets found</div>
-          ) : (
-            <div className="space-y-4">
-              {filteredAssets.map(asset => (
-                <div key={asset.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">{getAssetIcon(asset.assetType)}</div>
-                    <div>
-                      <h3 className="font-semibold">{asset.registrationNumber || asset.licenseNumber || asset.qrCode}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {asset.assetType.charAt(0).toUpperCase() + asset.assetType.slice(1)}
-                        {asset.fleetNumber && ` • Fleet: ${asset.fleetNumber}`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getExpiryStatus(asset.licenseExpiryDate)}
-                    <Badge variant={asset.isActive ? "success" : "secondary"}>{asset.isActive ? "Active" : "Inactive"}</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
+const { searchTerm, setSearchTerm, filteredItems, isSearching } =
+  useOptimizedSearch(dataArray, SEARCH_CONFIGS.entityName)
 ```
 
----
-
-### Task 2.3: Asset Induction Page (Simplified for MVP)
-
-**File:** `src/app/(authenticated)/assets/induct/page.tsx`
-
+### Pattern: Permission Check
 ```typescript
-"use client"
-
-import { useState } from "react"
-import { useAuth } from "@/contexts/AuthContext"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { AssetService } from "@/services/asset.service"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { ArrowLeft, Save } from "lucide-react"
-import Link from "next/link"
-import { v4 as uuidv4 } from "uuid"
 
-export default function AssetInductPage() {
-  const router = useRouter()
-  const { user } = useAuth()
-  const canAdd = usePermission(PERMISSIONS.ASSETS_ADD)
-  const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    assetType: "truck" as "truck" | "trailer" | "driver",
-    qrCode: "",
-    registrationNumber: "",
-    licenseNumber: "",
-    licenseExpiryDate: "",
-    vehicleDiskData: "",
-    driverLicenseData: "",
-    fleetNumber: "",
-    groupId: "",
-  })
+const { hasPermission, loading } = usePermission(PERMISSIONS.PERMISSION_NAME)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+if (loading) return <LoadingSpinner />
+if (!hasPermission) return <AccessDenied />
+```
 
-    if (!user?.companyId) {
-      toast.error("Company ID not found")
-      return
-    }
+### Pattern: Wizard Navigation
+```typescript
+const [step, setStep] = useState(1)
+const [formData, setFormData] = useState({})
 
-    if (!formData.qrCode) {
-      toast.error("QR Code is required")
-      return
-    }
-
-    // Validate based on asset type
-    if (formData.assetType === "driver" && !formData.licenseNumber) {
-      toast.error("License number is required for drivers")
-      return
-    }
-
-    if ((formData.assetType === "truck" || formData.assetType === "trailer") && !formData.registrationNumber) {
-      toast.error("Registration number is required for vehicles")
-      return
-    }
-
-    // Validate expiry date if provided
-    if (formData.licenseExpiryDate) {
-      const { isValid, daysUntilExpiry } = AssetService.validateLicenseExpiry(formData.licenseExpiryDate)
-
-      if (!isValid) {
-        toast.error("License/disk has expired. Cannot induct.")
-        return
-      }
-
-      if (daysUntilExpiry <= 7) {
-        toast.warning(`Warning: License/disk expires in ${daysUntilExpiry} days`)
-      }
-    }
-
-    try {
-      setLoading(true)
-
-      // Check if QR code already exists
-      const existing = await AssetService.getByQRCode(formData.qrCode)
-      if (existing) {
-        toast.error("QR Code already exists in the system")
-        return
-      }
-
-      const assetData = {
-        companyId: user.companyId,
-        assetType: formData.assetType,
-        qrCode: formData.qrCode,
-        isActive: true,
-        ...(formData.registrationNumber && { registrationNumber: formData.registrationNumber }),
-        ...(formData.licenseNumber && { licenseNumber: formData.licenseNumber }),
-        ...(formData.licenseExpiryDate && { licenseExpiryDate: formData.licenseExpiryDate }),
-        ...(formData.vehicleDiskData && { vehicleDiskData: formData.vehicleDiskData }),
-        ...(formData.driverLicenseData && { driverLicenseData: formData.driverLicenseData }),
-        ...(formData.fleetNumber && { fleetNumber: formData.fleetNumber }),
-        ...(formData.groupId && { groupId: formData.groupId }),
-      }
-
-      // AssetService.create uses firebase-utils internally, toast shown automatically
-      await AssetService.create(assetData)
-      router.push("/assets")
-    } catch (error) {
-      console.error("Error inducting asset:", error)
-      toast.error("Failed to induct asset")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function generateQRCode() {
-    setFormData({ ...formData, qrCode: `QR-${uuidv4()}` })
-    toast.info("QR Code generated (simulated)")
-  }
-
-  if (!canAdd) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">You don't have permission to induct assets.</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="flex items-center gap-4">
-        <Link href="/assets">
-          <Button variant="outline" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Induct Asset</h1>
-          <p className="text-muted-foreground">Add a new truck, trailer, or driver to the system</p>
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Asset Information</CardTitle>
-          <CardDescription>Enter the details for the new asset. QR code scanning will be implemented in a future update.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label>Asset Type *</Label>
-              <RadioGroup value={formData.assetType} onValueChange={(value: any) => setFormData({ ...formData, assetType: value })}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="truck" id="truck" />
-                  <Label htmlFor="truck" className="font-normal">
-                    Truck
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="trailer" id="trailer" />
-                  <Label htmlFor="trailer" className="font-normal">
-                    Trailer
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="driver" id="driver" />
-                  <Label htmlFor="driver" className="font-normal">
-                    Driver
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="qrCode">QR Code *</Label>
-              <div className="flex gap-2">
-                <Input id="qrCode" value={formData.qrCode} onChange={e => setFormData({ ...formData, qrCode: e.target.value })} placeholder="Scan or enter QR code" />
-                <Button type="button" variant="outline" onClick={generateQRCode}>
-                  Generate
-                </Button>
-              </div>
-            </div>
-
-            {(formData.assetType === "truck" || formData.assetType === "trailer") && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="registrationNumber">Registration Number *</Label>
-                  <Input id="registrationNumber" value={formData.registrationNumber} onChange={e => setFormData({ ...formData, registrationNumber: e.target.value })} placeholder="CAW 12345" />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="vehicleDiskData">Vehicle Disk Data</Label>
-                  <Input id="vehicleDiskData" value={formData.vehicleDiskData} onChange={e => setFormData({ ...formData, vehicleDiskData: e.target.value })} placeholder="Scanned disk data" />
-                </div>
-              </>
-            )}
-
-            {formData.assetType === "driver" && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="licenseNumber">License Number *</Label>
-                  <Input id="licenseNumber" value={formData.licenseNumber} onChange={e => setFormData({ ...formData, licenseNumber: e.target.value })} placeholder="DL123456789" />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="driverLicenseData">Driver License Data</Label>
-                  <Input id="driverLicenseData" value={formData.driverLicenseData} onChange={e => setFormData({ ...formData, driverLicenseData: e.target.value })} placeholder="Scanned license data" />
-                </div>
-              </>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="licenseExpiryDate">License/Disk Expiry Date</Label>
-              <Input id="licenseExpiryDate" type="date" value={formData.licenseExpiryDate} onChange={e => setFormData({ ...formData, licenseExpiryDate: e.target.value })} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="fleetNumber">Fleet Number (Optional)</Label>
-                <Input id="fleetNumber" value={formData.fleetNumber} onChange={e => setFormData({ ...formData, fleetNumber: e.target.value })} placeholder="FL-001" />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="groupId">Group (Optional)</Label>
-                <Input id="groupId" value={formData.groupId} onChange={e => setFormData({ ...formData, groupId: e.target.value })} placeholder="grp_north" />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Link href="/assets">
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </Link>
-              <Button type="submit" disabled={loading}>
-                <Save className="mr-2 h-4 w-4" />
-                {loading ? "Inducting..." : "Induct Asset"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  )
+const nextStep = () => setStep(prev => prev + 1)
+const prevStep = () => setStep(prev => prev - 1)
+const updateFormData = (field: string, value: any) => {
+  setFormData(prev => ({ ...prev, [field]: value }))
 }
 ```
 
----
-
-### Task 2.4: Update Navigation
-
-**File to Update:** `src/components/layout/AppLayout.tsx`
-
-Add Assets to navigation:
-
+### Pattern: Notification Trigger
 ```typescript
-import { Home, Settings, Menu, X, LogOut, ChevronDown, Building2, Users, Package } from "lucide-react"
+import { NotificationService } from "@/services/notification.service"
 
-const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "Assets", href: "/assets", icon: Package },
-  { name: "Companies", href: "/admin/companies", icon: Building2 },
-  { name: "Users", href: "/admin/users", icon: Users },
-  { name: "Settings", href: "/settings", icon: Settings },
-]
+// Trigger notification
+await NotificationService.send("asset.added", {
+  assetType: "truck",
+  registrationNumber: "CA123456",
+  companyName: company.name,
+  // ... other placeholders
+})
 ```
 
----
-
-### Task 2.5: Enhanced Seed Script for Assets
-
-**File to Update:** `src/app/api/seed/route.ts`
-
-Update the seed script to create more diverse assets. Update the `seedAssets` function to generate assets if no JSON file exists:
-
+### Pattern: Audit Log
 ```typescript
-async function seedAssets(sendProgress: (data: ProgressData) => void) {
-  const dataPath = path.join(process.cwd(), "data", "assets-data.json")
+import { AuditService } from "@/services/audit.service"
 
-  let assets: Array<{ id: string; [key: string]: any }> = []
-
-  if (fs.existsSync(dataPath)) {
-    assets = JSON.parse(fs.readFileSync(dataPath, "utf8"))
-  } else {
-    // Generate sample assets if file doesn't exist
-    sendProgress({
-      stage: "seeding_assets",
-      message: "No assets data file found. Generating sample assets...",
-    })
-
-    const now = new Date()
-    const transporters = ["t_dev_1", "t_dev_2"]
-
-    // Generate trucks
-    for (let i = 1; i <= 10; i++) {
-      const expiryDate = new Date(now)
-      expiryDate.setDate(expiryDate.getDate() + (i <= 2 ? 5 : i <= 5 ? 20 : 180)) // Some expiring soon
-
-      assets.push({
-        id: `asset_truck_${i}`,
-        assetType: "truck",
-        companyId: transporters[i % 2],
-        qrCode: `QR-TRUCK-${String(i).padStart(3, "0")}`,
-        registrationNumber: `GP ${String(10000 + i).slice(-5)}`,
-        vehicleDiskData: `DISK-TRUCK-${i}`,
-        licenseExpiryDate: expiryDate.toISOString().split("T")[0],
-        fleetNumber: `FL-T${String(i).padStart(3, "0")}`,
-        groupId: i % 2 === 0 ? "grp_north" : "grp_south",
-        isActive: true,
-      })
-    }
-
-    // Generate trailers
-    for (let i = 1; i <= 8; i++) {
-      const expiryDate = new Date(now)
-      expiryDate.setDate(expiryDate.getDate() + (i <= 2 ? 10 : 200))
-
-      assets.push({
-        id: `asset_trailer_${i}`,
-        assetType: "trailer",
-        companyId: transporters[i % 2],
-        qrCode: `QR-TRAILER-${String(i).padStart(3, "0")}`,
-        registrationNumber: `GP ${String(20000 + i).slice(-5)}`,
-        vehicleDiskData: `DISK-TRAILER-${i}`,
-        licenseExpiryDate: expiryDate.toISOString().split("T")[0],
-        fleetNumber: `FL-TR${String(i).padStart(3, "0")}`,
-        groupId: i % 2 === 0 ? "grp_north" : "grp_south",
-        isActive: true,
-      })
-    }
-
-    // Generate drivers
-    for (let i = 1; i <= 12; i++) {
-      const expiryDate = new Date(now)
-      expiryDate.setDate(expiryDate.getDate() + (i <= 3 ? 6 : 365))
-
-      assets.push({
-        id: `asset_driver_${i}`,
-        assetType: "driver",
-        companyId: transporters[i % 2],
-        qrCode: `QR-DRIVER-${String(i).padStart(3, "0")}`,
-        licenseNumber: `DL${String(1000000 + i)}`,
-        driverLicenseData: `LICENSE-DRIVER-${i}`,
-        licenseExpiryDate: expiryDate.toISOString().split("T")[0],
-        isActive: true,
-      })
-    }
-  }
-
-  sendProgress({
-    stage: "seeding_assets",
-    message: `Found/Generated ${assets.length} assets to seed`,
-    progress: { current: 0, total: assets.length },
-  })
-
-  let count = 0
-  const batchSize = 500
-  let batch = adminDb.batch()
-  let batchCount = 0
-
-  for (const asset of assets) {
-    const { id, ...data } = asset
-    batch.set(adminDb.collection("assets").doc(id), {
-      ...data,
-      companyId: data.companyId ?? DEFAULT_COMPANY_ID,
-      createdAt: data.createdAt ?? Date.now(),
-      updatedAt: Date.now(),
-      dbCreatedAt: FieldValue.serverTimestamp(),
-      dbUpdatedAt: FieldValue.serverTimestamp(),
-      isActive: data.isActive ?? true,
-    })
-
-    batchCount += 1
-    count += 1
-
-    if (batchCount >= batchSize) {
-      await batch.commit()
-      batch = adminDb.batch()
-      batchCount = 0
-      sendProgress({
-        stage: "seeding_assets",
-        message: `Seeded ${count} / ${assets.length} assets...`,
-        collection: "assets",
-        progress: { current: count, total: assets.length },
-      })
-    }
-  }
-
-  if (batchCount > 0) {
-    await batch.commit()
-  }
-
-  sendProgress({
-    stage: "seeding_assets",
-    message: `Completed seeding ${count} assets`,
-    collection: "assets",
-    count,
-    completed: true,
-  })
-
-  return count
-}
+// Log action
+await AuditService.log(
+  "order.created",
+  "order",
+  orderId,
+  { status: "allocated", totalWeight: 500 },
+  user.id
+)
 ```
 
 ---
 
-## Phase 2 Testing Checklist
+## Appendix D: Phase Dependencies Diagram
 
-### Pre-Testing Setup
-
-1. ✅ Run seed script again: Navigate to `/seed` and click "Seed Database"
-2. ✅ Verify assets were created (should see ~30 assets in console)
-3. ✅ Login with dev user
-
-### Asset Service Tests
-
-#### Test 2.1: Asset Service Methods
-
-- [ ] Open browser console
-- [ ] Test in console:
-
-```javascript
-// This is just for manual testing reference
-AssetService.getByCompany("t_dev_1").then(assets => console.log("Assets:", assets))
+```
+Phase 1 (DONE)
+    ↓
+Phase 2 (Admin Config) ← Must complete BEFORE orders
+    ├→ Products
+    ├→ Clients
+    ├→ Sites
+    ├→ Weighbridges
+    ├→ Notification Templates
+    ├→ User Notification Prefs
+    └→ System Settings
+    ↓
+Phase 3 (Assets) ← Can be parallel with Phase 4
+    ├→ Asset Types
+    ├→ Induction Wizard
+    ├→ Asset List
+    ├→ Asset Details
+    └→ Deletion/Inactivation
+    ↓
+Phase 4 (Orders) ← Depends on Phase 2, can be parallel with Phase 3
+    ├→ Order Creation
+    ├→ Order Allocation
+    ├→ Order List
+    └→ Order Details
+    ↓
+Phase 5 (Pre-Bookings) ← Depends on Phase 4
+    ├→ Pre-Booking Creation
+    └→ Pre-Booking List
+    ↓
+Phase 6 (Operations) ← Depends on Phases 3, 4, 5
+    ├→ Security In
+    ├→ Security Out
+    ├→ Weighbridge Tare
+    ├→ Weighbridge Gross
+    └→ Calibration
+    ↓
+Phase 7 (Reports) ← Depends on Phase 6 (data accumulation)
+    ├→ Daily Reports
+    ├→ Monthly Reports
+    └→ Custom Reports
+    ↓
+Phase 8 (Notifications & Audit) ← Integrates with ALL phases
+    ├→ Notification Sending
+    ├→ Notification History
+    └→ Audit Logging
+    ↓
+Phase 9 (Enhancements) ← Optional future features
+    ├→ Dashboard Widgets
+    ├→ Mobile App
+    ├→ ALPR
+    ├→ GPS Tracking
+    ├→ WhatsApp
+    └→ API
 ```
 
-- [ ] Expected: Should return array of assets
-- [ ] Expected: Each asset has correct structure (id, assetType, qrCode, etc.)
+---
 
-### Asset Listing Tests
+## Document Change Log
 
-#### Test 2.2: Asset Listing Page Load
-
-- [ ] Navigate to `/assets`
-- [ ] Expected: Page loads without errors
-- [ ] Expected: See list of assets (trucks, trailers, drivers)
-- [ ] Expected: Each asset shows icon, registration/license, and status badges
-
-#### Test 2.3: Asset Search
-
-- [ ] In search box, type "GP"
-- [ ] Expected: Only assets with "GP" in registration show
-- [ ] Type "DRIVER"
-- [ ] Expected: Only drivers show
-- [ ] Clear search
-- [ ] Expected: All assets show again
-
-#### Test 2.4: Asset Type Filter
-
-- [ ] Select "Trucks" from dropdown
-- [ ] Expected: Only truck assets shown
-- [ ] Select "Drivers" from dropdown
-- [ ] Expected: Only driver assets shown
-- [ ] Select "All Types"
-- [ ] Expected: All assets shown
-
-#### Test 2.5: Expiry Badges
-
-- [ ] Look for assets with expiry badges
-- [ ] Expected: Assets expiring within 7 days show red "Expires in Xd" badge with warning icon
-- [ ] Expected: Assets expiring within 30 days show yellow "Expires in Xd" badge
-- [ ] Expected: Assets expiring beyond 30 days show no expiry badge
-
-### Asset Induction Tests
-
-#### Test 2.6: Navigate to Induction
-
-- [ ] Click "Induct Asset" button on assets page
-- [ ] Expected: Navigate to `/assets/induct`
-- [ ] Expected: Form loads with asset type selector
-
-#### Test 2.7: Induct a Truck
-
-- [ ] Select "Truck" asset type
-- [ ] Click "Generate" for QR Code
-- [ ] Expected: QR code field populated with UUID
-- [ ] Expected: Toast message "QR Code generated"
-- [ ] Fill in:
-  - Registration Number: "TEST 12345"
-  - Vehicle Disk Data: "TEST-DISK-001"
-  - Expiry Date: (select date 60 days from now)
-  - Fleet Number: "FL-TEST-001"
-  - Group: "grp_test"
-- [ ] Click "Induct Asset"
-- [ ] Expected: Success toast "Asset inducted successfully"
-- [ ] Expected: Redirect to `/assets`
-- [ ] Expected: New asset appears in list
-
-#### Test 2.8: Induct a Driver
-
-- [ ] Click "Induct Asset" button
-- [ ] Select "Driver" asset type
-- [ ] Generate QR code
-- [ ] Fill in:
-  - License Number: "DL9999999"
-  - Driver License Data: "TEST-LICENSE-001"
-  - Expiry Date: (select date 10 days from now)
-- [ ] Click "Induct Asset"
-- [ ] Expected: Warning toast "License/disk expires in 10 days"
-- [ ] Expected: Asset created successfully
-- [ ] Expected: New driver appears in assets list with expiry warning badge
-
-#### Test 2.9: Duplicate QR Code Validation
-
-- [ ] Click "Induct Asset" button
-- [ ] Select "Truck"
-- [ ] Enter QR code: "QR-TRUCK-001" (existing from seed)
-- [ ] Fill other required fields
-- [ ] Click "Induct Asset"
-- [ ] Expected: Error toast "QR Code already exists in the system"
-- [ ] Expected: Asset not created
-
-#### Test 2.10: Expired License Validation
-
-- [ ] Click "Induct Asset"
-- [ ] Select "Driver"
-- [ ] Generate QR code
-- [ ] Enter License Number: "DLEXPIRED"
-- [ ] Set Expiry Date: (select date in the past, e.g., yesterday)
-- [ ] Click "Induct Asset"
-- [ ] Expected: Error toast "License/disk has expired. Cannot induct."
-- [ ] Expected: Asset not created
-
-#### Test 2.11: Required Field Validation
-
-- [ ] Click "Induct Asset"
-- [ ] Select "Truck"
-- [ ] Leave QR Code empty
-- [ ] Click "Induct Asset"
-- [ ] Expected: Error toast "QR Code is required"
-- [ ] Enter QR code but leave Registration Number empty
-- [ ] Click "Induct Asset"
-- [ ] Expected: Error toast "Registration number is required for vehicles"
-
-### Permission Tests
-
-#### Test 2.12: View Permission
-
-- [ ] (If you have a non-admin user, test with that, otherwise skip)
-- [ ] Change user's role to one without ASSETS_VIEW permission
-- [ ] Navigate to `/assets`
-- [ ] Expected: See message "You don't have permission to view assets"
-
-#### Test 2.13: Add Permission
-
-- [ ] Change user's role to have ASSETS_VIEW but not ASSETS_ADD
-- [ ] Navigate to `/assets`
-- [ ] Expected: Page loads, assets visible
-- [ ] Expected: "Induct Asset" button is NOT visible
-- [ ] Try navigate to `/assets/induct` directly
-- [ ] Expected: See message "You don't have permission to induct assets"
-
-### Data Validation Tests
-
-#### Test 2.14: Firestore Asset Structure
-
-- [ ] Open Firebase Console → Firestore
-- [ ] Navigate to `assets` collection
-- [ ] Click on a truck asset
-- [ ] Verify fields:
-  - `id` (document ID)
-  - `assetType` (string: "truck")
-  - `companyId` (string)
-  - `qrCode` (string)
-  - `registrationNumber` (string)
-  - `vehicleDiskData` (string, optional)
-  - `licenseExpiryDate` (string, optional)
-  - `fleetNumber` (string, optional)
-  - `groupId` (string, optional)
-  - `isActive` (boolean: true)
-  - `createdAt` (number)
-  - `updatedAt` (number)
-  - `dbCreatedAt` (timestamp)
-  - `dbUpdatedAt` (timestamp)
-
-#### Test 2.15: Navigation Integration
-
-- [ ] Check sidebar
-- [ ] Expected: "Assets" link is visible and clickable
-- [ ] Click "Assets"
-- [ ] Expected: Navigate to assets page
-- [ ] Page shows as active in navigation
-
-### UI/UX Tests
-
-#### Test 2.16: Loading States
-
-- [ ] Clear browser cache
-- [ ] Navigate to `/assets`
-- [ ] Expected: See "Loading..." text briefly
-- [ ] Expected: Assets load and display
-
-#### Test 2.17: Empty State
-
-- [ ] In Firestore, temporarily make all assets belong to a different company
-- [ ] Refresh `/assets` page
-- [ ] Expected: See "No assets found" message
-- [ ] Restore assets to correct company
-
-#### Test 2.18: Toast Notifications
-
-- [ ] Perform various actions
-- [ ] Expected: Success actions show green toast (top-right)
-- [ ] Expected: Error actions show red toast
-- [ ] Expected: Warning actions show yellow/orange toast
-- [ ] Expected: Toasts auto-dismiss after ~5 seconds
-
-### Mobile Responsiveness Tests
-
-#### Test 2.19: Mobile Asset List
-
-- [ ] Open DevTools, toggle device toolbar
-- [ ] Select mobile device (iPhone 12)
-- [ ] Navigate to `/assets`
-- [ ] Expected: List adapts to mobile width
-- [ ] Expected: Asset items stack vertically
-- [ ] Expected: All content readable without horizontal scroll
-
-#### Test 2.20: Mobile Induction Form
-
-- [ ] On mobile viewport, navigate to `/assets/induct`
-- [ ] Expected: Form fields stack vertically
-- [ ] Expected: All buttons are accessible
-- [ ] Expected: Date picker works on mobile
-- [ ] Expected: Can complete entire induction flow on mobile
-
-### Performance Tests
-
-#### Test 2.21: Large Dataset Performance
-
-- [ ] With 30+ assets loaded
-- [ ] Type in search box
-- [ ] Expected: Filtering happens instantly (no lag)
-- [ ] Switch between type filters
-- [ ] Expected: Instant response
-
-#### Test 2.22: Page Load Performance
-
-- [ ] Open Network tab in DevTools
-- [ ] Navigate to `/assets`
-- [ ] Expected: Page loads in < 2 seconds
-- [ ] Expected: Assets fetch completes in < 1 second
-- [ ] Check for unnecessary duplicate requests
-- [ ] Expected: Single Firestore query for assets
+| Date       | Version | Changes                                      |
+|------------|---------|----------------------------------------------|
+| 2025-01-06 | 2.0.0   | Complete rewrite - MECE coverage, no code    |
+| 2024-XX-XX | 1.0.0   | Initial version (partial implementation code)|
 
 ---
 
-## Phase 2 Success Criteria
-
-✅ **All tests passing** - No console errors ✅ **Asset CRUD functional** - Can list and create assets ✅ **Search and filters working** - Can find assets easily ✅ **Validation working** - Expired licenses blocked, duplicates prevented ✅ **Expiry tracking working** - Badges show correctly based on expiry dates ✅ **Permission enforcement** - Only authorized users can view/add assets ✅ **Mobile responsive** - Works on mobile devices ✅ **Data structure correct** - Firestore documents match data model
-
-### Known Limitations (Expected for Phase 2)
-
-- QR code scanning not fully implemented (generate button simulates it)
-- Barcode scanning not implemented (manual entry)
-- Asset editing not implemented yet
-- Asset deletion/inactivation not implemented yet (add in Phase 2.2)
-- No transaction history view
-- No asset utilization reports
-- Notification system not sending actual emails yet
-
----
-
-## Phase 3: Order Management Module
-
-(Coming in next iteration - will follow same detailed structure)
-
----
-
-## General Debugging Tips
-
-### Common Issues and Solutions
-
-**Issue: "Permission denied" errors in Firestore**
-
-- Solution: Check Firestore rules allow read/write for authenticated users
-- Temporary fix for development: Set rules to allow all authenticated users
-
-**Issue: Components not rendering**
-
-- Check: Browser console for errors
-- Check: All imports are correct
-- Check: "use client" directive at top of client components
-- Check: All props passed correctly
-
-**Issue: Toast notifications not showing**
-
-- Check: Toaster component rendered in root layout
-- Check: `import { toast } from "sonner"` not from other library
-- Check: Browser console for errors
-
-**Issue: Page shows blank/white screen**
-
-- Check: Browser console - likely a runtime error
-- Check: All async operations have error handling
-- Check: All required props provided
-
-**Issue: Infinite re-renders**
-
-- Check: useEffect dependencies array
-- Check: Not setting state in render
-- Check: Not creating new objects/arrays in render without memo
-
-**Issue: Firebase queries return empty**
-
-- Check: Collection names match exactly (case-sensitive)
-- Check: Document structure matches expectations
-- Check: User has correct companyId
-- Check: Indexes created if using multiple where clauses
-
----
-
-## Development Workflow
-
-### For Each New Feature:
-
-1. **Read the task** completely
-2. **Create files** in specified locations
-3. **Import dependencies** needed
-4. **Add types** for all functions/components
-5. **Implement functionality** with error handling
-6. **Test locally** as you go
-7. **Use checklist** to verify completion
-8. **Check console** for errors
-9. **Test on mobile** viewport
-10. **Commit** when feature complete
-
-### Code Quality Checklist:
-
-- [ ] No TypeScript errors
-- [ ] No console errors
-- [ ] All async operations have try-catch
-- [ ] All user actions show feedback (toast)
-- [ ] Loading states implemented
-- [ ] Error states handled
-- [ ] Empty states handled
-- [ ] Mobile responsive
-- [ ] Follows design system (glass morphism)
-- [ ] Permission checks in place
-- [ ] Data validated before submission
-
----
-
-This completes Phase 1 and Phase 2 of the AI-optimized implementation plan. Each phase now has:
-
-- ✅ Specific step-by-step instructions
-- ✅ Complete code structure guidance
-- ✅ Detailed testing checklists
-- ✅ Success criteria
-- ✅ Debugging tips
-
-Would you like me to continue with Phase 3 (Order Management) in this same detailed format?
+**END OF DOCUMENT**

@@ -363,21 +363,14 @@ Send Welcome Emails → Activate User Accounts
 ```text
 Newton Admin Login → System Settings →
 Select Product Management →
-Configure Product Settings:
-  - Add New Products:
-    → Enter Product Name
-    → Enter Product Code
-    → Set Product Specifications
-    → Define Product Categories ( What do you mean)
-  - Configure Categories:
-    → Create Product Categories
-    → Set Category Rules
-    → Define Category Hierarchies
-  - Product Linking:
-    → Link Products to Order Types (What do you mean)
-    → Set Product Availability per Site
-→ Save Product Configuration →
-Update Product Catalog → Notify Relevant Users
+View Product List (e.g., Gold, Platinum, Diamond, Iron Ore, Chrome) →
+Add/Edit Products:
+  - Product Name* (e.g., "Gold Ore")
+  - Product Code* (e.g., "AU-001")
+  - Specifications (optional - e.g., "Grade A")
+  - Active/Inactive Status
+→ Save Product →
+Product Available for Order Creation
 ```
 
 #### Flow 12: Order Settings Configuration (We need to define daily allowed trucks, weight per Transporter)
@@ -464,38 +457,7 @@ Configure Site Settings:
 Update Route Database → Notify Transportation Teams
 ```
 
-#### Flow 15: Weighbridge Settings Configuration
-
-```text
-Newton Admin Login → System Settings →
-Select Weighbridge Configuration →
-Configure Weighbridge Settings:
-  - Bridge Configuration:
-    → Add/Configure Weighbridge Stations
-    → Set Single or Multiple Axle Setup
-    → Configure Serial Port Access
-    → Set Input String Decoding Rules
-  - Weight Settings:
-    → Set Default Tolerance Levels (e.g., ±0.5%)
-    → Configure Weight Limits
-    → Set Tare Weight Rules
-  - Overload Policy:
-    → System enforces mandatory offload for overweight trucks
-    → Configure Overload Alert Recipients
-    → Set Overload Threshold (e.g., >5% over limit)
-  - Calibration Settings:
-    → Set Calibration Schedule
-    → Configure Load Cell Parameters
-    → Set Verification Standards
-  - Alert Configuration:
-    → Configure Overload/Underweight Alerts
-    → Set Weight Violation Notifications
-    → Define Alert Recipients
-→ Save Weighbridge Settings →
-Test Configuration → Deploy to All Weighbridges
-```
-
-#### Flow 16: Notification System Infrastructure
+#### Flow 15: Notification System Infrastructure
 
 ```text
 Newton Admin Login → System Settings →
@@ -539,7 +501,7 @@ Configure System-Wide Notification Settings:
 Apply System-Wide → Restart Notification Service
 ```
 
-#### Flow 17: System-Wide Settings Configuration
+#### Flow 16: System-Wide Settings Configuration
 
 ```text
 Newton Admin Login → System Settings →
@@ -560,7 +522,7 @@ Configure Global Settings:
 Apply System-Wide → Restart Services if Required
 ```
 
-#### Flow 18: Security Alert Configuration
+#### Flow 17: Security Alert Configuration
 
 ```text
 Newton Admin Login → System Settings →

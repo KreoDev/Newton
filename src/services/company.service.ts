@@ -57,6 +57,7 @@ export class CompanyService {
    */
   static async create(data: Omit<Company, "id" | keyof Timestamped>): Promise<string> {
     try {
+      // sourcery skip: inline-immediately-returned-variable
       const id = await createDocument("companies", data, "Company created successfully")
       return id
     } catch (error) {
