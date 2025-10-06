@@ -128,11 +128,14 @@ export interface Company extends Timestamped {
   id: string
   name: string
   companyType: "mine" | "transporter" | "logistics_coordinator"
-  registrationNumber: string
+  registrationNumber?: string // Optional per user-flow-web.md:208
   vatNumber?: string
   physicalAddress: string
-  mainContactId: string
+  mainContactId?: string // Optional per user-flow-web.md:208
   secondaryContactIds: string[]
+  // Dual-role flags per user-flow-web.md:223-224, 252-253, 265-267
+  isAlsoLogisticsCoordinator?: boolean // For transporters who also coordinate logistics
+  isAlsoTransporter?: boolean // For logistics coordinators who also transport
   // Type-specific configurations (data-model.md:105-110)
   mineConfig?: MineConfig
   transporterConfig?: TransporterConfig

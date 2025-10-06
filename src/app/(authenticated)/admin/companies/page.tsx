@@ -13,15 +13,18 @@ import { CompanyService } from "@/services/company.service"
 import type { Company } from "@/types"
 import { toast } from "sonner"
 import { CompanyFormModal } from "@/components/companies/CompanyFormModal"
+import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
+import { SEARCH_CONFIGS } from "@/config/search-configs"
 
 export default function CompaniesPage() {
   const { user } = useAuth()
   const canManage = usePermission(PERMISSIONS.ADMIN_COMPANIES)
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<string>("all")
   const [showCreateModal, setShowCreateModal] = useState(false)
+
+  const { searchTerm, setSearchTerm, filteredItems: searchedCompanies, isSearching } = useOptimizedSearch(companies, SEARCH_CONFIGS.companies)
 
   useEffect(() => {
     fetchCompanies()
@@ -43,13 +46,9 @@ export default function CompaniesPage() {
     }
   }
 
-  const filteredCompanies = companies.filter(company => {
-    const matchesSearch =
-      company.name.toLowerCase().includes(searchTerm.toLowerCase()) || company.registrationNumber.toLowerCase().includes(searchTerm.toLowerCase())
-
+  const filteredCompanies = searchedCompanies.filter(company => {
     const matchesType = filterType === "all" || company.companyType === filterType
-
-    return matchesSearch && matchesType
+    return matchesType
   })
 
   if (!canManage) {
@@ -93,7 +92,7 @@ export default function CompaniesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {loading || isSearching ? (
             <div className="text-center py-8">Loading...</div>
           ) : filteredCompanies.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No companies found</div>

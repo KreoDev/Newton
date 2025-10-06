@@ -28,6 +28,12 @@ This document is designed for AI-assisted development. Each phase contains:
   - `src/lib/firebase-admin.ts` - Admin SDK (adminDb, adminAuth) - **ONLY use in API routes** (`src/app/api/`)
 - Use `sonner` toast for user feedback (firebase-utils already includes this)
 - Add proper error handling with try-catch blocks
+- **Search functionality (IMPORTANT):**
+  - `src/services/search.service.ts` - Core search logic with nested field support, weighting, transformers
+  - `src/hooks/useOptimizedSearch.ts` - React hook for optimized search with debouncing and performance features
+  - `src/config/search-configs.ts` - Centralized search configurations for all entities
+  - **Always use optimized search** - For any page with search/filter functionality, use `useOptimizedSearch` hook with appropriate config from `search-configs.ts`
+  - Features: debouncing (300ms), exact match, case sensitivity, result limiting, search highlighting, requestIdleCallback for non-blocking search
 
 ---
 
@@ -98,6 +104,224 @@ Are you in an API route (src/app/api/)?
     ├─ YES → Use firebase-utils.ts (createDocument, updateDocument, etc.)
     └─ NO → Use firebase.ts (db) for complex queries, real-time listeners, etc.
 ```
+
+---
+
+## Search Infrastructure & Usage Guide
+
+### Optimized Search System
+
+Newton uses a centralized, optimized search infrastructure for consistent, performant search across all entities.
+
+#### Three Search Files - How They Work Together
+
+**1. `src/services/search.service.ts` - Core Search Logic**
+
+- Performs weighted field matching
+- Supports nested field access (e.g., "user.firstName")
+- Custom field transformers (e.g., convert numbers to searchable strings)
+- Exact match, case sensitivity options
+- Result limiting and ranking
+
+**2. `src/hooks/useOptimizedSearch.ts` - React Hook**
+
+Features:
+- 300ms debouncing to prevent excessive re-renders
+- requestIdleCallback for non-blocking search
+- Loading states (isSearching)
+- Memoized results
+- Auto-cleanup on unmount
+
+**3. `src/config/search-configs.ts` - Centralized Configurations**
+
+Contains search configs for all entities:
+- `users`, `roles`, `companies`, `clients`, `assets`, `assetTypes`
+- `orders`, `preBookings`, `products`, `sites`
+- `weighingRecords`, `weighbridges`, `securityChecks`
+- `transporters`, `documentTypes`
+
+Each config specifies:
+- **fields**: Array of `{ path, weight, transformer? }` objects
+- **debounceMs**: Debounce delay (typically 200-300ms)
+- **minSearchLength**: Minimum characters before search activates
+- **maxResults**: Maximum results to return
+
+#### How to Use Optimized Search
+
+**Step 1:** Import the hook and config:
+
+```typescript
+import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
+import { SEARCH_CONFIGS } from "@/config/search-configs"
+```
+
+**Step 2:** Use the hook in your component:
+
+```typescript
+const { searchTerm, setSearchTerm, filteredItems, isSearching } =
+  useOptimizedSearch(dataArray, SEARCH_CONFIGS.entityName)
+```
+
+**Step 3:** Render search UI:
+
+```typescript
+<Input
+  placeholder="Search..."
+  value={searchTerm}
+  onChange={e => setSearchTerm(e.target.value)}
+/>
+
+{isSearching ? (
+  <div>Searching...</div>
+) : (
+  <div>
+    {filteredItems.map(item => (
+      <div key={item.id}>{/* Render item */}</div>
+    ))}
+  </div>
+)}
+```
+
+#### Example: Companies Page with Optimized Search
+
+```typescript
+"use client"
+
+import { useState, useEffect } from "react"
+import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
+import { SEARCH_CONFIGS } from "@/config/search-configs"
+import type { Company } from "@/types"
+
+export default function CompaniesPage() {
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [filterType, setFilterType] = useState<string>("all")
+
+  // Optimized search hook
+  const { searchTerm, setSearchTerm, filteredItems: searchedCompanies, isSearching } =
+    useOptimizedSearch(companies, SEARCH_CONFIGS.companies)
+
+  // Additional filters (type filter)
+  const filteredCompanies = searchedCompanies.filter(company =>
+    filterType === "all" || company.companyType === filterType
+  )
+
+  return (
+    <div>
+      {/* Search input */}
+      <Input
+        placeholder="Search by name or registration..."
+        value={searchTerm}
+        onChange={e => setSearchTerm(e.target.value)}
+      />
+
+      {/* Type filter */}
+      <select value={filterType} onChange={e => setFilterType(e.target.value)}>
+        <option value="all">All Types</option>
+        <option value="mine">Mine</option>
+        <option value="transporter">Transporter</option>
+      </select>
+
+      {/* Results with loading state */}
+      {isSearching ? (
+        <div>Loading...</div>
+      ) : (
+        <div>
+          {filteredCompanies.map(company => (
+            <div key={company.id}>{company.name}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+#### When to Use Optimized Search
+
+✅ **Always use for:**
+- Any page with search functionality
+- Lists with 10+ items
+- User-facing search interfaces
+- Data tables with filtering
+
+❌ **Don't use for:**
+- Static data (< 5 items)
+- One-time filter operations
+- Server-side only operations
+
+#### Search Config Structure
+
+Example from `search-configs.ts`:
+
+```typescript
+export const SEARCH_CONFIGS = {
+  companies: {
+    fields: [
+      { path: "name", weight: 2 },                    // High priority
+      { path: "registrationNumber", weight: 2 },      // High priority
+      { path: "companyType", weight: 1 },             // Lower priority
+      { path: "physicalAddress", weight: 1 },
+      { path: "vatNumber", weight: 1 },
+    ],
+    debounceMs: 300,           // Wait 300ms after typing stops
+    minSearchLength: 2,        // Require 2+ characters
+    maxResults: 500,           // Return max 500 results
+  } as SearchConfig,
+
+  assets: {
+    fields: [
+      { path: "registrationNumber", weight: 2 },
+      { path: "licenseNumber", weight: 2 },
+      { path: "qrCode", weight: 1 },
+      { path: "fleetNumber", weight: 1 },
+    ],
+    debounceMs: 300,
+    minSearchLength: 1,
+    maxResults: 1000,
+  } as SearchConfig,
+
+  orders: {
+    fields: [
+      { path: "orderNumber", weight: 3 },             // Highest priority
+      { path: "orderType", weight: 1 },
+      { path: "status", weight: 1 },
+      {
+        path: "totalWeight",
+        weight: 1,
+        transformer: (weight: number) => weight ? `${weight} tons` : "",
+      },
+    ],
+    debounceMs: 300,
+    minSearchLength: 1,
+    maxResults: 500,
+  } as SearchConfig,
+}
+```
+
+#### Custom Transformers
+
+For complex fields that need special handling:
+
+```typescript
+{
+  path: "fields",
+  weight: 1,
+  transformer: (fields: Array<{ label: string; fieldType: string }>) => {
+    if (!Array.isArray(fields)) return ""
+    return fields.map(f => `${f.label} ${f.fieldType}`).join(" ")
+  }
+}
+```
+
+This transforms array/object fields into searchable strings.
+
+#### Performance Benefits
+
+- **Debouncing:** Prevents excessive re-renders during typing
+- **requestIdleCallback:** Non-blocking search (doesn't freeze UI)
+- **Weighted matching:** Most relevant results appear first
+- **Memoization:** Cached results until data/search term changes
+- **Configurable limits:** Prevent rendering thousands of results
 
 ### Examples by Use Case
 
@@ -863,6 +1087,8 @@ import type { Asset } from "@/types"
 import Link from "next/link"
 import { toast } from "sonner"
 import { format, parseISO } from "date-fns"
+import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
+import { SEARCH_CONFIGS } from "@/config/search-configs"
 
 export default function AssetsPage() {
   const { user } = useAuth()
@@ -870,8 +1096,11 @@ export default function AssetsPage() {
   const canAdd = usePermission(PERMISSIONS.ASSETS_ADD)
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<string>("all")
+
+  // Optimized search hook
+  const { searchTerm, setSearchTerm, filteredItems: searchedAssets, isSearching } =
+    useOptimizedSearch(assets, SEARCH_CONFIGS.assets)
 
   useEffect(() => {
     fetchAssets()
@@ -892,12 +1121,10 @@ export default function AssetsPage() {
     }
   }
 
-  const filteredAssets = assets.filter(asset => {
-    const matchesSearch = asset.registrationNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || asset.licenseNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || asset.fleetNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || asset.qrCode.toLowerCase().includes(searchTerm.toLowerCase())
-
+  // Additional filters (type filter)
+  const filteredAssets = searchedAssets.filter(asset => {
     const matchesType = filterType === "all" || asset.assetType === filterType
-
-    return matchesSearch && matchesType
+    return matchesType
   })
 
   const getAssetIcon = (type: string) => {
@@ -979,7 +1206,7 @@ export default function AssetsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {loading || isSearching ? (
             <div className="text-center py-8">Loading...</div>
           ) : filteredAssets.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No assets found</div>
