@@ -55,6 +55,38 @@ const DEFAULT_COMPANY = {
   },
   transporterConfig: {},
   logisticsCoordinatorConfig: {},
+  // Order Configuration (required for Order Management - Phase 3)
+  orderConfig: {
+    orderNumberMode: "autoOnly",
+    orderNumberPrefix: "DEV-",
+    defaultDailyTruckLimit: 10,
+    defaultDailyWeightLimit: 100,
+    defaultMonthlyLimit: 2000,
+    defaultTripLimit: 2,
+    defaultWeightPerTruck: 30,
+    preBookingMode: "compulsory",
+    advanceBookingHours: 24,
+    defaultSealRequired: true,
+    defaultSealQuantity: 2,
+  },
+  // System Settings (UI customization)
+  systemSettings: {
+    fleetNumberEnabled: true,
+    fleetNumberLabel: "Fleet No.",
+    transporterGroupEnabled: true,
+    transporterGroupLabel: "Group",
+    groupOptions: ["North", "South", "East", "West"],
+  },
+  // Security Alerts Configuration
+  securityAlerts: {
+    primaryContactId: "u_dev",
+    secondaryContactIds: [] as string[],
+    escalationMinutes: 15,
+    qrMismatchContacts: [] as string[],
+    documentFailureContacts: [] as string[],
+    sealDiscrepancyContacts: [] as string[],
+    requiredResponseMinutes: 5,
+  },
   createdAt: Date.now(),
   updatedAt: Date.now(),
   dbCreatedAt: FieldValue.serverTimestamp(),
@@ -69,6 +101,8 @@ const DEFAULT_USER_PROFILE = {
   email: DEFAULT_USER_EMAIL,
   firstName: "Dev",
   lastName: "User",
+  displayName: "Dev User", // Required per updated User type
+  phoneNumber: "+27821234567", // Required per updated User type
   roleId: "r_newton_admin",
   companyId: DEFAULT_COMPANY_ID,
   isGlobal: true,

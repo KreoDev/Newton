@@ -1,12 +1,51 @@
+import { Timestamp } from "firebase/firestore"
+
 export interface Timestamped {
   createdAt: number
   updatedAt: number
-  dbCreatedAt?: unknown
-  dbUpdatedAt?: unknown
+  dbCreatedAt?: Timestamp
+  dbUpdatedAt?: Timestamp
 }
 
 export interface CompanyScoped {
   companyId: string
+}
+
+// Strongly-typed notification preferences per data-model.md
+export interface NotificationPreferences {
+  // Asset Notifications
+  "asset.added": boolean
+  "asset.inactive": boolean
+  "asset.edited": boolean
+  "asset.deleted": boolean
+  // Order Notifications
+  "order.created": boolean
+  "order.allocated": boolean
+  "order.cancelled": boolean
+  "order.completed": boolean
+  "order.expiring": boolean
+  // Weighbridge Notifications
+  "weighbridge.overload": boolean
+  "weighbridge.underweight": boolean
+  "weighbridge.violations": boolean
+  "weighbridge.manualOverride": boolean
+  // Pre-Booking & Scheduling Notifications
+  "preBooking.created": boolean
+  "preBooking.lateArrival": boolean
+  // Security & Compliance Notifications
+  "security.invalidLicense": boolean
+  "security.unbookedArrival": boolean
+  "security.noActiveOrder": boolean
+  "security.sealMismatch": boolean
+  "security.incorrectSealsNo": boolean
+  "security.unregisteredAsset": boolean
+  "security.inactiveEntity": boolean
+  "security.incompleteTruck": boolean
+  // Asset & Driver Alerts
+  "driver.licenseExpiring7": boolean
+  "driver.licenseExpiring30": boolean
+  // System Notifications
+  "system.calibrationDue": boolean
 }
 
 export interface User extends Timestamped, CompanyScoped {
@@ -14,13 +53,15 @@ export interface User extends Timestamped, CompanyScoped {
   email: string
   firstName: string
   lastName: string
+  displayName: string // Required per data-model.md:24
+  phoneNumber: string // Required per data-model.md:27
   roleId: string
-  phoneNumber?: string
-  displayName?: string
-  avatar?: string
+  permissionOverrides?: Record<string, boolean> // Per-user permission adjustments (data-model.md:29)
+  profilePicture?: string // Optional profile image URL (data-model.md:30)
+  preferredEmail?: string // Alternative email for notifications (data-model.md:32)
+  notificationPreferences: NotificationPreferences
   isActive: boolean
   isGlobal: boolean
-  notificationPreferences: Record<string, boolean>
 }
 
 export interface Role extends Timestamped, CompanyScoped {
@@ -29,6 +70,58 @@ export interface Role extends Timestamped, CompanyScoped {
   permissionKeys: string[]
   description?: string
   isActive: boolean
+}
+
+// Company configuration interfaces per data-model.md
+export interface MineConfig {
+  sites?: string[]
+  defaultOperatingHours?: Record<string, { open: string; close: string }>
+}
+
+export interface TransporterConfig {
+  fleetSize?: number
+  assetCategories?: string[]
+  complianceDocuments?: string[]
+  logisticsPartnerIds?: string[]
+}
+
+export interface LogisticsCoordinatorConfig {
+  managedMineIds?: string[]
+  preferredProductIds?: string[]
+  dispatchRegions?: string[]
+  escalationContacts?: string[]
+}
+
+export interface OrderConfig {
+  orderNumberMode: "autoOnly" | "manualAllowed"
+  orderNumberPrefix?: string
+  defaultDailyTruckLimit: number
+  defaultDailyWeightLimit: number
+  defaultMonthlyLimit?: number
+  defaultTripLimit: number
+  defaultWeightPerTruck: number
+  preBookingMode: "compulsory" | "optional"
+  advanceBookingHours: number
+  defaultSealRequired: boolean
+  defaultSealQuantity: number
+}
+
+export interface SystemSettings {
+  fleetNumberEnabled: boolean
+  fleetNumberLabel: string
+  transporterGroupEnabled: boolean
+  transporterGroupLabel: string
+  groupOptions: string[]
+}
+
+export interface SecurityAlerts {
+  primaryContactId: string
+  secondaryContactIds: string[]
+  escalationMinutes: number
+  qrMismatchContacts: string[]
+  documentFailureContacts: string[]
+  sealDiscrepancyContacts: string[]
+  requiredResponseMinutes: number
 }
 
 export interface Company extends Timestamped {
@@ -40,9 +133,14 @@ export interface Company extends Timestamped {
   physicalAddress: string
   mainContactId: string
   secondaryContactIds: string[]
-  mineConfig?: Record<string, unknown>
-  transporterConfig?: Record<string, unknown>
-  logisticsCoordinatorConfig?: Record<string, unknown>
+  // Type-specific configurations (data-model.md:105-110)
+  mineConfig?: MineConfig
+  transporterConfig?: TransporterConfig
+  logisticsCoordinatorConfig?: LogisticsCoordinatorConfig
+  // Company-wide configurations (data-model.md:108-110)
+  orderConfig?: OrderConfig
+  systemSettings?: SystemSettings
+  securityAlerts?: SecurityAlerts
   isActive: boolean
 }
 

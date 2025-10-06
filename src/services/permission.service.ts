@@ -16,8 +16,10 @@ export class PermissionService {
       return true
     }
 
-    // 2. Check permission overrides (if implemented on user type in future)
-    // Skip for now as User type doesn't have permissionOverrides yet
+    // 2. Check permission overrides (per-user permission adjustments)
+    if (user.permissionOverrides && permission in user.permissionOverrides) {
+      return user.permissionOverrides[permission]
+    }
 
     // 3. Check role permissions
     if (!role) {

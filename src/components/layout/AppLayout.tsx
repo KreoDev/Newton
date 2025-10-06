@@ -180,7 +180,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-12 w-12 rounded-full p-0">
-                    <Image src={user?.avatar || "/blank-avatar.jpg"} alt="User Avatar" width={48} height={48} className="rounded-full object-cover" />
+                    <Image src={user?.profilePicture || "/blank-avatar.jpg"} alt="User Avatar" width={48} height={48} className="rounded-full object-cover" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -281,7 +281,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
-                  <Image src={user?.avatar || "/blank-avatar.jpg"} alt="User Avatar" width={40} height={40} className="rounded-full object-cover" />
+                  <Image src={user?.profilePicture || "/blank-avatar.jpg"} alt="User Avatar" width={40} height={40} className="rounded-full object-cover" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>

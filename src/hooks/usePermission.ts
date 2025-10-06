@@ -33,8 +33,13 @@ export function usePermission(permission: PermissionKey): boolean {
           return
         }
 
-        // 2. Check permission overrides (if implemented on user)
-        // For now, we'll skip this as it's not in the current User type
+        // 2. Check permission overrides (per-user permission adjustments)
+        if (user.permissionOverrides && permission in user.permissionOverrides) {
+          const override = user.permissionOverrides[permission]
+          setHasPermission(override)
+          setLoading(false)
+          return
+        }
 
         // 3. Fetch role and check permission keys
         let role: Role | null = null
