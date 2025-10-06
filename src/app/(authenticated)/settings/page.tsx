@@ -83,12 +83,13 @@ export default function SettingsPage() {
     toast.success(`Layout changed to ${newLayout} navigation`)
   }
 
-  const handleAvatarUpdated = async (avatarBase64: string) => {
-    // Update local profile state
-    setProfile(prev => ({ ...prev, avatar: avatarBase64 }))
-    // Refresh user data in context to update navbar avatar
-    await refreshUser()
-  }
+  // Handler for future avatar upload functionality
+  // const handleAvatarUpdated = async (avatarBase64: string) => {
+  //   // Update local profile state
+  //   setProfile(prev => ({ ...prev, avatar: avatarBase64 }))
+  //   // Refresh user data in context to update navbar avatar
+  //   await refreshUser()
+  // }
 
   const getThemeIcon = (themeOption: string) => {
     switch (themeOption) {

@@ -1,8 +1,8 @@
 import { db } from "./firebase"
-import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore"
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot } from "firebase/firestore"
 import { toast } from "sonner"
+import { Signal } from "@preact/signals-react"
 
-// Generic CRUD operations with toast notifications
 export const createDocument = async (collectionName: string, data: Record<string, unknown>, successMessage?: string) => {
   try {
     const localStorageCompany = typeof window !== "undefined" ? localStorage.getItem("newton-layout-company") : null
@@ -69,46 +69,62 @@ export const deleteDocument = async (collectionName: string, id: string, success
   }
 }
 
-// Specific entity operations
-export const userOperations = {
-  delete: (id: string) => deleteDocument("users", id, "User deleted successfully"),
-  update: (id: string, data: Record<string, unknown>) => updateDocument("users", id, data, "User updated successfully"),
+export function createCollectionListener<T>(
+  collectionName: string,
+  signal: Signal<T[]>,
+  options?: {
+    companyScoped?: boolean
+    filter?: (item: T) => boolean
+    onFirstLoad?: () => void
+  }
+) {
+  return (companyId?: string) => {
+    const constraints: any[] = []
+    let isFirstLoad = true
+
+    if (options?.companyScoped && companyId) {
+      constraints.push(where("companyId", "==", companyId))
+    }
+
+    const q = constraints.length > 0 ? query(collection(db, collectionName), ...constraints) : collection(db, collectionName)
+
+    return onSnapshot(
+      q,
+      snapshot => {
+        let data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as T[]
+
+        if (options?.filter) {
+          data = data.filter(options.filter)
+        }
+
+        signal.value = data
+
+        if (isFirstLoad && options?.onFirstLoad) {
+          options.onFirstLoad()
+          isFirstLoad = false
+        }
+      },
+      error => {
+        console.error(`Error loading ${collectionName}:`, error)
+        signal.value = []
+        if (isFirstLoad && options?.onFirstLoad) {
+          options.onFirstLoad()
+          isFirstLoad = false
+        }
+      }
+    )
+  }
 }
 
-// Convenience function for profile updates
-export const updateUserProfile = (id: string, data: Record<string, unknown>) => updateDocument("users", id, data, "Profile updated successfully")
-
-export const assetOperations = {
-  create: (data: Record<string, unknown>) => createDocument("assets", data, "Asset created successfully"),
-  delete: (id: string) => deleteDocument("assets", id, "Asset deleted successfully"),
-  update: (id: string, data: Record<string, unknown>) => updateDocument("assets", id, data, "Asset updated successfully"),
+function createEntityOperations(collectionName: string, entityLabel: string, defaultData?: Record<string, unknown>) {
+  return {
+    create: (data: Record<string, unknown>) => createDocument(collectionName, { ...defaultData, ...data }, `${entityLabel} created successfully`),
+    update: (id: string, data: Record<string, unknown>) => updateDocument(collectionName, id, data, `${entityLabel} updated successfully`),
+    delete: (id: string) => deleteDocument(collectionName, id, `${entityLabel} deleted successfully`),
+  }
 }
 
-export const transporterOperations = {
-  delete: (id: string) => deleteDocument("transporters", id, "Transporter deleted successfully"),
-  update: (id: string, data: Record<string, unknown>) => updateDocument("transporters", id, data, "Transporter updated successfully"),
-  create: (data: Record<string, unknown>) => createDocument("transporters", data, "Transporter created successfully"),
-}
-
-export const documentTypeOperations = {
-  delete: (id: string) => deleteDocument("document_types", id, "Document type deleted successfully"),
-  update: (id: string, data: Record<string, unknown>) => updateDocument("document_types", id, data, "Document type updated successfully"),
-  create: (data: Record<string, unknown>) => createDocument("document_types", data, "Document type created successfully"),
-}
-
-export const assetTypeOperations = {
-  delete: (id: string) => deleteDocument("asset_types", id, "Asset type deleted successfully"),
-  update: (id: string, data: Record<string, unknown>) => updateDocument("asset_types", id, data, "Asset type updated successfully"),
-  create: (data: Record<string, unknown>) => createDocument("asset_types", { ...data, status: "active" }, "Asset type created successfully"),
-}
-
-export const roleOperations = {
-  delete: (id: string) => deleteDocument("roles", id, "Role deleted successfully"),
-  update: (id: string, data: Record<string, unknown>) => updateDocument("roles", id, data, "Role updated successfully"),
-  create: (data: Record<string, unknown>) => createDocument("roles", data, "Role created successfully"),
-}
-
-export const documentOperations = {
-  delete: (id: string) => deleteDocument("documents", id, "Document deleted successfully"),
-  update: (id: string, data: Record<string, unknown>) => updateDocument("documents", id, data, "Document updated successfully"),
-}
+export const userOperations = createEntityOperations("users", "User")

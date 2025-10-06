@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useLayout } from "@/contexts/LayoutContext"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { useCompany } from "@/contexts/CompanyContext"
 import { useSignals } from "@preact/signals-react/runtime"
 import React from "react"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 function AppBreadcrumbs() {
   const pathname = usePathname()
@@ -103,10 +104,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { layout } = useLayout()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, logout } = useAuth()
+  const { user, logout, loading } = useAuth()
   const { company, companies, switchCompany } = useCompany()
   const activeCompanyName = company?.name || user?.companyId || "Select company"
   const canSwitchCompanies = Boolean(user?.isGlobal && companies.length > 0)
+
+  const switchableCompanies = useMemo(
+    () => companies.filter(c => c.id !== user?.companyId),
+    [companies, user?.companyId]
+  )
+
+  if (loading) {
+    return <LoadingSpinner fullScreen message="Loading..." />
+  }
 
   const handleLogout = async () => {
     try {
@@ -116,7 +126,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
     }
   }
 
-  // Sidebar Layout
   if (layout === "sidebar") {
     return (
       <div className="flex h-screen bg-transparent">
@@ -157,10 +166,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="mr-4 ml-4">
                     {activeCompanyName}
+                    <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  {companies.map(c => (
+                  {switchableCompanies.map(c => (
                     <DropdownMenuItem key={c.id} onClick={() => switchCompany(c.id)}>
                       {c.name}
                     </DropdownMenuItem>
@@ -223,7 +233,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
     )
   }
 
-  // Top Navigation Layout
   return (
     <div className="flex flex-col h-screen bg-transparent">
       {/* Top Navigation Header */}
@@ -257,7 +266,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  {companies.map(c => (
+                  {switchableCompanies.map(c => (
                     <DropdownMenuItem key={c.id} onClick={() => switchCompany(c.id)}>
                       {c.name}
                     </DropdownMenuItem>

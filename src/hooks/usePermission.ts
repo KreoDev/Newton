@@ -10,7 +10,7 @@ import type { PermissionKey } from "@/lib/permissions"
 // Cache for roles to avoid repeated Firestore queries
 const roleCache = new Map<string, Role>()
 
-export function usePermission(permission: PermissionKey): boolean {
+export function usePermission(permission: PermissionKey): { hasPermission: boolean; loading: boolean } {
   const { user } = useAuth()
   const [hasPermission, setHasPermission] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -84,7 +84,7 @@ export function usePermission(permission: PermissionKey): boolean {
     checkPermission()
   }, [user, permission])
 
-  return hasPermission
+  return { hasPermission, loading }
 }
 
 // Clear role cache when needed (e.g., after role updates)

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Lock, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
+import { InlineSpinner } from "@/components/ui/loading-spinner"
 
 interface ChangePasswordModalProps {
   isOpen: boolean
@@ -252,7 +253,14 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Updating..." : "Update Password"}
+              {isLoading ? (
+                <>
+                  <InlineSpinner className="mr-2" />
+                  Updating...
+                </>
+              ) : (
+                "Update Password"
+              )}
             </Button>
           </div>
         </form>

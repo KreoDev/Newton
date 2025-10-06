@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { data } from "@/services/data.service"
+import { InlineSpinner } from "@/components/ui/loading-spinner"
 
 interface AddUserModalProps {
   isOpen: boolean
@@ -26,6 +27,7 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
     roleId: "",
   })
   const [isEmailValid, setIsEmailValid] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (formData.email === "") {
@@ -54,6 +56,7 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
     }
 
     try {
+      setIsSubmitting(true)
       const response = await fetch("/api/users/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,6 +80,8 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
     } catch (error) {
       console.error("Error adding user:", error)
       toast.error("Failed to add user")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -121,11 +126,18 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleAddUser} disabled={!isEmailValid}>
-            Add User
+          <Button onClick={handleAddUser} disabled={!isEmailValid || isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <InlineSpinner className="mr-2" />
+                Adding...
+              </>
+            ) : (
+              "Add User"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

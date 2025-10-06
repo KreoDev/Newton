@@ -120,7 +120,7 @@ const snapshot = await getDocs(q)
 
 #### 2. `src/lib/firebase-utils.ts` - CRUD Helpers (USE THESE FIRST!)
 **Use in:** Client components, services for simple CRUD operations
-**Exports:** `createDocument`, `updateDocument`, `deleteDocument`, pre-configured operations
+**Exports:** `createDocument`, `updateDocument`, `deleteDocument`, `createCollectionListener`, `userOperations`
 **Purpose:** Simplified CRUD with automatic timestamps, toast notifications, and error handling
 
 ```typescript
@@ -139,6 +139,22 @@ await updateDocument("companies", id, updates, "Company updated")
 - ✅ Error handling included
 - ✅ Consistent data structure across app
 - ✅ Less code to write
+
+**Generic Collection Listener (for real-time data):**
+```typescript
+import { createCollectionListener } from "@/lib/firebase-utils"
+import { signal } from "@preact/signals-react"
+
+const mySignal = signal([])
+
+const listener = createCollectionListener("companies", mySignal, {
+  companyScoped: false,
+  onFirstLoad: () => console.log("Data loaded")
+})
+
+const unsubscribe = listener() // Start listening
+// Later: unsubscribe() to cleanup
+```
 
 #### 3. `src/lib/firebase-admin.ts` - Admin SDK (Server-Side Only)
 **Use in:** API routes (`src/app/api/**/*.ts`) ONLY
@@ -159,10 +175,19 @@ await adminAuth.createUser({ email, password })
 ```
 Are you in an API route (src/app/api/)?
 ├─ YES → Use firebase-admin.ts (adminDb, adminAuth)
-└─ NO → Are you doing simple CRUD (create/update/delete single document)?
-    ├─ YES → Use firebase-utils.ts (createDocument, updateDocument, etc.)
-    └─ NO → Use firebase.ts (db) for complex queries, real-time listeners, etc.
+└─ NO → Do you need companies, users, or roles data?
+    ├─ YES → Use data.service.ts (globalData.companies.value, etc.)
+    └─ NO → Are you doing simple CRUD (create/update/delete)?
+        ├─ YES → Use firebase-utils.ts (createDocument, updateDocument, etc.)
+        └─ NO → Use firebase.ts (db) for complex queries
 ```
+
+**Important Notes:**
+- **ALWAYS use `data.service.ts`** for companies, users, and roles - don't create duplicate queries
+- **Companies list**: `globalData.companies.value` (includes inactive for admin)
+- **Users list**: `globalData.users.value` (company-scoped, real-time)
+- **Roles list**: `globalData.roles.value` (company-scoped, real-time)
+- Remember to call `useSignals()` in components that access these signals
 
 ### Type Definitions (`src/types/index.ts`)
 
@@ -182,6 +207,7 @@ Provides:
 - `loading: boolean` - Auth state loading
 - `signIn(email, password)` - Login function
 - `signOut()` - Logout function
+- `refreshUser()` - Refresh user data from Firestore
 
 Usage:
 ```typescript
@@ -191,10 +217,61 @@ const { user, loading } = useAuth()
 ```
 
 #### `CompanyContext.tsx`
-Provides company-specific data and state management.
+Provides company-specific data and state management:
+- `company: Company | null` - Current user's active company
+- `companies: Company[]` - List of active companies (filtered from global data)
+- `switchCompany(companyId)` - Switch user's active company
+
+**Important:** Uses centralized `data.service.ts` for real-time data synchronization.
+
+Usage:
+```typescript
+import { useCompany } from "@/contexts/CompanyContext"
+
+const { company, companies, switchCompany } = useCompany()
+```
 
 #### `LayoutContext.tsx`
 Manages UI layout state (sidebar, modals, etc).
+
+### Centralized Data Service (NEW - Phase 1)
+
+#### `data.service.ts`
+Singleton service that manages all real-time Firebase data using Preact Signals:
+
+```typescript
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
+
+export default function MyComponent() {
+  useSignals() // Required for reactivity
+
+  const companies = globalData.companies.value  // All companies (including inactive)
+  const users = globalData.users.value          // Company-scoped users
+  const roles = globalData.roles.value          // Company-scoped roles
+  const loading = globalData.loading.value      // Global loading state
+
+  // Component automatically re-renders when signals change
+}
+```
+
+**Key Features:**
+- **Single Source of Truth**: All components access the same reactive data
+- **Real-time Sync**: Firebase `onSnapshot` listeners keep data updated
+- **Smart Loading**: Tracks when all collections load (no arbitrary timeouts)
+- **Company Scoping**: Roles and users automatically filtered by active company
+- **Automatic Cleanup**: Unsubscribes listeners on company switch or unmount
+
+**Architecture:**
+- Companies: Loads ALL (including inactive) for admin pages
+- Roles: Company-scoped, filtered by `companyId`
+- Users: Company-scoped, filtered by `companyId`
+- Loading: Set to `false` only when all 3 collections receive first snapshot
+
+**When to Use:**
+- ✅ Use for: Companies list, users list, roles list in any component
+- ✅ Reactive: Data updates automatically across all components
+- ❌ Don't use for: Entity-specific queries (use services instead)
 
 ---
 
@@ -208,9 +285,11 @@ Manages UI layout state (sidebar, modals, etc).
 4. **Use existing services pattern from `src/services/`**
 5. **Apply glass morphism design from `design.json`**
 6. **Use existing auth context from `src/contexts/AuthContext.tsx`**
-7. **Use `sonner` toast for user feedback** (firebase-utils already includes this)
-8. **Add proper error handling with try-catch blocks**
-9. **This project uses Bun** - Use `bun` instead of `npm`, and `bunx` instead of `npx`
+7. **Use centralized `data.service.ts` for companies, users, and roles** (don't duplicate queries)
+8. **Use `sonner` toast for user feedback** (firebase-utils already includes this)
+9. **Add proper error handling with try-catch blocks**
+10. **This project uses Bun** - Use `bun` instead of `npm`, and `bunx` instead of `npx`
+11. **Use Preact Signals for reactive state** - Call `useSignals()` in components that access signals
 
 ### Client vs Server Components
 
@@ -434,10 +513,10 @@ export function MyForm() {
 
 ## Current Implementation Status
 
-### ✅ Completed
+### ✅ Completed (Phase 1)
 - Authentication system with Firebase Auth
 - User context and session management
-- Basic layout and navigation
+- Basic layout and navigation (sidebar & top nav)
 - UI component library (Radix UI + Tailwind)
 - Type definitions for all entities
 - Firebase client and admin SDK setup
@@ -445,12 +524,12 @@ export function MyForm() {
 - Seed script infrastructure
 - Toast notification system
 - Theme system (light/dark mode)
-
-### 🚧 In Progress (Phase 1)
-- Permission system core
-- Company management pages
-- User management enhancement
-- Role-based access control
+- **Centralized Data Service** with Preact Signals for reactive state management
+- **Real-time Firebase listeners** with smart loading state tracking
+- **Company management** with full CRUD operations
+- **Company switcher** with dual-role support (Transporter/Logistics Coordinator)
+- **User management** with role assignment
+- **Permission system foundation** (ready for implementation)
 
 ### 📋 Planned (Phase 2+)
 - Asset management module
@@ -659,11 +738,27 @@ When working on a new task:
 1. **Read** the relevant section in `docs/dev.md`
 2. **Check** `docs/data-model.md` for data structure requirements
 3. **Review** existing similar code for patterns
-4. **Use** firebase-utils for simple CRUD operations
-5. **Follow** the service layer pattern
-6. **Add** proper TypeScript types
-7. **Include** error handling and loading states
-8. **Test** manually with the provided checklists
-9. **Verify** Firestore data structure in Firebase Console
+4. **Use** `data.service.ts` for companies, users, and roles data (don't create new queries)
+5. **Use** firebase-utils for simple CRUD operations
+6. **Follow** the service layer pattern
+7. **Add** proper TypeScript types
+8. **Include** error handling and loading states
+9. **Use** `useSignals()` when accessing Preact Signals
+10. **Test** manually with the provided checklists
+11. **Verify** Firestore data structure in Firebase Console
 
-**Remember:** Prefer editing existing files over creating new ones. Use firebase-utils first, fall back to firebase.ts for complex queries, and only use firebase-admin.ts in API routes.
+**Remember:**
+- **Prefer editing existing files** over creating new ones
+- **Always use `data.service.ts`** for companies, users, and roles - these are centrally managed with real-time listeners
+- Use firebase-utils for CRUD operations (automatic timestamps + toasts)
+- Fall back to firebase.ts for complex queries only
+- Only use firebase-admin.ts in API routes
+
+**New Component Checklist:**
+- [ ] Add `"use client"` directive if using hooks/state
+- [ ] Import `useSignals()` if accessing `globalData` signals
+- [ ] Use existing UI components from `@/components/ui`
+- [ ] Follow glass morphism design patterns
+- [ ] Add proper loading states with `LoadingSpinner`
+- [ ] Handle errors with toast notifications
+- [ ] Test on mobile viewport

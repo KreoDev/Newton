@@ -36,10 +36,10 @@ const DEFAULT_COMPANY = {
   id: DEFAULT_COMPANY_ID,
   name: "Dev Company",
   companyType: "mine",
-  registrationNumber: "2025/DEV/001",
+  registrationNumber: "2025/DEV/001", // Optional field
   vatNumber: "0000000000",
   physicalAddress: "1 Dev Street, Sandbox City",
-  mainContactId: "u_dev",
+  mainContactId: "", // Will be set after user is created
   secondaryContactIds: [] as string[],
   mineConfig: {
     sites: ["site_dev"],
@@ -79,7 +79,7 @@ const DEFAULT_COMPANY = {
   },
   // Security Alerts Configuration
   securityAlerts: {
-    primaryContactId: "u_dev",
+    primaryContactId: "", // Will be set after user is created
     secondaryContactIds: [] as string[],
     escalationMinutes: 15,
     qrMismatchContacts: [] as string[],
@@ -263,6 +263,12 @@ const DEFAULT_ROLES = [
     permissionKeys: ["security.in", "security.out", "reports.daily"],
     description: "Security checkpoint operations",
   },
+  {
+    id: "r_contact",
+    name: "Contact",
+    permissionKeys: [],
+    description: "Contact person (cannot log in to the system)",
+  },
 ]
 
 async function clearCollection(collectionName: string, sendProgress: (data: ProgressData) => void) {
@@ -325,7 +331,7 @@ async function seedCompany(sendProgress: (data: ProgressData) => void) {
   return 1
 }
 
-async function seedDefaultUser(sendProgress: (data: ProgressData) => void) {
+async function seedDefaultUser(sendProgress: (data: ProgressData) => void): Promise<string> {
   const createdUser = await adminAuth.createUser({
     email: DEFAULT_USER_EMAIL,
     password: DEFAULT_USER_PASSWORD,
@@ -350,7 +356,100 @@ async function seedDefaultUser(sendProgress: (data: ProgressData) => void) {
     count: 1,
     completed: true,
   })
-  return 1
+  return createdUser.uid
+}
+
+const CONTACT_USERS = [
+  { firstName: "John", lastName: "Smith", email: "john.smith@company.co.za", phone: "+27821234001" },
+  { firstName: "Sarah", lastName: "Johnson", email: "sarah.johnson@company.co.za", phone: "+27821234002" },
+  { firstName: "Michael", lastName: "Williams", email: "michael.williams@company.co.za", phone: "+27821234003" },
+  { firstName: "Emma", lastName: "Brown", email: "emma.brown@company.co.za", phone: "+27821234004" },
+  { firstName: "David", lastName: "Jones", email: "david.jones@company.co.za", phone: "+27821234005" },
+  { firstName: "Lisa", lastName: "Miller", email: "lisa.miller@company.co.za", phone: "+27821234006" },
+  { firstName: "James", lastName: "Davis", email: "james.davis@company.co.za", phone: "+27821234007" },
+  { firstName: "Jennifer", lastName: "Garcia", email: "jennifer.garcia@company.co.za", phone: "+27821234008" },
+  { firstName: "Robert", lastName: "Martinez", email: "robert.martinez@company.co.za", phone: "+27821234009" },
+  { firstName: "Patricia", lastName: "Rodriguez", email: "patricia.rodriguez@company.co.za", phone: "+27821234010" },
+]
+
+async function seedContactUsers(sendProgress: (data: ProgressData) => void): Promise<number> {
+  let count = 0
+  for (const contact of CONTACT_USERS) {
+    // Create auth user with disabled login (no password set properly)
+    const createdUser = await adminAuth.createUser({
+      email: contact.email,
+      displayName: `${contact.firstName} ${contact.lastName}`,
+      emailVerified: false,
+      disabled: true, // Prevent login
+    })
+
+    await adminDb
+      .collection("users")
+      .doc(createdUser.uid)
+      .set({
+        id: createdUser.uid,
+        authUid: createdUser.uid,
+        email: contact.email,
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        displayName: `${contact.firstName} ${contact.lastName}`,
+        phoneNumber: contact.phone,
+        roleId: "r_contact",
+        companyId: DEFAULT_COMPANY_ID,
+        isGlobal: false,
+        notificationPreferences: {
+          "asset.added": false,
+          "asset.inactive": false,
+          "asset.edited": false,
+          "asset.deleted": false,
+          "order.created": false,
+          "order.allocated": false,
+          "order.cancelled": false,
+          "order.completed": false,
+          "order.expiring": false,
+          "weighbridge.overload": false,
+          "weighbridge.underweight": false,
+          "weighbridge.violations": false,
+          "weighbridge.manualOverride": false,
+          "preBooking.created": false,
+          "preBooking.lateArrival": false,
+          "security.invalidLicense": false,
+          "security.unbookedArrival": false,
+          "security.noActiveOrder": false,
+          "security.sealMismatch": false,
+          "security.incorrectSealsNo": false,
+          "security.unregisteredAsset": false,
+          "security.inactiveEntity": false,
+          "security.incompleteTruck": false,
+          "driver.licenseExpiring7": false,
+          "driver.licenseExpiring30": false,
+          "system.calibrationDue": false,
+        },
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        dbCreatedAt: FieldValue.serverTimestamp(),
+        dbUpdatedAt: FieldValue.serverTimestamp(),
+        isActive: true,
+      })
+
+    count += 1
+    sendProgress({
+      stage: "seeding_contacts",
+      message: `Seeded contact user ${contact.firstName} ${contact.lastName}`,
+      collection: "users",
+      progress: { current: count, total: CONTACT_USERS.length },
+    })
+  }
+
+  sendProgress({
+    stage: "seeding_contacts",
+    message: `Completed seeding ${count} contact users`,
+    collection: "users",
+    count,
+    completed: true,
+  })
+
+  return count
 }
 
 async function seedTransporters(sendProgress: (data: ProgressData) => void) {
@@ -606,7 +705,25 @@ export async function GET() {
 
         results.seeded.permissions = await seedPermissions(sendProgress)
         results.seeded.companies = await seedCompany(sendProgress)
-        results.seeded.users = await seedDefaultUser(sendProgress)
+        const userId = await seedDefaultUser(sendProgress)
+        results.seeded.users = 1
+
+        // Seed contact users
+        const contactCount = await seedContactUsers(sendProgress)
+        results.seeded.users += contactCount
+
+        // Update company with the created user's ID as mainContactId and primaryContactId
+        await adminDb.collection("companies").doc(DEFAULT_COMPANY_ID).update({
+          mainContactId: userId,
+          "securityAlerts.primaryContactId": userId,
+          updatedAt: Date.now(),
+          dbUpdatedAt: FieldValue.serverTimestamp(),
+        })
+        sendProgress({
+          stage: "seeding_companies",
+          message: `Updated company with mainContactId and primaryContactId: ${userId}`,
+        })
+
         results.seeded.transporters = await seedTransporters(sendProgress)
         results.seeded.assets = await seedAssets(sendProgress)
         results.seeded.templates = await seedNotificationTemplates(sendProgress)

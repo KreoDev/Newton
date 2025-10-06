@@ -11,6 +11,17 @@ export interface CompanyScoped {
   companyId: string
 }
 
+// Summary types for data service
+export interface CompanySummary {
+  id: string
+  name: string
+}
+
+export interface RoleSummary {
+  id: string
+  name: string
+}
+
 // Strongly-typed notification preferences per data-model.md
 export interface NotificationPreferences {
   // Asset Notifications

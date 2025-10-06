@@ -157,7 +157,9 @@ export default function SeedPage() {
                   <Upload className="w-5 h-5 text-green-600 dark:text-green-400" />
                   <h3 className="font-semibold text-green-900 dark:text-green-100">Seed Data</h3>
                 </div>
-                <p className="text-sm text-green-700 dark:text-green-300">Seeds the Dev Company, global admin user, default roles, notification templates, 2 transporters, and 11 assets.</p>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  Seeds: Dev Company (Mine) with order config & escalation settings, 1 global admin user (dev@newton.co.za), default roles with permissions, notification templates, 2 transporters, and 11 assets (trucks, trailers, drivers).
+                </p>
               </div>
             </motion.div>
           )}

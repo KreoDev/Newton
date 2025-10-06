@@ -34,6 +34,12 @@ This document is designed for AI-assisted development. Each phase contains:
   - `src/config/search-configs.ts` - Centralized search configurations for all entities
   - **Always use optimized search** - For any page with search/filter functionality, use `useOptimizedSearch` hook with appropriate config from `search-configs.ts`
   - Features: debouncing (300ms), exact match, case sensitivity, result limiting, search highlighting, requestIdleCallback for non-blocking search
+- **Loading states (IMPORTANT):**
+  - `src/components/ui/loading-spinner.tsx` - Centralized loading UI components with glass morphism design
+  - Components: `LoadingSpinner` (full-screen and inline with sizes), `InlineSpinner` (for buttons), `SkeletonLoader` (content placeholders)
+  - `src/hooks/usePermission.ts` - Returns `{ hasPermission: boolean; loading: boolean }` for permission checks
+  - **Always show loading states** - Use LoadingSpinner for page loads, InlineSpinner for button actions, and permission loading states
+  - Features: Glass morphism design, multiple sizes (sm, md, lg, xl), contextual messages, full-screen overlay option
 
 ---
 
@@ -248,6 +254,202 @@ export default function CompaniesPage() {
 - Static data (< 5 items)
 - One-time filter operations
 - Server-side only operations
+
+---
+
+## Loading States Infrastructure & Usage Guide
+
+### Centralized Loading Components
+
+Newton uses a centralized loading state system for consistent user feedback across all operations.
+
+#### Loading Components (`src/components/ui/loading-spinner.tsx`)
+
+**1. `LoadingSpinner` - Primary Loading Component**
+
+Features:
+- Glass morphism design matching app UI
+- Multiple sizes: sm, md, lg, xl
+- Full-screen and inline modes
+- Optional contextual messages
+- Animated gradient glow effect
+
+Usage:
+```typescript
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+
+// Full-screen loading
+<LoadingSpinner fullScreen message="Loading data..." />
+
+// Inline loading with size
+<LoadingSpinner size="lg" message="Searching..." />
+
+// Simple inline
+<LoadingSpinner />
+```
+
+**2. `InlineSpinner` - For Buttons and Small Spaces**
+
+Usage:
+```typescript
+import { InlineSpinner } from "@/components/ui/loading-spinner"
+
+<Button disabled={isSubmitting}>
+  {isSubmitting ? (
+    <>
+      <InlineSpinner className="mr-2" />
+      Saving...
+    </>
+  ) : (
+    "Save"
+  )}
+</Button>
+```
+
+**3. `SkeletonLoader` - Content Placeholders**
+
+Usage:
+```typescript
+import { SkeletonLoader } from "@/components/ui/loading-spinner"
+
+<SkeletonLoader className="h-20 w-full" />
+```
+
+#### Permission Loading Pattern
+
+The `usePermission` hook returns loading state:
+
+```typescript
+import { usePermission } from "@/hooks/usePermission"
+import { PERMISSIONS } from "@/lib/permissions"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+
+const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_COMPANIES)
+
+if (permissionLoading) {
+  return <LoadingSpinner fullScreen message="Checking permissions..." />
+}
+
+if (!canManage) {
+  return <div>Access denied</div>
+}
+```
+
+#### Page Loading Pattern
+
+Standard pattern for data fetching pages:
+
+```typescript
+export default function MyPage() {
+  const [data, setData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const { searchTerm, setSearchTerm, filteredItems, isSearching } = useOptimizedSearch(data, SEARCH_CONFIGS.myEntity)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        const result = await MyService.getAll()
+        setData(result)
+      } catch (error) {
+        toast.error("Failed to load data")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  return (
+    <div>
+      {/* Search input */}
+      <Input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+
+      {/* Results with loading states */}
+      {loading || isSearching ? (
+        <LoadingSpinner size="lg" message={loading ? "Loading data..." : "Searching..."} />
+      ) : filteredItems.length === 0 ? (
+        <div>No items found</div>
+      ) : (
+        <div>{/* Render items */}</div>
+      )}
+    </div>
+  )
+}
+```
+
+#### Modal/Form Loading Pattern
+
+```typescript
+const [isSubmitting, setIsSubmitting] = useState(false)
+
+async function handleSubmit() {
+  try {
+    setIsSubmitting(true)
+    await SomeService.create(data)
+    toast.success("Created successfully")
+    onClose()
+  } catch (error) {
+    toast.error("Failed to create")
+  } finally {
+    setIsSubmitting(false)
+  }
+}
+
+return (
+  <DialogFooter>
+    <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+      Cancel
+    </Button>
+    <Button onClick={handleSubmit} disabled={isSubmitting}>
+      {isSubmitting ? (
+        <>
+          <InlineSpinner className="mr-2" />
+          Saving...
+        </>
+      ) : (
+        "Save"
+      )}
+    </Button>
+  </DialogFooter>
+)
+```
+
+#### AppLayout Loading Pattern
+
+The AppLayout shows a loading spinner while auth initializes:
+
+```typescript
+export default function AppLayout({ children }: AppLayoutProps) {
+  const { user, logout, loading } = useAuth()
+
+  if (loading) {
+    return <LoadingSpinner fullScreen message="Loading..." />
+  }
+
+  // Render layout
+}
+```
+
+#### When to Use Loading States
+
+✅ **Always show loading for:**
+- Initial page data fetching
+- Permission checks (before rendering content)
+- Form submissions
+- Search operations
+- Auth state initialization
+- Modal/dialog actions
+
+✅ **Use appropriate component:**
+- `LoadingSpinner` - Page-level loading, permission checks
+- `InlineSpinner` - Button actions, inline operations
+- `SkeletonLoader` - Content placeholders during load
+
+❌ **Don't use for:**
+- Instant operations (< 100ms)
+- Operations already handled by browser (navigation)
+- Background sync operations
 
 #### Search Config Structure
 
@@ -495,9 +697,24 @@ Persist each role with timestamps using `FieldValue.serverTimestamp()` and `Date
 
 ---
 
-### Task 1.2: Enhance Seed Script with Permissions and Roles
+### Task 1.2: Enhance Seed Script with Permissions and Roles ✅ COMPLETED
 
 **File to Update:** `src/app/api/seed/route.ts`
+
+**Key Changes Made:**
+
+1. **Fixed Company Contact IDs**:
+   - Changed `DEFAULT_COMPANY` to set `mainContactId: ""` and `securityAlerts.primaryContactId: ""` initially
+   - Updated seed flow to set these fields AFTER creating the user with actual Firebase Auth UID
+   - Prevents undefined contact ID references in the database
+
+2. **Removed Firestore `undefined` Values**:
+   - Removed `isAlsoLogisticsCoordinator: undefined` and `isAlsoTransporter: undefined` from DEFAULT_COMPANY
+   - Firestore rejects `undefined` values - only omit fields or use actual values
+
+3. **Updated seedDefaultUser Return Type**:
+   - Changed return type from `number` to `Promise<string>` to return the created user's UID
+   - Allows updating company with actual contact IDs after user creation
 
 Add these functions to the seed script:
 
@@ -652,20 +869,51 @@ results.seeded.permissions = await seedPermissions(sendProgress)
 - Provide filters (search by name/registration, filter by companyType) to support **Flow 7: Company (Mine) Configuration** discovery needs from `docs/user-flow-web.md`.
 - Wrap content in `PermissionGate` for `PERMISSIONS.ADMIN_COMPANIES`.
 
-#### Step 2: Company Creation / Editing Modal
+#### Step 2: Company Creation / Editing Modal ✅ COMPLETED
 
 **File:** `src/components/companies/CompanyFormModal.tsx`
 
-- Form captures **all** required fields:
-  - Core: `name`, `companyType`, `registrationNumber`, `vatNumber`, `physicalAddress`.
-  - Contacts: `mainContactId`, `secondaryContactIds` (multi-select of users in same company).
-  - Embedded config objects (use nested forms with sensible defaults):
-    - `orderConfig` (order number mode, limits, seal requirements, etc.).
-    - `systemSettings` (fleet number toggle/label, group toggle/label, group options array).
-    - `securityAlerts` (primary/secondary contacts, escalation settings, response times).
-    - Optional `mineConfig`, `transporterConfig`, `logisticsCoordinatorConfig` depending on `companyType` so Flow 8/9 requirements are met.
-- Provide helper text/tooltips referencing the relevant flow steps (e.g., seal rules from Flow 12, security escalation from Flow 18).
-- Submit via `CompanyService.create`/`CompanyService.update`, which use `firebase-utils` to add timestamps automatically.
+**Implementation Details:**
+
+The company form is a tabbed modal with 4 tabs (Basic Info, Order Config, Fleet, Escalation):
+
+**Tab 1: Basic Info**
+- Core fields: `name` (required), `companyType` (required), `registrationNumber` (optional), `vatNumber` (optional), `physicalAddress` (required)
+- Dual-role checkboxes:
+  - For transporters: "Is also a Logistics Coordinator" checkbox
+  - For logistics coordinators: "Is also a Transporter" checkbox
+- Contacts:
+  - `mainContactId`: Dropdown with optional selection
+  - `secondaryContactIds`: Dropdown + Add button pattern
+    - Can only add secondary contacts AFTER selecting main contact
+    - Added contacts shown in a list with remove (X) buttons
+    - Filters out already-added contacts and main contact from dropdown
+    - Scalable for many users (no scrollable checkbox list)
+
+**Tab 2: Order Config** (Only shown for Mine companies)
+- Order number settings: `orderNumberMode` (autoOnly/manualAllowed), `orderNumberPrefix`
+- Limits: `defaultDailyTruckLimit`, `defaultDailyWeightLimit`, `defaultMonthlyLimit`, `defaultTripLimit`, `defaultWeightPerTruck`
+- Pre-booking: `preBookingMode` (compulsory/optional), `advanceBookingHours`
+- Seals: `defaultSealRequired` (checkbox), `defaultSealQuantity`
+
+**Tab 3: Fleet** (Only shown for Transporter or dual-role LC)
+- Fleet number: `fleetNumberEnabled` (checkbox), `fleetNumberLabel`
+- Transporter group: `transporterGroupEnabled` (checkbox), `transporterGroupLabel`, `groupOptions` (comma-separated)
+
+**Tab 4: Escalation** (Security Alerts - Simplified)
+- `primaryContactId`: Dropdown for primary escalation contact
+- `escalationMinutes`: Time before escalating (number input)
+- `requiredResponseMinutes`: Maximum response time (number input)
+- **Note:** Secondary contacts and alert-specific contacts (QR mismatch, document failure, seal discrepancy) are reserved for future use and set to empty arrays in the data
+
+**Data Saving:**
+- Uses `CompanyService.create`/`CompanyService.update`
+- Automatically adds timestamps via firebase-utils
+- Properly handles optional fields (undefined if empty)
+- Conditional configs based on `companyType`:
+  - `orderConfig`: Only for mine companies
+  - `systemSettings`: Only for transporters or dual-role logistics coordinators
+  - `securityAlerts`: Always included with simplified fields
 
 #### Step 3: Company Service Layer
 
@@ -718,7 +966,208 @@ Provide a quick panel to display nested configurations read-only so testers can 
 
 ---
 
-### Task 1.4: Update Navigation to Include Admin Routes
+### Task 1.4: Centralized Real-Time Data Loading ✅ COMPLETED
+
+**Overview:**
+Implemented a centralized data service using Preact Signals for reactive state management with real-time Firebase listeners. All application data is now loaded through a single service, eliminating duplicate queries and providing consistent data access across components.
+
+#### Architecture
+
+**File:** `src/services/data.service.ts`
+
+Singleton service that manages all real-time Firebase listeners using Preact Signals:
+
+```typescript
+class Data {
+  companies: Signal<Company[]> = signal([])
+  roles: Signal<Role[]> = signal([])
+  users: Signal<User[]> = signal([])
+  loading: Signal<boolean> = signal(true)
+
+  private loadedCollections = new Set<string>()
+  private expectedCollections = 3
+
+  private markCollectionLoaded(collectionName: string) {
+    this.loadedCollections.add(collectionName)
+    if (this.loadedCollections.size === this.expectedCollections) {
+      log.i("Data Service", "All data has been loaded")
+      this.loading.value = false
+    }
+  }
+
+  initializeForCompany(companyId: string) {
+    // Clears previous listeners and resets loading state
+    // Sets up real-time listeners for the specified company
+    // Each listener calls markCollectionLoaded on first snapshot
+    // Returns cleanup function
+  }
+}
+```
+
+**Key Features:**
+- **Companies**: Loads ALL companies (including inactive) for admin pages
+- **Roles & Users**: Company-scoped, automatically filtered by `companyId`
+- **Real-time Updates**: Uses Firebase `onSnapshot` for live data synchronization
+- **Automatic Cleanup**: Properly unsubscribes listeners when company switches or component unmounts
+- **Smart Loading States**: Tracks when each collection loads, only sets loading to false when ALL collections are ready
+- **Loading Tracking**: Uses Set-based tracking with `onFirstLoad` callbacks instead of arbitrary timeouts
+
+#### Implementation Details
+
+**1. Generic Collection Listener Factory**
+
+**File:** `src/lib/firebase-utils.ts`
+
+```typescript
+export function createCollectionListener<T>(
+  collectionName: string,
+  signal: Signal<T[]>,
+  options?: {
+    companyScoped?: boolean
+    filter?: (item: T) => boolean
+    onFirstLoad?: () => void
+  }
+) {
+  return (companyId?: string) => {
+    // Creates Firebase query with optional company scoping
+    // Updates signal on data changes
+    // Calls onFirstLoad callback after first snapshot
+    // Returns unsubscribe function
+  }
+}
+```
+
+**Features:**
+- Generic type support for type-safe listeners
+- Optional company scoping via `where("companyId", "==", companyId)`
+- Optional filter function for client-side filtering
+- **onFirstLoad callback**: Notifies when collection has received its first snapshot
+- Automatic error handling (calls onFirstLoad even on error to prevent infinite loading)
+
+**2. Company Context Integration**
+
+**File:** `src/contexts/CompanyContext.tsx`
+
+Updated to use centralized data service:
+
+```typescript
+export function CompanyProvider({ children }: { children: ReactNode }) {
+  useSignals()
+
+  const companies = globalData.companies.value.filter(c => c.isActive !== false)
+
+  useEffect(() => {
+    const cleanup = globalData.initializeForCompany(user.companyId)
+    return cleanup
+  }, [user, user?.companyId])
+}
+```
+
+**Key Changes:**
+- Removed all direct Firebase queries
+- Now calls `globalData.initializeForCompany()`
+- Filters companies for switcher to show only active
+- All companies (including inactive) available in `globalData.companies.value` for admin pages
+
+**3. Global Loading Screen**
+
+**File:** `src/app/(authenticated)/layout.tsx`
+
+```typescript
+export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+  useSignals()
+  const isLoading = globalData.loading.value
+
+  if (isLoading) {
+    return <LoadingSpinner fullScreen message="Loading application data..." />
+  }
+
+  return <AppLayout>{children}</AppLayout>
+}
+```
+
+Shows loading screen until all initial data is loaded.
+
+**4. Company Form Modal**
+
+**File:** `src/components/companies/CompanyFormModal.tsx`
+
+**Special Handling for Editing:**
+- When creating: Shows informational messages that contacts can be assigned after creation
+- When editing: Fetches users specifically for the company being edited (not from global data service)
+- Allows editing Company A's contacts while logged into Company B
+
+```typescript
+useEffect(() => {
+  if (!open || !isEditing || !company) return
+
+  const fetchUsersForCompany = async () => {
+    const q = query(collection(db, "users"), where("companyId", "==", company.id))
+    const snapshot = await getDocs(q)
+    setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as User[])
+  }
+
+  fetchUsersForCompany()
+}, [open, isEditing, company])
+```
+
+#### Loading State Management
+
+The data service implements smart loading state tracking to ensure the UI only renders when all data is ready:
+
+**How it works:**
+1. When `initializeForCompany()` is called:
+   - Sets `loading.value = true`
+   - Clears the `loadedCollections` Set
+   - Creates listeners with `onFirstLoad` callbacks
+
+2. Each listener (companies, roles, users):
+   - Calls `markCollectionLoaded(collectionName)` after receiving first snapshot
+   - This happens even on errors to prevent infinite loading
+
+3. `markCollectionLoaded()` method:
+   - Adds collection name to the Set
+   - Checks if all expected collections (3) have loaded
+   - Sets `loading.value = false` when complete
+   - Logs "All data has been loaded" to console
+
+**Why this approach:**
+- ✅ **Accurate**: Only shows content when data is actually available
+- ✅ **No race conditions**: Doesn't rely on arbitrary timeouts
+- ✅ **Error resilient**: Handles Firebase errors gracefully
+- ✅ **Performance**: Minimal overhead with Set-based tracking
+- ✅ **Debuggable**: Console log confirms when loading completes
+
+#### Benefits
+
+1. **No Duplicate Queries**: Single source of truth for all application data
+2. **Real-Time Sync**: All components automatically update when data changes
+3. **Better Performance**: Shared listeners reduce Firebase read operations
+4. **Consistent State**: All components see the same data at the same time
+5. **Company Switching**: Data automatically reloads when user switches companies
+6. **Clean Separation**: Company switcher only shows active, admin pages show all
+7. **Smart Loading**: Accurate loading states based on actual data availability, not arbitrary timeouts
+
+#### Usage in Components
+
+```typescript
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
+
+export default function MyComponent() {
+  useSignals()
+
+  const companies = globalData.companies.value  // Reactive
+  const users = globalData.users.value          // Reactive
+  const loading = globalData.loading.value      // Reactive
+
+  // Component automatically re-renders when signals change
+}
+```
+
+---
+
+### Task 1.5: Update Navigation to Include Admin Routes
 
 **File to Update:** `src/components/layout/AppLayout.tsx`
 
@@ -739,6 +1188,107 @@ Import the new icons at the top:
 ```typescript
 import { Home, Settings, Menu, X, LogOut, ChevronDown, Building2, Users } from "lucide-react"
 ```
+
+---
+
+### Task 1.5: Implement Loading States System
+
+**Files to Create/Update:**
+
+#### Step 1: Create Loading Spinner Component
+
+**File:** `src/components/ui/loading-spinner.tsx`
+
+Create centralized loading components with glass morphism design:
+- `LoadingSpinner` - Primary component with full-screen and inline modes
+- `InlineSpinner` - For buttons and small spaces
+- `SkeletonLoader` - For content placeholders
+
+Features:
+- Multiple sizes (sm, md, lg, xl)
+- Glass morphism design with gradient glow
+- Optional contextual messages
+- Full-screen overlay option
+
+#### Step 2: Update usePermission Hook
+
+**File:** `src/hooks/usePermission.ts`
+
+Update return type to include loading state:
+
+```typescript
+export function usePermission(permission: PermissionKey): { hasPermission: boolean; loading: boolean } {
+  const [hasPermission, setHasPermission] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  // Check permission logic
+  // Always call setLoading(false) at the end
+
+  return { hasPermission, loading }
+}
+```
+
+#### Step 3: Update AppLayout with Loading State
+
+**File:** `src/components/layout/AppLayout.tsx`
+
+Add loading state while auth initializes:
+
+```typescript
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+
+export default function AppLayout({ children }: AppLayoutProps) {
+  const { user, logout, loading } = useAuth()
+
+  if (loading) {
+    return <LoadingSpinner fullScreen message="Loading..." />
+  }
+
+  // Render layout
+}
+```
+
+#### Step 4: Update Pages with Loading States
+
+Update all pages to use loading states:
+
+**Companies Page:**
+```typescript
+const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_COMPANIES)
+
+if (permissionLoading) {
+  return <LoadingSpinner fullScreen message="Checking permissions..." />
+}
+
+{loading || isSearching ? (
+  <LoadingSpinner size="lg" message={loading ? "Loading companies..." : "Searching..."} />
+) : (
+  // Render content
+)}
+```
+
+#### Step 5: Update Modals with Loading States
+
+Add `InlineSpinner` to all form submission buttons:
+
+```typescript
+<Button onClick={handleSubmit} disabled={isSubmitting}>
+  {isSubmitting ? (
+    <>
+      <InlineSpinner className="mr-2" />
+      Saving...
+    </>
+  ) : (
+    "Save"
+  )}
+</Button>
+```
+
+Updated modals:
+- `AddUserModal.tsx`
+- `ChangePasswordModal.tsx`
+- `ChangeEmailModal.tsx`
+- `CompanyFormModal.tsx` (already had loading states)
 
 ---
 
@@ -880,18 +1430,72 @@ import { Home, Settings, Menu, X, LogOut, ChevronDown, Building2, Users } from "
 - [ ] Expected: All buttons are accessible
 - [ ] Expected: Modal is readable on mobile
 
+### Loading States Tests
+
+#### Test 1.14: Page Loading States
+
+- [ ] Clear browser cache
+- [ ] Navigate to `/admin/companies`
+- [ ] Expected: See full-screen loading spinner with "Checking permissions..." message
+- [ ] Expected: Loading spinner has glass morphism design with gradient glow
+- [ ] Expected: Spinner disappears when page loads
+- [ ] Expected: See "Loading companies..." message while fetching data
+
+#### Test 1.15: Search Loading States
+
+- [ ] Navigate to `/admin/companies`
+- [ ] Type in search box
+- [ ] Expected: See "Searching..." message while search is processing
+- [ ] Expected: Loading spinner appears during search
+- [ ] Expected: Results appear after search completes
+
+#### Test 1.16: Form Submission Loading States
+
+- [ ] Click "Add Company" button
+- [ ] Fill in required fields
+- [ ] Click "Create Company"
+- [ ] Expected: Button shows spinner icon with "Saving..." text
+- [ ] Expected: Button is disabled during submission
+- [ ] Expected: Cancel button is also disabled during submission
+- [ ] Expected: Success toast appears after save completes
+
+#### Test 1.17: Auth Loading State
+
+- [ ] Log out
+- [ ] Log back in
+- [ ] Expected: See full-screen loading spinner with "Loading..." message during auth initialization
+- [ ] Expected: App layout loads after auth completes
+
+#### Test 1.18: Modal Loading States
+
+- [ ] Navigate to `/settings`
+- [ ] Click "Change Password"
+- [ ] Fill in password fields
+- [ ] Click "Update Password"
+- [ ] Expected: Button shows spinner with "Updating..." text
+- [ ] Expected: All buttons disabled during update
+- [ ] Expected: Modal closes after successful update
+
 ---
 
 ## Phase 1 Success Criteria
 
-✅ **All tests passing** - No errors in console or UI ✅ **Permission system working** - Hooks return correct values ✅ **Company CRUD functional** - Can list and create companies ✅ **Data persisted correctly** - Firestore contains correct data structure ✅ **UI matches design system** - Glass morphism applied, consistent styling ✅ **Mobile responsive** - Works on mobile viewport
+✅ **All tests passing** - No errors in console or UI
+✅ **Permission system working** - Hooks return correct values with loading states
+✅ **Company CRUD functional** - Can list, create, edit, and activate/deactivate companies
+✅ **Data persisted correctly** - Firestore contains correct data structure
+✅ **UI matches design system** - Glass morphism applied, consistent styling
+✅ **Mobile responsive** - Works on mobile viewport
+✅ **Loading states implemented** - All async operations show appropriate loading feedback
+✅ **Optimized search working** - Fast, debounced search with loading states
+✅ **Dual-role company support** - Transporters can be LCs and vice versa
+✅ **Inactive company filtering** - Inactive companies don't appear in switcher
 
 ### Known Limitations (Expected for Phase 1)
 
-- Cannot edit or delete companies yet (add in later phase if needed)
-- Company details page not implemented yet
-- User management not fully enhanced yet (Phase 1 Task 1.3 pending)
-- No company-specific configurations UI yet (mineConfig, transporterConfig, etc.)
+- Company details page not implemented yet (view-only modal for configurations)
+- User management not fully enhanced yet (basic CRUD implemented)
+- Some company-specific configurations need UI refinement (mineConfig, transporterConfig optional fields)
 
 ---
 

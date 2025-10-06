@@ -92,11 +92,13 @@
 | id                         | string (doc id) | yes      | Unique company id                                                              | c_123               |
 | name                       | string          | yes      | Company name                                                                   | ABC Mining Ltd      |
 | companyType                | enum            | yes      | `mine`\|`transporter`\|`logistics_coordinator`                                 | mine                |
-| registrationNumber         | string          | yes      | Company registration number                                                    | 2021/123456/07      |
-| vatNumber                  | string          | no       | VAT registration number                                                        | 4123456789          |
+| registrationNumber         | string          | no       | Company registration number (optional)                                         | 2021/123456/07      |
+| vatNumber                  | string          | no       | VAT registration number (optional)                                             | 4123456789          |
 | physicalAddress            | string          | yes      | Company physical address                                                       | 123 Mining Rd, City |
-| mainContactId              | string          | yes      | Reference to primary contact user id                                           | u_456               |
-| secondaryContactIds        | string[]        | no       | Additional contact user ids                                                    | ["u_789", "u_012"]  |
+| mainContactId              | string          | no       | Reference to primary contact user id (optional)                                | u_456               |
+| secondaryContactIds        | string[]        | no       | Additional contact user ids (must have main contact first)                     | ["u_789", "u_012"]  |
+| isAlsoLogisticsCoordinator | boolean         | no       | For transporters who also coordinate logistics                                 | true                |
+| isAlsoTransporter          | boolean         | no       | For logistics coordinators who also transport                                  | true                |
 | createdAt                  | number          | yes      | Client event time (ms)                                                         | Date.now()          |
 | updatedAt                  | number          | yes      | Last client event time (ms)                                                    | Date.now()          |
 | dbCreatedAt                | timestamp       | yes      | Server creation time                                                           | serverTimestamp     |
@@ -154,13 +156,13 @@ systemSettings: {
 }
 
 securityAlerts: {
-  primaryContactId: "u_dev",
-  secondaryContactIds: ["u_dev_secondary"],
-  escalationMinutes: 15,
-  qrMismatchContacts: ["u_security"],
-  documentFailureContacts: [],
-  sealDiscrepancyContacts: [],
-  requiredResponseMinutes: 5
+  primaryContactId: "u_dev",              // Primary contact for security escalation
+  secondaryContactIds: [],                // Reserved for future use (not in current UI)
+  escalationMinutes: 15,                  // Time before escalating to secondary contacts
+  qrMismatchContacts: [],                 // Reserved for future use (not in current UI)
+  documentFailureContacts: [],            // Reserved for future use (not in current UI)
+  sealDiscrepancyContacts: [],            // Reserved for future use (not in current UI)
+  requiredResponseMinutes: 30             // Maximum time to respond to security alerts
 }
 ```
 
