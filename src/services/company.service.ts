@@ -79,10 +79,89 @@ export class CompanyService {
   }
 
   /**
-   * Delete a company
+   * Check if a company is in use (has users, sites, orders, etc.)
+   * Returns object with usage details
    */
-  static async delete(id: string): Promise<void> {
+  static async checkCompanyInUse(id: string): Promise<{
+    inUse: boolean
+    userCount: number
+    siteCount: number
+    orderCount: number
+    details: string[]
+  }> {
     try {
+      const details: string[] = []
+
+      // Check for users
+      const usersQuery = query(collection(db, "users"), where("companyId", "==", id))
+      const usersSnapshot = await getDocs(usersQuery)
+      const userCount = usersSnapshot.size
+
+      if (userCount > 0) {
+        details.push(`${userCount} user${userCount > 1 ? "s" : ""}`)
+      }
+
+      // Check for sites
+      const sitesQuery = query(collection(db, "sites"), where("companyId", "==", id))
+      const sitesSnapshot = await getDocs(sitesQuery)
+      const siteCount = sitesSnapshot.size
+
+      if (siteCount > 0) {
+        details.push(`${siteCount} site${siteCount > 1 ? "s" : ""}`)
+      }
+
+      // Check for orders
+      const ordersQuery = query(collection(db, "orders"), where("companyId", "==", id))
+      const ordersSnapshot = await getDocs(ordersQuery)
+      const orderCount = ordersSnapshot.size
+
+      if (orderCount > 0) {
+        details.push(`${orderCount} order${orderCount > 1 ? "s" : ""}`)
+      }
+
+      // Check for assets
+      const assetsQuery = query(collection(db, "assets"), where("companyId", "==", id))
+      const assetsSnapshot = await getDocs(assetsQuery)
+      const assetCount = assetsSnapshot.size
+
+      if (assetCount > 0) {
+        details.push(`${assetCount} asset${assetCount > 1 ? "s" : ""}`)
+      }
+
+      const inUse = details.length > 0
+
+      return {
+        inUse,
+        userCount,
+        siteCount,
+        orderCount,
+        details,
+      }
+    } catch (error) {
+      console.error("Error checking company usage:", error)
+      throw error
+    }
+  }
+
+  /**
+   * Delete a company (only if not in use)
+   * @param id - Company ID to delete
+   * @param currentUserCompanyId - Optional: Current user's company ID to prevent self-deletion
+   */
+  static async delete(id: string, currentUserCompanyId?: string): Promise<void> {
+    try {
+      // Prevent deletion of the user's current company
+      if (currentUserCompanyId && id === currentUserCompanyId) {
+        throw new Error("Cannot delete the company you are currently using")
+      }
+
+      // Check if company is in use
+      const usage = await this.checkCompanyInUse(id)
+
+      if (usage.inUse) {
+        throw new Error(`Cannot delete company - it has ${usage.details.join(", ")}`)
+      }
+
       await deleteDocument("companies", id, "Company deleted successfully")
     } catch (error) {
       console.error("Error deleting company:", error)

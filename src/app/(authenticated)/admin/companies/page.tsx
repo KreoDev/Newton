@@ -8,7 +8,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Building2, Edit, ToggleLeft, ToggleRight, Mountain, Truck, PackageSearch } from "lucide-react"
+import { Plus, Search, Building2, Edit, ToggleLeft, ToggleRight, Mountain, Truck, PackageSearch, Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { CompanyService } from "@/services/company.service"
 import type { Company } from "@/types"
 import { toast } from "sonner"
@@ -29,6 +39,10 @@ export default function CompaniesPage() {
   const [editingCompany, setEditingCompany] = useState<Company | undefined>(undefined)
   const [fullCompanies, setFullCompanies] = useState<Company[]>([])
   const [loadingFull, setLoadingFull] = useState(true)
+  const [deletingCompany, setDeletingCompany] = useState<Company | undefined>(undefined)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteUsageDetails, setDeleteUsageDetails] = useState<string[]>([])
+  const [canDelete, setCanDelete] = useState(false)
 
   // Get all companies (including inactive) from centralized data
   const allCompanies = globalData.companies.value
@@ -64,6 +78,52 @@ export default function CompaniesPage() {
       console.error("Error toggling company status:", error)
       toast.error("Failed to update company status")
     }
+  }
+
+  const handleDeleteClick = async (company: Company) => {
+    try {
+      setDeletingCompany(company)
+
+      // Check if trying to delete the active company
+      if (user && company.id === user.companyId) {
+        setDeleteUsageDetails(["This is your currently active company"])
+        setCanDelete(false)
+        setShowDeleteDialog(true)
+        return
+      }
+
+      // Check if company is in use
+      const usage = await CompanyService.checkCompanyInUse(company.id)
+
+      setDeleteUsageDetails(usage.details)
+      setCanDelete(!usage.inUse)
+      setShowDeleteDialog(true)
+    } catch (error) {
+      console.error("Error checking company usage:", error)
+      toast.error("Failed to check company usage")
+    }
+  }
+
+  const confirmDelete = async () => {
+    if (!deletingCompany || !user) return
+
+    try {
+      await CompanyService.delete(deletingCompany.id, user.companyId)
+      toast.success("Company deleted successfully")
+      setShowDeleteDialog(false)
+      setDeletingCompany(undefined)
+      // Real-time listener will automatically update the list
+    } catch (error) {
+      console.error("Error deleting company:", error)
+      toast.error("Failed to delete company")
+    }
+  }
+
+  const cancelDelete = () => {
+    setShowDeleteDialog(false)
+    setDeletingCompany(undefined)
+    setDeleteUsageDetails([])
+    setCanDelete(false)
   }
 
   const getCompanyIcon = (companyType: string) => {
@@ -150,6 +210,9 @@ export default function CompaniesPage() {
                       <Button variant="ghost" size="sm" onClick={() => setEditingCompany(company)} title="Edit company">
                         <Edit className="h-4 w-4" />
                       </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(company)} title="Delete company">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                       <Badge variant={company.isActive ? "success" : "secondary"}>{company.isActive ? "Active" : "Inactive"}</Badge>
                     </div>
                   </div>
@@ -170,6 +233,53 @@ export default function CompaniesPage() {
           company={editingCompany}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{canDelete ? "Confirm Deletion" : "Cannot Delete Company"}</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              {canDelete ? (
+                <div>
+                  <p>
+                    Are you sure you want to delete <strong>{deletingCompany?.name}</strong>?
+                  </p>
+                  <p className="mt-2">This action cannot be undone.</p>
+                </div>
+              ) : deleteUsageDetails.includes("This is your currently active company") ? (
+                <div>
+                  <p>
+                    Cannot delete <strong>{deletingCompany?.name}</strong> because it is your currently active company.
+                  </p>
+                  <p className="mt-4">You cannot delete the company you are currently using. Please switch to a different company first if you need to delete this one.</p>
+                </div>
+              ) : (
+                <div>
+                  <p>
+                    Cannot delete <strong>{deletingCompany?.name}</strong> because it is currently in use.
+                  </p>
+                  <p className="mt-4">This company has:</p>
+                  <ul className="list-disc list-inside mt-2">
+                    {deleteUsageDetails.map((detail, index) => (
+                      <li key={index}>{detail}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-4">Please remove or reassign these items before deleting the company.</p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
+            {canDelete && (
+              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

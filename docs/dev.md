@@ -462,7 +462,156 @@ Reference `docs/data-model.md` → `users` collection:
 
 ---
 
-### 2.5 Notification Templates
+### 2.5 Role Management
+**User Flow**: Administrative configuration for role-based access control
+
+**Goal**: Create, edit, and manage roles with permission assignments for all users within a company.
+
+**Files to Create/Modify:**
+- `src/app/(authenticated)/admin/roles/page.tsx`
+- `src/components/roles/RoleFormModal.tsx`
+- `src/components/roles/PermissionSelector.tsx`
+- `src/services/role.service.ts` (optional, or use firebase-utils directly)
+
+**Implementation Pattern:**
+- Use `createDocument()`, `updateDocument()`, `deleteDocument()` from firebase-utils directly in components
+- No service file needed - simple CRUD operations only
+- Access role data via `globalData.roles.value` (from data.service.ts)
+- Search: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.roles`
+
+**UI Requirements:**
+
+**Role List Page:**
+- Search by role name
+- Filter: Active/Inactive
+- Table columns:
+  - Role name
+  - Description
+  - Number of users assigned
+  - Active status (toggle)
+  - Actions (Edit, Delete)
+- Add Role button
+
+**Create/Edit Role Modal:**
+- Role name* (text input)
+- Description (textarea)
+- Permission selection:
+  - **Asset Management:**
+    - assets.view (View assets)
+    - assets.add (Add assets)
+    - assets.edit (Edit assets)
+    - assets.delete (Delete assets)
+
+  - **Order Management:**
+    - orders.view (View orders)
+    - orders.create (Create orders)
+    - orders.allocate (Allocate orders)
+    - orders.edit (Edit orders)
+    - orders.cancel (Cancel orders)
+
+  - **Pre-Booking Management:**
+    - prebookings.view (View pre-bookings)
+    - prebookings.create (Create pre-bookings)
+    - prebookings.edit (Edit pre-bookings)
+    - prebookings.cancel (Cancel pre-bookings)
+
+  - **Operational Flow Permissions:**
+    - operations.securityIn (Security checkpoint - entry)
+    - operations.securityOut (Security checkpoint - exit)
+    - operations.weighbridgeTare (Weighbridge tare weight)
+    - operations.weighbridgeGross (Weighbridge gross weight)
+
+  - **Administrative Permissions:**
+    - admin.users (User management)
+    - admin.companies (Company management)
+    - admin.roles (Role management)
+    - admin.products (Product management)
+    - admin.clients (Client management)
+    - admin.sites (Site management)
+    - admin.weighbridges (Weighbridge management)
+    - admin.notifications (Notification templates)
+    - admin.systemSettings (System-wide settings)
+    - admin.securityAlerts (Security alert configuration)
+
+  - **Reporting:**
+    - reports.view (View reports)
+    - reports.export (Export reports)
+
+  - **Transporter-Specific:**
+    - transporter.viewOnlyAssigned (View only assigned orders)
+    - transporter.viewOtherTransporters (View other transporters' data)
+- Permissions displayed as checkboxes grouped by category
+- Select All / Deselect All per category
+- isActive (checkbox)
+- Save button
+
+**Delete Role Flow:**
+- Check if role is assigned to any users:
+  - Query `users` collection where `roleId` = role.id
+- If users exist:
+  - Show error: "Cannot delete role - {count} user(s) are assigned to this role"
+  - Option: "Reassign Users" button (opens reassignment modal)
+- If no users:
+  - Show confirmation dialog: "Are you sure you want to delete this role?"
+  - On confirm: Hard delete from Firestore
+  - Log deletion in audit_logs
+  - Show success toast: "Role deleted successfully"
+
+**Reassign Users Modal (Optional Enhancement):**
+- Display: "This role is assigned to {count} user(s)"
+- New role dropdown (all active roles except current)
+- "Reassign All" button
+- On confirm:
+  - Update all users' `roleId` to new role
+  - Delete old role
+  - Show success: "{count} user(s) reassigned and role deleted"
+
+**Default Roles (Seed Script):**
+Per company, create 9 default roles:
+1. **Newton Administrator** - Full system access
+2. **Weighbridge Operator** - Weighbridge operations only
+3. **Security Officer** - Security checkpoints only
+4. **Asset Manager** - Asset management only
+5. **Order Coordinator** - Order creation and allocation
+6. **Logistics Coordinator** - Pre-booking and order allocation
+7. **Transporter User** - View assigned orders, create pre-bookings
+8. **Report Viewer** - View and export reports only
+9. **Basic User** - View-only access
+
+**Data Model:**
+Reference `docs/data-model.md` → `roles` collection:
+- `name: string` - Role display name
+- `description: string` - Role description
+- `permissionKeys: string[]` - Array of permission keys
+- `isActive: boolean` - Active status
+- `companyId: string` - Company-scoped
+
+**Permission Keys Structure:**
+Stored in `settings/permissions` document (global):
+```typescript
+{
+  "assets.view": { label: "View Assets", category: "Asset Management" },
+  "assets.add": { label: "Add Assets", category: "Asset Management" },
+  "orders.create": { label: "Create Orders", category: "Order Management" },
+  // ... all permission keys
+}
+```
+
+**Acceptance Criteria:**
+- ✅ Roles can be created with name, description, and permissions
+- ✅ Roles can be edited (all fields)
+- ✅ Roles can be deleted only if no users assigned
+- ✅ Permission selector grouped by category
+- ✅ Default roles created in seed script
+- ✅ Role data reactive via globalData.roles.value
+- ✅ Active/inactive toggle works
+- ✅ Search and filters work
+- ✅ Usage validation prevents deletion of assigned roles
+- ✅ All changes audited
+
+---
+
+### 2.7 Notification Templates
 **User Flow**: Flow 15 - Notification System Infrastructure
 
 **Goal**: Configure email templates for all system notifications.
@@ -526,7 +675,7 @@ Reference `docs/data-model.md` → `notification_templates` collection
 
 ---
 
-### 2.6 User Notification Preferences
+### 2.8 User Notification Preferences
 **User Flow**: Flow 10 - User Management Configuration (Notification Settings)
 
 **Goal**: Allow users to opt-in/opt-out of notification types.
@@ -600,7 +749,7 @@ Reference `docs/data-model.md` → `users.notificationPreferences`
 
 ---
 
-### 2.7 System-Wide Settings
+### 2.9 System-Wide Settings
 **User Flow**: Flow 16 - System-Wide Settings Configuration
 
 **Goal**: Configure global UI/feature toggles that affect all users.
