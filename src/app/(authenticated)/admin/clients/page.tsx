@@ -9,18 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Search, Building, Edit, ToggleLeft, ToggleRight, Trash2 } from "lucide-react"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import type { Client } from "@/types"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import { ClientFormModal } from "@/components/clients/ClientFormModal"
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
@@ -31,13 +21,11 @@ import { db } from "@/lib/firebase"
 export default function ClientsPage() {
   const { user } = useAuth()
   const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_CLIENTS)
+  const { showSuccess, showError, showConfirm } = useAlert()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | undefined>(undefined)
-  const [deletingClient, setDeletingClient] = useState<Client | undefined>(undefined)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [canDelete, setCanDelete] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>("all")
 
   useEffect(() => {
@@ -74,47 +62,50 @@ export default function ClientsPage() {
         isActive: !client.isActive,
         updatedAt: Date.now(),
       })
-      toast.success(`Client ${client.isActive ? "deactivated" : "activated"} successfully`)
+      showSuccess(
+        `Client ${client.isActive ? "Deactivated" : "Activated"}`,
+        `${client.name} has been ${client.isActive ? "deactivated" : "activated"} successfully.`
+      )
     } catch (error) {
       console.error("Error toggling client status:", error)
-      toast.error("Failed to update client status")
+      showError("Failed to Update Client", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
 
   const handleDeleteClick = async (client: Client) => {
     try {
-      setDeletingClient(client)
-
       // Check if client is used in any orders
       const ordersQuery = query(collection(db, "orders"), where("clientCompanyId", "==", client.id))
       const ordersSnapshot = await getDocs(ordersQuery)
 
-      setCanDelete(ordersSnapshot.empty)
-      setShowDeleteDialog(true)
+      if (!ordersSnapshot.empty) {
+        showError(
+          "Cannot Delete Client",
+          `This client has existing orders. Please remove or complete these orders before deleting the client.`
+        )
+        return
+      }
+
+      showConfirm(
+        "Delete Client",
+        `Are you sure you want to delete "${client.name}"? This action cannot be undone.`,
+        async () => {
+          try {
+            await deleteDoc(doc(db, "clients", client.id))
+            showSuccess("Client Deleted", `${client.name} has been permanently removed.`)
+          } catch (error) {
+            console.error("Error deleting client:", error)
+            showError("Failed to Delete Client", error instanceof Error ? error.message : "An unexpected error occurred.")
+          }
+        },
+        undefined,
+        "Delete",
+        "Cancel"
+      )
     } catch (error) {
       console.error("Error checking client usage:", error)
-      toast.error("Failed to check client usage")
+      showError("Error", "Failed to check if client can be deleted. Please try again.")
     }
-  }
-
-  const confirmDelete = async () => {
-    if (!deletingClient) return
-
-    try {
-      await deleteDoc(doc(db, "clients", deletingClient.id))
-      toast.success("Client deleted successfully")
-      setShowDeleteDialog(false)
-      setDeletingClient(undefined)
-    } catch (error) {
-      console.error("Error deleting client:", error)
-      toast.error("Failed to delete client")
-    }
-  }
-
-  const cancelDelete = () => {
-    setShowDeleteDialog(false)
-    setDeletingClient(undefined)
-    setCanDelete(false)
   }
 
   if (permissionLoading) {
@@ -211,40 +202,6 @@ export default function ClientsPage() {
           client={editingClient}
         />
       )}
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{canDelete ? "Confirm Deletion" : "Cannot Delete Client"}</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              {canDelete ? (
-                <div>
-                  <p>
-                    Are you sure you want to delete <strong>{deletingClient?.name}</strong>?
-                  </p>
-                  <p className="mt-2">This action cannot be undone.</p>
-                </div>
-              ) : (
-                <div>
-                  <p>
-                    Cannot delete <strong>{deletingClient?.name}</strong> because it is currently in use.
-                  </p>
-                  <p className="mt-4">This client has existing orders. Please remove or complete these orders before deleting the client.</p>
-                </div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
-            {canDelete && (
-              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Delete
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

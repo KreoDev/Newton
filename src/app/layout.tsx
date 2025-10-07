@@ -2,11 +2,11 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { LayoutProvider } from "@/contexts/LayoutContext"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { CompanyProvider } from "@/contexts/CompanyContext"
 import { AuthGuard } from "@/components/layout/AuthGuard"
 import { Toaster } from "@/components/ui/sonner"
+import { AlertProvider } from "@/components/ui/alert-provider"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,14 +32,13 @@ export default function RootLayout({
     <html lang="en" className="dark" style={{ colorScheme: "dark" }} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <LayoutProvider>
-            <AuthProvider>
-              <CompanyProvider>
-                <AuthGuard>{children}</AuthGuard>
-                <Toaster />
-              </CompanyProvider>
-            </AuthProvider>
-          </LayoutProvider>
+          <AuthProvider>
+            <CompanyProvider>
+              <AuthGuard>{children}</AuthGuard>
+              <Toaster />
+              <AlertProvider />
+            </CompanyProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

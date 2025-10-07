@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Camera, Upload, X } from "lucide-react"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import { userOperations } from "@/lib/firebase-utils"
 import { utilityService } from "@/services/utility.service"
 import Image from "next/image"
@@ -20,6 +20,7 @@ interface AvatarUploadProps {
 }
 
 export function AvatarUpload({ userId, currentAvatar, userName, onAvatarUpdated }: AvatarUploadProps) {
+  const { showSuccess, showError } = useAlert()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [imageSrc, setImageSrc] = useState<string>("")
   const [crop, setCrop] = useState<Crop>()
@@ -34,13 +35,13 @@ export function AvatarUpload({ userId, currentAvatar, userName, onAvatarUpdated 
 
       // Validate file type
       if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
-        toast.error("Please select a JPG or PNG image")
+        showError("Invalid File Type", "Please select a JPG or PNG image.")
         return
       }
 
       // Validate file size (10MB)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error("Image size must be less than 10MB")
+        showError("File Too Large", "Image size must be less than 10MB.")
         return
       }
 
@@ -92,7 +93,7 @@ export function AvatarUpload({ userId, currentAvatar, userName, onAvatarUpdated 
 
   const handleSaveAvatar = async () => {
     if (!imgRef.current || !completedCrop) {
-      toast.error("Please select and crop an image first")
+      showError("Missing Image", "Please select and crop an image first.")
       return
     }
 
@@ -110,14 +111,14 @@ export function AvatarUpload({ userId, currentAvatar, userName, onAvatarUpdated 
       // Update parent component
       onAvatarUpdated(resizedBase64)
 
-      toast.success("Avatar updated successfully!")
+      showSuccess("Avatar Updated", "Your profile picture has been updated successfully!")
       setIsModalOpen(false)
       setImageSrc("")
       setCrop(undefined)
       setCompletedCrop(undefined)
     } catch (error) {
       console.error("Failed to save avatar:", error)
-      toast.error("Failed to save avatar")
+      showError("Failed to Save Avatar", error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setIsUploading(false)
     }

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Mail, AlertCircle } from "lucide-react"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import { InlineSpinner } from "@/components/ui/loading-spinner"
 
 interface ChangeEmailModalProps {
@@ -19,6 +19,7 @@ interface ChangeEmailModalProps {
 
 export function ChangeEmailModal({ isOpen, onClose }: ChangeEmailModalProps) {
   const { user, refreshUser } = useAuth()
+  const { showSuccess, showError } = useAlert()
   const [formData, setFormData] = useState({
     newEmail: "",
     currentPassword: "",
@@ -73,7 +74,7 @@ export function ChangeEmailModal({ isOpen, onClose }: ChangeEmailModalProps) {
     }
 
     if (!user?.email) {
-      toast.error("User email not found")
+      showError("Email Not Found", "User email not found.")
       return
     }
 
@@ -107,9 +108,7 @@ export function ChangeEmailModal({ isOpen, onClose }: ChangeEmailModalProps) {
       // Refresh user data to reflect the new email
       await refreshUser()
 
-      toast.success("Email updated successfully", {
-        description: `Your email has been changed to ${formData.newEmail}. Please use this email for future logins.`,
-      })
+      showSuccess("Email Updated", `Your email has been changed to ${formData.newEmail}. Please use this email for future logins.`)
 
       // Clear form and close modal
       setFormData({
@@ -132,9 +131,7 @@ export function ChangeEmailModal({ isOpen, onClose }: ChangeEmailModalProps) {
       } else if (error.message?.includes("email")) {
         setErrors(prev => ({ ...prev, newEmail: error.message }))
       } else {
-        toast.error("Failed to update email", {
-          description: error.message || "An unexpected error occurred. Please try again.",
-        })
+        showError("Failed to Update Email", error.message || "An unexpected error occurred. Please try again.")
       }
     } finally {
       setIsLoading(false)

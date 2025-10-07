@@ -8,7 +8,7 @@ import Image from "next/image"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import { InfoDialog } from "@/components/ui/InfoDialog"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const { signIn } = useAuth()
+  const { showSuccess } = useAlert()
   const [alertInfo, setAlertInfo] = useState({ isOpen: false, title: "", description: "" })
 
   const handleAuthError = (error: any) => {
@@ -58,7 +59,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await signIn(email, password)
-      toast.success("Signed in successfully!")
+      showSuccess("Signed In Successfully", "Welcome back!")
       router.push("/")
     } catch (err) {
       handleAuthError(err)

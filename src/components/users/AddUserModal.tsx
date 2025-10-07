@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import { data } from "@/services/data.service"
 import { InlineSpinner } from "@/components/ui/loading-spinner"
 
@@ -19,6 +19,7 @@ interface AddUserModalProps {
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) {
+  const { showSuccess, showError } = useAlert()
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -43,15 +44,15 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
 
   const handleAddUser = async () => {
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.roleId) {
-      toast.error("Please fill in all fields")
+      showError("Missing Information", "Please fill in all fields.")
       return
     }
     if (!isEmailValid) {
-      toast.error("Invalid email format")
+      showError("Invalid Email", "Please enter a valid email address.")
       return
     }
     if (formData.password.length < 6) {
-      toast.error("Password must be at least 6 characters long")
+      showError("Weak Password", "Password must be at least 6 characters long.")
       return
     }
 
@@ -67,7 +68,7 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
         throw new Error("Failed to add user")
       }
 
-      toast.success("User added successfully")
+      showSuccess("User Added", `${formData.firstName} ${formData.lastName} has been added successfully.`)
       // Reset form
       setFormData({
         firstName: "",
@@ -79,7 +80,7 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
       onClose()
     } catch (error) {
       console.error("Error adding user:", error)
-      toast.error("Failed to add user")
+      showError("Failed to Add User", error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setIsSubmitting(false)
     }

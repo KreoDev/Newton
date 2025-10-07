@@ -9,19 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Search, Building2, Edit, ToggleLeft, ToggleRight, Mountain, Truck, PackageSearch, Trash2 } from "lucide-react"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { CompanyService } from "@/services/company.service"
 import type { Company } from "@/types"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import { CompanyFormModal } from "@/components/companies/CompanyFormModal"
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
@@ -34,15 +24,12 @@ export default function CompaniesPage() {
 
   const { user } = useAuth()
   const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_COMPANIES)
+  const { showSuccess, showError, showConfirm } = useAlert()
   const [filterType, setFilterType] = useState<string>("all")
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingCompany, setEditingCompany] = useState<Company | undefined>(undefined)
   const [fullCompanies, setFullCompanies] = useState<Company[]>([])
   const [loadingFull, setLoadingFull] = useState(true)
-  const [deletingCompany, setDeletingCompany] = useState<Company | undefined>(undefined)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [deleteUsageDetails, setDeleteUsageDetails] = useState<string[]>([])
-  const [canDelete, setCanDelete] = useState(false)
 
   // Get all companies (including inactive) from centralized data
   const allCompanies = globalData.companies.value
@@ -72,58 +59,62 @@ export default function CompaniesPage() {
   const toggleCompanyStatus = async (company: Company) => {
     try {
       await CompanyService.update(company.id, { isActive: !company.isActive })
-      toast.success(`Company ${company.isActive ? "deactivated" : "activated"} successfully`)
+      showSuccess(
+        `Company ${company.isActive ? "Deactivated" : "Activated"}`,
+        `${company.name} has been ${company.isActive ? "deactivated" : "activated"} successfully.`
+      )
       // Real-time listener will automatically update the list
     } catch (error) {
       console.error("Error toggling company status:", error)
-      toast.error("Failed to update company status")
+      showError("Failed to Update Company", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
 
   const handleDeleteClick = async (company: Company) => {
     try {
-      setDeletingCompany(company)
-
       // Check if trying to delete the active company
       if (user && company.id === user.companyId) {
-        setDeleteUsageDetails(["This is your currently active company"])
-        setCanDelete(false)
-        setShowDeleteDialog(true)
+        showError(
+          "Cannot Delete Company",
+          "You cannot delete the company you are currently using. Please switch to a different company first if you need to delete this one."
+        )
         return
       }
 
       // Check if company is in use
       const usage = await CompanyService.checkCompanyInUse(company.id)
 
-      setDeleteUsageDetails(usage.details)
-      setCanDelete(!usage.inUse)
-      setShowDeleteDialog(true)
+      if (usage.inUse) {
+        const detailsText = usage.details.map(detail => `• ${detail}`).join('\n')
+        showError(
+          "Cannot Delete Company",
+          `This company has:\n\n${detailsText}\n\nPlease remove or reassign these items before deleting the company.`
+        )
+        return
+      }
+
+      showConfirm(
+        "Delete Company",
+        `Are you sure you want to delete "${company.name}"? This action cannot be undone.`,
+        async () => {
+          try {
+            if (!user) return
+            await CompanyService.delete(company.id, user.companyId)
+            showSuccess("Company Deleted", `${company.name} has been permanently removed.`)
+            // Real-time listener will automatically update the list
+          } catch (error) {
+            console.error("Error deleting company:", error)
+            showError("Failed to Delete Company", error instanceof Error ? error.message : "An unexpected error occurred.")
+          }
+        },
+        undefined,
+        "Delete",
+        "Cancel"
+      )
     } catch (error) {
       console.error("Error checking company usage:", error)
-      toast.error("Failed to check company usage")
+      showError("Error", "Failed to check if company can be deleted. Please try again.")
     }
-  }
-
-  const confirmDelete = async () => {
-    if (!deletingCompany || !user) return
-
-    try {
-      await CompanyService.delete(deletingCompany.id, user.companyId)
-      toast.success("Company deleted successfully")
-      setShowDeleteDialog(false)
-      setDeletingCompany(undefined)
-      // Real-time listener will automatically update the list
-    } catch (error) {
-      console.error("Error deleting company:", error)
-      toast.error("Failed to delete company")
-    }
-  }
-
-  const cancelDelete = () => {
-    setShowDeleteDialog(false)
-    setDeletingCompany(undefined)
-    setDeleteUsageDetails([])
-    setCanDelete(false)
   }
 
   const getCompanyIcon = (companyType: string) => {
@@ -233,53 +224,6 @@ export default function CompaniesPage() {
           company={editingCompany}
         />
       )}
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{canDelete ? "Confirm Deletion" : "Cannot Delete Company"}</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              {canDelete ? (
-                <div>
-                  <p>
-                    Are you sure you want to delete <strong>{deletingCompany?.name}</strong>?
-                  </p>
-                  <p className="mt-2">This action cannot be undone.</p>
-                </div>
-              ) : deleteUsageDetails.includes("This is your currently active company") ? (
-                <div>
-                  <p>
-                    Cannot delete <strong>{deletingCompany?.name}</strong> because it is your currently active company.
-                  </p>
-                  <p className="mt-4">You cannot delete the company you are currently using. Please switch to a different company first if you need to delete this one.</p>
-                </div>
-              ) : (
-                <div>
-                  <p>
-                    Cannot delete <strong>{deletingCompany?.name}</strong> because it is currently in use.
-                  </p>
-                  <p className="mt-4">This company has:</p>
-                  <ul className="list-disc list-inside mt-2">
-                    {deleteUsageDetails.map((detail, index) => (
-                      <li key={index}>{detail}</li>
-                    ))}
-                  </ul>
-                  <p className="mt-4">Please remove or reassign these items before deleting the company.</p>
-                </div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
-            {canDelete && (
-              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Delete
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

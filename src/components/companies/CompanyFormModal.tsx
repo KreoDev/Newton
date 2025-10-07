@@ -2,15 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { CompanyService } from "@/services/company.service"
 import type { Company, User } from "@/types"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import { X } from "lucide-react"
 import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
@@ -31,6 +22,7 @@ interface CompanyFormModalProps {
 }
 
 export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyFormModalProps) {
+  const { showSuccess, showError } = useAlert()
   const isEditing = Boolean(company)
 
   // Basic Info
@@ -72,10 +64,6 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
 
   const [loading, setLoading] = useState(false)
   const [selectedSecondaryContact, setSelectedSecondaryContact] = useState("")
-  const [showSuccessAlert, setShowSuccessAlert] = useState(false)
-  const [successMessage, setSuccessMessage] = useState("")
-  const [showErrorAlert, setShowErrorAlert] = useState(false)
-  const [errorMessage, setErrorMessage] = useState("")
 
   const [users, setUsers] = useState<User[]>([])
   const [loadingUsers, setLoadingUsers] = useState(false)
@@ -100,9 +88,9 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
         setUsers(usersList)
       } catch (error) {
         console.error("Error fetching users for company:", error)
-        toast.error("Failed to load users for this company")
+        showError("Error", "Failed to load users for this company")
         setUsers([])
-      } finally {
+      } finally{
         setLoadingUsers(false)
       }
     }
@@ -194,20 +182,19 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
     e.preventDefault()
 
     if (!name) {
-      toast.error("Company name is required")
+      showError("Validation Error", "Company name is required")
       return
     }
 
     if (!physicalAddress) {
-      toast.error("Physical address is required")
+      showError("Validation Error", "Physical address is required")
       return
     }
 
     // Validate transporter group options if enabled (only for transporters or dual-role LC)
     const shouldHaveFleetSettings = companyType === "transporter" || (companyType === "logistics_coordinator" && isAlsoTransporter)
     if (shouldHaveFleetSettings && transporterGroupEnabled && groupOptions.length === 0) {
-      setErrorMessage("At least one group option is required when transporter group is enabled.")
-      setShowErrorAlert(true)
+      showError("Validation Error", "At least one group option is required when transporter group is enabled.")
       return
     }
 
@@ -279,17 +266,18 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
 
       if (isEditing && company) {
         await CompanyService.update(company.id, companyData)
-        setSuccessMessage(`Company "${name}" has been successfully updated!`)
+        showSuccess("Company Updated", `${name} has been successfully updated!`)
       } else {
         await CompanyService.create(companyData)
-        setSuccessMessage(`Company "${name}" has been successfully created!`)
+        showSuccess("Company Created", `${name} has been successfully created!`)
       }
 
-      // Show success alert instead of closing immediately
-      setShowSuccessAlert(true)
+      onSuccess()
+      onClose()
+      resetForm()
     } catch (error) {
       console.error("Error saving company:", error)
-      toast.error(`Failed to ${isEditing ? "update" : "create"} company`)
+      showError(`Failed to ${isEditing ? "Update" : "Create"} Company`, error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)
     }
@@ -297,28 +285,27 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
 
   const addSecondaryContact = () => {
     if (!mainContactId || mainContactId.trim() === "") {
-      toast.error("Please select a main contact first")
+      showError("Validation Error", "Please select a main contact first")
       return
     }
 
     if (!selectedSecondaryContact) {
-      toast.error("Please select a contact to add")
+      showError("Validation Error", "Please select a contact to add")
       return
     }
 
     if (secondaryContactIds.includes(selectedSecondaryContact)) {
-      toast.error("Contact already added")
+      showError("Validation Error", "Contact already added")
       return
     }
 
     if (selectedSecondaryContact === mainContactId) {
-      toast.error("Cannot add main contact as secondary contact")
+      showError("Validation Error", "Cannot add main contact as secondary contact")
       return
     }
 
     setSecondaryContactIds([...secondaryContactIds, selectedSecondaryContact])
     setSelectedSecondaryContact("")
-    toast.success("Contact added")
   }
 
   const removeSecondaryContact = (userId: string) => {
@@ -334,29 +321,21 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
     const trimmedOption = newGroupOption.trim()
 
     if (!trimmedOption) {
-      toast.error("Please enter a group name")
+      showError("Validation Error", "Please enter a group name")
       return
     }
 
     if (groupOptions.includes(trimmedOption)) {
-      toast.error("This group option already exists")
+      showError("Validation Error", "This group option already exists")
       return
     }
 
     setGroupOptions([...groupOptions, trimmedOption])
     setNewGroupOption("")
-    toast.success("Group option added")
   }
 
   const removeGroupOption = (option: string) => {
     setGroupOptions(groupOptions.filter(opt => opt !== option))
-  }
-
-  const handleSuccessAlertClose = () => {
-    setShowSuccessAlert(false)
-    onSuccess()
-    onClose()
-    resetForm()
   }
 
   // Determine which tabs to show
@@ -805,32 +784,6 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
           </div>
         </form>
       </DialogContent>
-
-      {/* Success Alert Dialog */}
-      <AlertDialog open={showSuccessAlert} onOpenChange={setShowSuccessAlert}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Success!</AlertDialogTitle>
-            <AlertDialogDescription>{successMessage}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={handleSuccessAlertClose}>OK</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Error Alert Dialog */}
-      <AlertDialog open={showErrorAlert} onOpenChange={setShowErrorAlert}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Info</AlertDialogTitle>
-            <AlertDialogDescription>{errorMessage}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowErrorAlert(false)}>OK</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Dialog>
   )
 }

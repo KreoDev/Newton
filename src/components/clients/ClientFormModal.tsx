@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { Client, Site } from "@/types"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import { useAuth } from "@/contexts/AuthContext"
 import { createDocument, updateDocument } from "@/lib/firebase-utils"
 import { collection, query, where, getDocs } from "firebase/firestore"
@@ -24,6 +24,7 @@ interface ClientFormModalProps {
 
 export function ClientFormModal({ open, onClose, onSuccess, client }: ClientFormModalProps) {
   const { user } = useAuth()
+  const { showSuccess, showError } = useAlert()
   const isEditing = Boolean(client)
 
   const [name, setName] = useState("")
@@ -51,7 +52,7 @@ export function ClientFormModal({ open, onClose, onSuccess, client }: ClientForm
         setSites(sitesList)
       } catch (error) {
         console.error("Error fetching sites:", error)
-        toast.error("Failed to load sites")
+        showError("Error", "Failed to load sites")
       } finally {
         setLoadingSites(false)
       }
@@ -100,44 +101,44 @@ export function ClientFormModal({ open, onClose, onSuccess, client }: ClientForm
     e.preventDefault()
 
     if (!name.trim()) {
-      toast.error("Client name is required")
+      showError("Validation Error", "Client name is required")
       return
     }
 
     if (!registrationNumber.trim()) {
-      toast.error("Registration number is required")
+      showError("Validation Error", "Registration number is required")
       return
     }
 
     if (!physicalAddress.trim()) {
-      toast.error("Physical address is required")
+      showError("Validation Error", "Physical address is required")
       return
     }
 
     if (!contactName.trim()) {
-      toast.error("Contact person name is required")
+      showError("Validation Error", "Contact person name is required")
       return
     }
 
     if (!contactEmail.trim()) {
-      toast.error("Contact email is required")
+      showError("Validation Error", "Contact email is required")
       return
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(contactEmail.trim())) {
-      toast.error("Please enter a valid email address")
+      showError("Validation Error", "Please enter a valid email address")
       return
     }
 
     if (!contactPhone.trim()) {
-      toast.error("Contact phone is required")
+      showError("Validation Error", "Contact phone is required")
       return
     }
 
     if (!user?.companyId) {
-      toast.error("User company not found")
+      showError("Error", "User company not found")
       return
     }
 
@@ -158,9 +159,11 @@ export function ClientFormModal({ open, onClose, onSuccess, client }: ClientForm
       }
 
       if (isEditing && client) {
-        await updateDocument("clients", client.id, clientData, "Client updated successfully")
+        await updateDocument("clients", client.id, clientData)
+        showSuccess("Client Updated", `${name} has been updated successfully.`)
       } else {
-        await createDocument("clients", clientData, "Client created successfully")
+        await createDocument("clients", clientData)
+        showSuccess("Client Created", `${name} has been created successfully.`)
       }
 
       onSuccess()
@@ -168,7 +171,7 @@ export function ClientFormModal({ open, onClose, onSuccess, client }: ClientForm
       resetForm()
     } catch (error) {
       console.error("Error saving client:", error)
-      toast.error(`Failed to ${isEditing ? "update" : "create"} client`)
+      showError(`Failed to ${isEditing ? "Update" : "Create"} Client`, error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)
     }

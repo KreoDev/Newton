@@ -1,6 +1,5 @@
 import { db } from "./firebase"
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, onSnapshot } from "firebase/firestore"
-import { toast } from "sonner"
 import { Signal } from "@preact/signals-react"
 
 export const createDocument = async (collectionName: string, data: Record<string, unknown>, successMessage?: string) => {
@@ -17,16 +16,9 @@ export const createDocument = async (collectionName: string, data: Record<string
       dbUpdatedAt: serverTimestamp(),
     })
 
-    toast.success(successMessage || `${collectionName.slice(0, -1)} created successfully`, {
-      description: `ID: ${docRef.id}`,
-    })
-
     return docRef.id
   } catch (error) {
     console.error(`Error creating ${collectionName}:`, error)
-    toast.error(`Failed to create ${collectionName.slice(0, -1)}`, {
-      description: error instanceof Error ? error.message : "Unknown error occurred",
-    })
     throw error
   }
 }
@@ -40,15 +32,8 @@ export const updateDocument = async (collectionName: string, id: string, data: R
     }
 
     await updateDoc(doc(db, collectionName, id), updateData)
-
-    toast.success(successMessage || `${collectionName.slice(0, -1)} updated successfully`, {
-      description: `Changes have been saved`,
-    })
   } catch (error) {
     console.error(`Error updating ${collectionName}:`, error)
-    toast.error(`Failed to update ${collectionName.slice(0, -1)}`, {
-      description: error instanceof Error ? error.message : "Unknown error occurred",
-    })
     throw error
   }
 }
@@ -56,15 +41,8 @@ export const updateDocument = async (collectionName: string, id: string, data: R
 export const deleteDocument = async (collectionName: string, id: string, successMessage?: string) => {
   try {
     await deleteDoc(doc(db, collectionName, id))
-
-    toast.success(successMessage || `${collectionName.slice(0, -1)} deleted successfully`, {
-      description: `Item has been permanently removed`,
-    })
   } catch (error) {
     console.error(`Error deleting ${collectionName}:`, error)
-    toast.error(`Failed to delete ${collectionName.slice(0, -1)}`, {
-      description: error instanceof Error ? error.message : "Unknown error occurred",
-    })
     throw error
   }
 }

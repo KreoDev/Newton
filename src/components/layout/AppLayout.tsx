@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { useLayout } from "@/contexts/LayoutContext"
+import { useLayout } from "@/hooks/useLayout"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Home, Settings, Menu, X, LogOut, ChevronDown, Building2, Users } from "lucide-react"
+import { Home, Settings, Menu, X, LogOut, ChevronDown, Building2, Users, Package, MapPin, Shield, Bell, UserCog } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -66,7 +66,12 @@ interface AppLayoutProps {
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Companies", href: "/admin/companies", icon: Building2 },
+  { name: "Products", href: "/admin/products", icon: Package },
+  { name: "Clients", href: "/admin/clients", icon: UserCog },
+  { name: "Sites", href: "/admin/sites", icon: MapPin },
   { name: "Users", href: "/admin/users", icon: Users },
+  { name: "Roles", href: "/admin/roles", icon: Shield },
+  { name: "Notifications", href: "/admin/notifications", icon: Bell },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 

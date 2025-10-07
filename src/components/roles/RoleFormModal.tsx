@@ -7,44 +7,45 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import type { Product } from "@/types"
+import type { Role } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
 import { useAuth } from "@/contexts/AuthContext"
 import { createDocument, updateDocument } from "@/lib/firebase-utils"
+import { PermissionSelector } from "./PermissionSelector"
 
-interface ProductFormModalProps {
+interface RoleFormModalProps {
   open: boolean
   onClose: () => void
   onSuccess: () => void
-  product?: Product // For editing existing product
+  role?: Role // For editing existing role
 }
 
-export function ProductFormModal({ open, onClose, onSuccess, product }: ProductFormModalProps) {
+export function RoleFormModal({ open, onClose, onSuccess, role }: RoleFormModalProps) {
   const { user } = useAuth()
   const { showSuccess, showError } = useAlert()
-  const isEditing = Boolean(product)
+  const isEditing = Boolean(role)
 
   const [name, setName] = useState("")
-  const [code, setCode] = useState("")
-  const [specifications, setSpecifications] = useState("")
+  const [description, setDescription] = useState("")
+  const [permissionKeys, setPermissionKeys] = useState<string[]>([])
   const [isActive, setIsActive] = useState(true)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (product && open) {
-      setName(product.name)
-      setCode(product.code)
-      setSpecifications(product.specifications || "")
-      setIsActive(product.isActive)
-    } else if (!product && open) {
+    if (role && open) {
+      setName(role.name)
+      setDescription(role.description || "")
+      setPermissionKeys(role.permissionKeys || [])
+      setIsActive(role.isActive)
+    } else if (!role && open) {
       resetForm()
     }
-  }, [product, open])
+  }, [role, open])
 
   const resetForm = () => {
     setName("")
-    setCode("")
-    setSpecifications("")
+    setDescription("")
+    setPermissionKeys([])
     setIsActive(true)
   }
 
@@ -52,12 +53,12 @@ export function ProductFormModal({ open, onClose, onSuccess, product }: ProductF
     e.preventDefault()
 
     if (!name.trim()) {
-      showError("Validation Error", "Product name is required")
+      showError("Validation Error", "Role name is required")
       return
     }
 
-    if (!code.trim()) {
-      showError("Validation Error", "Product code is required")
+    if (permissionKeys.length === 0) {
+      showError("Validation Error", "At least one permission must be selected")
       return
     }
 
@@ -69,28 +70,28 @@ export function ProductFormModal({ open, onClose, onSuccess, product }: ProductF
     try {
       setLoading(true)
 
-      const productData: any = {
+      const roleData: any = {
         name: name.trim(),
-        code: code.trim(),
-        specifications: specifications.trim() || null,
+        description: description.trim() || null,
+        permissionKeys,
         isActive,
         companyId: user.companyId,
       }
 
-      if (isEditing && product) {
-        await updateDocument("products", product.id, productData)
-        showSuccess("Product Updated", `${name} has been updated successfully.`)
+      if (isEditing && role) {
+        await updateDocument("roles", role.id, roleData)
+        showSuccess("Role Updated", `${name} has been updated successfully.`)
       } else {
-        await createDocument("products", productData)
-        showSuccess("Product Created", `${name} has been created successfully.`)
+        await createDocument("roles", roleData)
+        showSuccess("Role Created", `${name} has been created successfully.`)
       }
 
       onSuccess()
       onClose()
       resetForm()
     } catch (error) {
-      console.error("Error saving product:", error)
-      showError(`Failed to ${isEditing ? "Update" : "Create"} Product`, error instanceof Error ? error.message : "An unexpected error occurred.")
+      console.error("Error saving role:", error)
+      showError(`Failed to ${isEditing ? "Update" : "Create"} Role`, error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)
     }
@@ -98,39 +99,34 @@ export function ProductFormModal({ open, onClose, onSuccess, product }: ProductF
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Product" : "Create New Product"}</DialogTitle>
+          <DialogTitle>{isEditing ? "Edit Role" : "Create New Role"}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Update product information" : "Add a new product to your catalog"}
+            {isEditing ? "Update role information and permissions" : "Add a new role with custom permissions"}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">
-              Product Name <span className="text-destructive">*</span>
+              Role Name <span className="text-destructive">*</span>
             </Label>
-            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Gold Ore" required />
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Weighbridge Operator" required />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="code">
-              Product Code <span className="text-destructive">*</span>
-            </Label>
-            <Input id="code" value={code} onChange={e => setCode(e.target.value)} placeholder="e.g., AU-001" required />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="specifications">Specifications</Label>
+            <Label htmlFor="description">Description</Label>
             <Textarea
-              id="specifications"
-              value={specifications}
-              onChange={e => setSpecifications(e.target.value)}
-              placeholder="e.g., Grade A, 5500 kcal/kg"
+              id="description"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Describe the role and its responsibilities"
               rows={3}
             />
           </div>
+
+          <PermissionSelector selectedPermissions={permissionKeys} onChange={setPermissionKeys} />
 
           <div className="flex items-center space-x-2">
             <Checkbox id="isActive" checked={isActive} onCheckedChange={checked => setIsActive(checked as boolean)} />
@@ -144,7 +140,7 @@ export function ProductFormModal({ open, onClose, onSuccess, product }: ProductF
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : isEditing ? "Update Product" : "Create Product"}
+              {loading ? "Saving..." : isEditing ? "Update Role" : "Create Role"}
             </Button>
           </div>
         </form>

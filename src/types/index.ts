@@ -73,6 +73,7 @@ export interface User extends Timestamped, CompanyScoped {
   notificationPreferences: NotificationPreferences
   isActive: boolean
   isGlobal: boolean
+  canLogin?: boolean // If false, user is contact-only (no Firebase Auth account). Defaults to true.
 }
 
 export interface Role extends Timestamped, CompanyScoped {

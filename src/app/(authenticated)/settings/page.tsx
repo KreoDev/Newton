@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useSignals } from "@preact/signals-react/runtime"
 import { Save, User, Shield, Palette, Moon, Sun, Layout, LayoutGrid } from "lucide-react"
 import { useTheme } from "next-themes"
-import { useLayout } from "@/contexts/LayoutContext"
+import { useLayout } from "@/hooks/useLayout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,13 +15,14 @@ import { useAuth } from "@/contexts/AuthContext"
 import { userOperations } from "@/lib/firebase-utils"
 import { ChangePasswordModal } from "@/components/users/ChangePasswordModal"
 import { ChangeEmailModal } from "@/components/users/ChangeEmailModal"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 
 export default function SettingsPage() {
   useSignals()
   const { user, refreshUser } = useAuth()
   const { theme, setTheme } = useTheme()
   const { layout, setLayout } = useLayout()
+  const { showSuccess, showError } = useAlert()
   const [mounted, setMounted] = useState(false)
   const [profile, setProfile] = useState({
     firstName: "",
@@ -49,11 +50,11 @@ export default function SettingsPage() {
 
   const handleSaveProfile = async () => {
     if (!user) {
-      toast.error("You must be logged in to update your profile.")
+      showError("Authentication Required", "You must be logged in to update your profile.")
       return
     }
     if (!profile.firstName || !profile.lastName) {
-      toast.error("First name and last name are required.")
+      showError("Missing Information", "First name and last name are required.")
       return
     }
     setIsSubmitting(true)
@@ -64,9 +65,9 @@ export default function SettingsPage() {
       }
       await userOperations.update(user.id, updatedData)
       await refreshUser() // Refresh user data in context
-      toast.success("Profile updated successfully!")
+      showSuccess("Profile Updated", "Your profile has been updated successfully!")
     } catch (error) {
-      toast.error("Failed to update profile.")
+      showError("Failed to Update Profile", error instanceof Error ? error.message : "An unexpected error occurred.")
       console.error(error)
     } finally {
       setIsSubmitting(false)
@@ -75,12 +76,12 @@ export default function SettingsPage() {
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme)
-    toast.success(`Theme changed to ${newTheme}`)
+    showSuccess("Theme Changed", `Your theme has been changed to ${newTheme} mode.`)
   }
 
   const handleLayoutChange = (newLayout: "sidebar" | "top") => {
     setLayout(newLayout)
-    toast.success(`Layout changed to ${newLayout} navigation`)
+    showSuccess("Layout Changed", `Your navigation layout has been changed to ${newLayout}.`)
   }
 
   // Handler for future avatar upload functionality

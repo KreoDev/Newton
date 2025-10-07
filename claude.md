@@ -279,17 +279,28 @@ export default function MyComponent() {
 
 ### Critical Rules
 
-1. **Always import required dependencies at the top of files**
-2. **Use existing UI components from `src/components/ui/`**
-3. **Follow TypeScript strictly - add proper types for all functions**
-4. **Use existing services pattern from `src/services/`**
-5. **Apply glass morphism design from `design.json`**
-6. **Use existing auth context from `src/contexts/AuthContext.tsx`**
-7. **Use centralized `data.service.ts` for companies, users, and roles** (don't duplicate queries)
-8. **Use `sonner` toast for user feedback** (firebase-utils already includes this)
-9. **Add proper error handling with try-catch blocks**
-10. **This project uses Bun** - Use `bun` instead of `npm`, and `bunx` instead of `npx`
-11. **Use Preact Signals for reactive state** - Call `useSignals()` in components that access signals
+1. **ALWAYS BUILD BEFORE DECLARING COMPLETION** - Run `bun run build` after implementing features to verify all TypeScript types are correct and there are no compilation errors. Never say a task is completed without successfully building first.
+2. **Always import required dependencies at the top of files**
+3. **Use existing UI components from `src/components/ui/`**
+4. **Follow TypeScript strictly - add proper types for all functions**
+5. **Use existing services pattern from `src/services/`**
+6. **Apply glass morphism design from `design.json`**
+7. **Use existing auth context from `src/contexts/AuthContext.tsx`**
+8. **Use centralized `data.service.ts` for companies, users, and roles** (don't duplicate queries)
+9. **Use `sonner` toast for user feedback** (firebase-utils already includes this)
+10. **Add proper error handling with try-catch blocks**
+11. **This project uses Bun** - Use `bun` instead of `npm`, and `bunx` instead of `npx`
+12. **Use Preact Signals for reactive state** - Call `useSignals()` in components that access signals
+
+### Build Verification Protocol
+
+**MANDATORY**: Before claiming any task is complete, you MUST:
+1. Run `bun run build` to verify the code compiles
+2. Fix any TypeScript errors that appear
+3. Ensure the build completes successfully
+4. Only then declare the task as completed
+
+This is non-negotiable and must be followed for every feature implementation, no matter how small.
 
 ### Client vs Server Components
 

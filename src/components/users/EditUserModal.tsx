@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { User, Role } from "@/types"
 import { userOperations } from "@/lib/firebase-utils"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 
 interface EditUserModalProps {
   user: User | null
@@ -20,6 +20,7 @@ interface EditUserModalProps {
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function EditUserModal({ user, isOpen, onClose, roles }: EditUserModalProps) {
+  const { showSuccess, showError } = useAlert()
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -55,7 +56,7 @@ export function EditUserModal({ user, isOpen, onClose, roles }: EditUserModalPro
   const handleSaveChanges = async () => {
     if (!user) return
     if (!isEmailValid) {
-      toast.error("Invalid email format")
+      showError("Invalid Email", "Please enter a valid email address.")
       return
     }
 
@@ -77,11 +78,11 @@ export function EditUserModal({ user, isOpen, onClose, roles }: EditUserModalPro
         if (!response.ok) throw new Error("Failed to update email")
       }
 
-      toast.success("User updated successfully")
+      showSuccess("User Updated", `${formData.firstName} ${formData.lastName} has been updated successfully.`)
       onClose()
     } catch (error) {
       console.error("Error updating user:", error)
-      toast.error("Failed to update user")
+      showError("Failed to Update User", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
 

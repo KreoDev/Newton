@@ -36,6 +36,7 @@
 | dbUpdatedAt             | timestamp            | yes      | Last server update time                                   | serverTimestamp                                    |
 | isGlobal                | boolean              | yes      | Can view/switch between multiple companies                | false                                              |
 | isActive                | boolean              | yes      | Account active status                                     | true                                               |
+| canLogin                | boolean              | no       | Can log in to system (false for contact-only users)      | true (default)                                     |
 
 #### notificationPreferences structure
 

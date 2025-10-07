@@ -9,18 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Search, Package, Edit, ToggleLeft, ToggleRight, Trash2 } from "lucide-react"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import type { Product } from "@/types"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import { ProductFormModal } from "@/components/products/ProductFormModal"
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
@@ -31,13 +21,11 @@ import { db } from "@/lib/firebase"
 export default function ProductsPage() {
   const { user } = useAuth()
   const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_PRODUCTS)
+  const { showSuccess, showError, showConfirm } = useAlert()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined)
-  const [deletingProduct, setDeletingProduct] = useState<Product | undefined>(undefined)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [canDelete, setCanDelete] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>("all")
 
   useEffect(() => {
@@ -74,47 +62,50 @@ export default function ProductsPage() {
         isActive: !product.isActive,
         updatedAt: Date.now(),
       })
-      toast.success(`Product ${product.isActive ? "deactivated" : "activated"} successfully`)
+      showSuccess(
+        `Product ${product.isActive ? "Deactivated" : "Activated"}`,
+        `${product.name} has been ${product.isActive ? "deactivated" : "activated"} successfully.`
+      )
     } catch (error) {
       console.error("Error toggling product status:", error)
-      toast.error("Failed to update product status")
+      showError("Failed to Update Product", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
 
   const handleDeleteClick = async (product: Product) => {
     try {
-      setDeletingProduct(product)
-
       // Check if product is used in any orders
       const ordersQuery = query(collection(db, "orders"), where("productId", "==", product.id))
       const ordersSnapshot = await getDocs(ordersQuery)
 
-      setCanDelete(ordersSnapshot.empty)
-      setShowDeleteDialog(true)
+      if (!ordersSnapshot.empty) {
+        showError(
+          "Cannot Delete Product",
+          `This product is used in ${ordersSnapshot.size} order(s) and cannot be deleted. Please deactivate it instead.`
+        )
+        return
+      }
+
+      showConfirm(
+        "Delete Product",
+        `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
+        async () => {
+          try {
+            await deleteDoc(doc(db, "products", product.id))
+            showSuccess("Product Deleted", `${product.name} has been permanently removed.`)
+          } catch (error) {
+            console.error("Error deleting product:", error)
+            showError("Failed to Delete Product", error instanceof Error ? error.message : "An unexpected error occurred.")
+          }
+        },
+        undefined,
+        "Delete",
+        "Cancel"
+      )
     } catch (error) {
       console.error("Error checking product usage:", error)
-      toast.error("Failed to check product usage")
+      showError("Error", "Failed to check if product can be deleted. Please try again.")
     }
-  }
-
-  const confirmDelete = async () => {
-    if (!deletingProduct) return
-
-    try {
-      await deleteDoc(doc(db, "products", deletingProduct.id))
-      toast.success("Product deleted successfully")
-      setShowDeleteDialog(false)
-      setDeletingProduct(undefined)
-    } catch (error) {
-      console.error("Error deleting product:", error)
-      toast.error("Failed to delete product")
-    }
-  }
-
-  const cancelDelete = () => {
-    setShowDeleteDialog(false)
-    setDeletingProduct(undefined)
-    setCanDelete(false)
   }
 
   if (permissionLoading) {
@@ -208,40 +199,6 @@ export default function ProductsPage() {
           product={editingProduct}
         />
       )}
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{canDelete ? "Confirm Deletion" : "Cannot Delete Product"}</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              {canDelete ? (
-                <div>
-                  <p>
-                    Are you sure you want to delete <strong>{deletingProduct?.name}</strong>?
-                  </p>
-                  <p className="mt-2">This action cannot be undone.</p>
-                </div>
-              ) : (
-                <div>
-                  <p>
-                    Cannot delete <strong>{deletingProduct?.name}</strong> because it is currently in use.
-                  </p>
-                  <p className="mt-4">This product is assigned to existing orders. Please remove or reassign these orders before deleting the product.</p>
-                </div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
-            {canDelete && (
-              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Delete
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
