@@ -312,15 +312,16 @@
           }
         },
         "outline": {
-          "border": "effects.border_styles.light.base",
+          "border": "border-[var(--glass-border-soft)]",
           "text": "foreground",
-          "background": "transparent",
+          "background": "glass-surface",
           "backdropFilter": "blur(18px)",
           "hover": {
-            "background": "oklch(1 0 0 / 0.18)",
-            "border": "effects.border_styles.light.hover",
-            "shadow": "shadows.sm"
-          }
+            "background": "hover:bg-[oklch(1_0_0_/_0.2)]",
+            "border": "hover:border-[var(--glass-border-floating)]"
+          },
+          "implementation": "variant='outline' - clean glass surface with soft border, no gradient or glow effects",
+          "note": "Outline buttons should remain minimal - do NOT apply active tab styling (gradient/glow)"
         },
         "ghost": {
           "text": "foreground",
@@ -452,28 +453,69 @@
         "border": "effects.border_styles.light.base",
         "borderRadius": "lg",
         "overflow": "auto",
-        "background": "oklch(1 0 0 / 0.7)",
+        "background": "transparent",
         "backdropFilter": "blur(18px)",
-        "shadow": "shadows.sm"
+        "shadow": "none"
       },
       "header": {
-        "background": "oklch(0.97 0 0 / 0.65)",
-        "borderBottom": "effects.border_styles.light.base",
+        "background": "transparent",
+        "border": "none",
         "fontWeight": "medium",
-        "backdropFilter": "blur(12px)"
+        "backdropFilter": "blur(12px)",
+        "buttons": {
+          "border": "none - use !border-0 !shadow-none to ensure clean headers",
+          "background": "transparent",
+          "hover": "hover:bg-muted/50 for subtle interaction feedback"
+        },
+        "note": "Table headers should be clean without borders - buttons use ghost variant with forced border removal"
       },
       "row": {
-        "borderBottom": "effects.border_styles.light.base",
+        "borderBottom": "divide-y divide-[var(--glass-border-soft)]",
         "hover": {
-          "background": "oklch(1 0 0 / 0.16)",
-          "border": "effects.border_styles.light.hover",
-          "shadow": "shadows.sm"
+          "background": "hover:bg-[oklch(1_0_0_/_0.18)]",
+          "transition": "transition-colors"
         }
       },
       "cell": {
-        "padding": "12px",
-        "fontSize": "sm"
+        "padding": "8px (p-2)",
+        "fontSize": "sm",
+        "whiteSpace": "whitespace-nowrap",
+        "backdropFilter": "blur(12px)"
+      },
+      "implementation": {
+        "library": "TanStack Table v8",
+        "features": ["Sorting", "Filtering", "Pagination", "Column resizing", "Column reordering", "Row selection", "Export (CSV/Excel)"],
+        "components": {
+          "DataTable": "src/components/ui/data-table/DataTable.tsx",
+          "DataTableHeader": "src/components/ui/data-table/DataTableHeader.tsx - use !border-0 !shadow-none on buttons",
+          "DataTableToolbar": "src/components/ui/data-table/DataTableToolbar.tsx",
+          "DataTablePagination": "src/components/ui/data-table/DataTablePagination.tsx"
+        },
+        "styling_requirements": {
+          "header_buttons": "Must use !border-0 !shadow-none to remove all borders and shadows",
+          "sort_indicators": "ArrowUp, ArrowDown, ArrowUpDown icons from lucide-react",
+          "drag_handles": "GripVertical icon with text-muted-foreground/50",
+          "actions_column": "Always last, non-movable, non-resizable"
+        }
       }
+    },
+    "avatar_upload": {
+      "component": "src/components/users/AvatarUpload.tsx",
+      "library": "react-image-crop v11.0.10",
+      "features": ["File upload with validation (JPG/PNG, max 10MB)", "Circular crop with 1:1 aspect ratio", "Preview panel showing cropped result", "Image resizing to 150x150px", "Base64 storage in Firestore profilePicture field"],
+      "styling": {
+        "modal": "Dialog with max-w-2xl",
+        "crop_area": "flex-1 with ReactCrop component",
+        "preview": "w-24 h-24 circular Avatar component",
+        "buttons": "outline variant for Cancel, default variant for Save"
+      },
+      "validation": {
+        "file_types": "image/jpeg, image/jpg, image/png",
+        "max_size": "10MB (10 * 1024 * 1024 bytes)",
+        "output_size": "150x150 pixels",
+        "quality": "0.7 JPEG compression"
+      },
+      "usage": "Settings page profile picture upload - replaces old ProfilePictureUpload component"
     },
     "badge": {
       "base": {

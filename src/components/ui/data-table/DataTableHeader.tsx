@@ -101,7 +101,7 @@ export function DataTableHeader<TData>({ header, table, enableResizing = true }:
             ref={dragHandleRef}
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 cursor-grab active:cursor-grabbing hover:bg-accent"
+            className="h-6 w-6 p-0 cursor-grab active:cursor-grabbing hover:bg-accent !border-0 !shadow-none"
             title="Drag to reorder column"
           >
             <GripVertical className="h-4 w-4 text-muted-foreground/50" />
@@ -113,7 +113,7 @@ export function DataTableHeader<TData>({ header, table, enableResizing = true }:
             variant="ghost"
             size="sm"
             className={cn(
-              "h-8 flex-1 justify-start data-[state=open]:bg-accent hover:bg-transparent",
+              "h-8 flex-1 justify-start data-[state=open]:bg-accent hover:bg-transparent !border-0 !shadow-none",
               !isActionsColumn && "-ml-3"
             )}
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}

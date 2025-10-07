@@ -210,6 +210,12 @@ All foundational systems are implemented and tested. The following components ar
 - **Type Safety**: Full TypeScript generics for data and column types
 - **Accessibility**: Keyboard navigation, ARIA labels, screen reader support
 - **Glass Morphism Design**: Matches design.json specifications
+- **Header Styling**: Clean headers without borders - use `!border-0 !shadow-none` on header buttons to remove all borders and shadows
+
+**Important Styling Notes:**
+- Table header buttons (sort/drag) should NOT have visible borders
+- Add `!border-0 !shadow-none` classes to all buttons in `DataTableHeader.tsx`
+- This ensures clean, borderless column headers matching the Actions column appearance
 
 **Usage Pattern:**
 ```typescript

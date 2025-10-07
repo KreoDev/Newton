@@ -14,6 +14,13 @@ import { db } from "@/lib/firebase"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
 import { UsersTable } from "@/components/users/UsersTable"
+import { AddUserModal } from "@/components/users/AddUserModal"
+import { EditUserModal } from "@/components/users/EditUserModal"
+import { ChangePasswordModal } from "@/components/users/ChangePasswordModal"
+import { ChangeEmailModal } from "@/components/users/ChangeEmailModal"
+import { MoveUserModal } from "@/components/users/MoveUserModal"
+import { PermissionOverrideEditor } from "@/components/users/PermissionOverrideEditor"
+import { RoleManager } from "@/components/users/RoleManager"
 
 export default function UsersPage() {
   useSignals()
@@ -23,6 +30,15 @@ export default function UsersPage() {
   const [users, setUsers] = useState<UserType[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(user?.companyId || "")
+
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [editingUser, setEditingUser] = useState<UserType | null>(null)
+  const [passwordUser, setPasswordUser] = useState<UserType | null>(null)
+  const [emailUser, setEmailUser] = useState<UserType | null>(null)
+  const [moveUser, setMoveUser] = useState<UserType | null>(null)
+  const [permissionUser, setPermissionUser] = useState<UserType | null>(null)
+  const [roleUser, setRoleUser] = useState<UserType | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -94,7 +110,7 @@ export default function UsersPage() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setShowAddModal(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add User
           </Button>
@@ -109,12 +125,75 @@ export default function UsersPage() {
         <UsersTable
           users={users}
           canViewAllCompanies={canViewAllCompanies}
-          onEdit={(user) => console.log("Edit user", user)}
-          onManageRoles={(user) => console.log("Manage roles", user)}
-          onEditPermissions={(user) => console.log("Edit permissions", user)}
-          onChangePassword={(user) => console.log("Change password", user)}
-          onChangeEmail={(user) => console.log("Change email", user)}
-          onMoveCompany={(user) => console.log("Move company", user)}
+          onEdit={(user) => setEditingUser(user)}
+          onManageRoles={(user) => setRoleUser(user)}
+          onEditPermissions={(user) => setPermissionUser(user)}
+          onChangePassword={(user) => setPasswordUser(user)}
+          onChangeEmail={(user) => setEmailUser(user)}
+          onMoveCompany={(user) => setMoveUser(user)}
+        />
+      )}
+
+      {/* Modals */}
+      <AddUserModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        companyId={selectedCompanyId === "all" ? (user?.companyId || "") : selectedCompanyId}
+      />
+
+      <EditUserModal
+        user={editingUser}
+        isOpen={!!editingUser}
+        onClose={() => setEditingUser(null)}
+        roles={globalData.roles.value}
+      />
+
+      <ChangePasswordModal
+        isOpen={!!passwordUser}
+        onClose={() => setPasswordUser(null)}
+        userId={passwordUser?.id || ""}
+      />
+
+      <ChangeEmailModal
+        isOpen={!!emailUser}
+        onClose={() => setEmailUser(null)}
+        userId={emailUser?.id || ""}
+        currentEmail={emailUser?.email || ""}
+      />
+
+      {moveUser && (
+        <MoveUserModal
+          open={!!moveUser}
+          onClose={() => setMoveUser(null)}
+          onSuccess={() => {
+            setMoveUser(null)
+            // Data will refresh automatically via real-time listener
+          }}
+          user={moveUser}
+        />
+      )}
+
+      {permissionUser && (
+        <PermissionOverrideEditor
+          open={!!permissionUser}
+          onClose={() => setPermissionUser(null)}
+          onSuccess={() => {
+            setPermissionUser(null)
+            // Data will refresh automatically via real-time listener
+          }}
+          user={permissionUser}
+        />
+      )}
+
+      {roleUser && (
+        <RoleManager
+          open={!!roleUser}
+          onClose={() => setRoleUser(null)}
+          onSuccess={() => {
+            setRoleUser(null)
+            // Data will refresh automatically via real-time listener
+          }}
+          user={roleUser}
         />
       )}
     </div>
