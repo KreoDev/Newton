@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { User, Role } from "@/types"
 import { userOperations } from "@/lib/firebase-utils"
 import { useAlert } from "@/hooks/useAlert"
+import { filterVisibleRoles } from "@/lib/role-utils"
 
 interface EditUserModalProps {
   user: User | null
@@ -114,7 +115,7 @@ export function EditUserModal({ user, isOpen, onClose, roles }: EditUserModalPro
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                {roles.map(role => (
+                {filterVisibleRoles(roles, user.companyId).map(role => (
                   <SelectItem key={role.id} value={role.id}>
                     {role.name}
                   </SelectItem>

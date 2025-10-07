@@ -14,6 +14,9 @@ const badgeVariants = cva("inline-flex items-center rounded-full border px-2.5 p
       info: "border-[color:oklch(0.75_0.14_225/_0.55)] bg-[oklch(0.92_0.12_225/_0.82)] text-[color:oklch(0.42_0.14_225)] shadow-[var(--glass-shadow-xs)] dark:border-blue-400/60 dark:bg-blue-500/20 dark:text-blue-100",
       neutral: "border-[color:oklch(0.85_0.01_260/_0.55)] bg-[oklch(0.96_0.01_260/_0.82)] text-[color:oklch(0.42_0.01_260)] shadow-[var(--glass-shadow-xs)] dark:border-white/25 dark:bg-white/15 dark:text-white/80",
       outline: "border-[color:oklch(0.85_0_0/_0.5)] text-[color:oklch(0.42_0_0)] shadow-[var(--glass-shadow-xs)] dark:border-white/25 dark:text-white",
+      purple: "border-[color:oklch(0.72_0.16_290/_0.55)] bg-[oklch(0.9_0.12_290/_0.82)] text-[color:oklch(0.4_0.16_290)] shadow-[var(--glass-shadow-xs)] dark:border-purple-400/60 dark:bg-purple-500/20 dark:text-purple-100",
+      orange: "border-[color:oklch(0.74_0.16_50/_0.55)] bg-[oklch(0.92_0.14_50/_0.82)] text-[color:oklch(0.42_0.16_50)] shadow-[var(--glass-shadow-xs)] dark:border-orange-400/60 dark:bg-orange-500/20 dark:text-orange-100",
+      lime: "border-[color:oklch(0.76_0.16_130/_0.55)] bg-[oklch(0.92_0.14_130/_0.82)] text-[color:oklch(0.42_0.16_130)] shadow-[var(--glass-shadow-xs)] dark:border-lime-400/60 dark:bg-lime-500/20 dark:text-lime-100",
     },
   },
   defaultVariants: {

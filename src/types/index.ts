@@ -76,12 +76,14 @@ export interface User extends Timestamped, CompanyScoped {
   canLogin?: boolean // If false, user is contact-only (no Firebase Auth account). Defaults to true.
 }
 
-export interface Role extends Timestamped, CompanyScoped {
+// NOTE: Roles are GLOBAL - not company-scoped (do not extend CompanyScoped)
+export interface Role extends Timestamped {
   id: string
   name: string
   permissionKeys: string[]
   description?: string
-  isActive: boolean
+  isActive: boolean // Global active/inactive flag
+  hiddenForCompanies?: string[] // Array of companyIds that have hidden this role
 }
 
 // Company configuration interfaces per data-model.md

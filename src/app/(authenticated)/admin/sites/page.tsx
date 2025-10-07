@@ -134,7 +134,7 @@ export default function SitesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Sites</h1>
           <p className="text-muted-foreground">Manage collection and destination sites</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button variant="outline" onClick={() => setShowCreateModal(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Site
         </Button>

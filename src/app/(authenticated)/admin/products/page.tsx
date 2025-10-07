@@ -127,7 +127,7 @@ export default function ProductsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Products</h1>
           <p className="text-muted-foreground">Manage product catalog and specifications</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button variant="outline" onClick={() => setShowCreateModal(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Product
         </Button>

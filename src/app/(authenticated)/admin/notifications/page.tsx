@@ -94,7 +94,7 @@ export default function NotificationsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Notification Templates</h1>
           <p className="text-muted-foreground">Manage email templates for system notifications</p>
         </div>
-        <Button onClick={() => setShowEditor(true)}>
+        <Button variant="outline" onClick={() => setShowEditor(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Template
         </Button>

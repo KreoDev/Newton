@@ -106,7 +106,7 @@ export function AvatarUpload({ userId, currentAvatar, userName, onAvatarUpdated 
       const resizedBase64 = (await utilityService.resizeImage(croppedImageUrl, 0.7, 150, 150)) as unknown as string
 
       // Save to Firestore
-      await userOperations.update(userId, { avatar: resizedBase64 })
+      await userOperations.update(userId, { profilePicture: resizedBase64 })
 
       // Update parent component
       onAvatarUpdated(resizedBase64)

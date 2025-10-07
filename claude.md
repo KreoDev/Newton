@@ -186,7 +186,7 @@ Are you in an API route (src/app/api/)?
 - **ALWAYS use `data.service.ts`** for companies, users, and roles - don't create duplicate queries
 - **Companies list**: `globalData.companies.value` (includes inactive for admin)
 - **Users list**: `globalData.users.value` (company-scoped, real-time)
-- **Roles list**: `globalData.roles.value` (company-scoped, real-time)
+- **Roles list**: `globalData.roles.value` (global, shared across all companies, real-time)
 - Remember to call `useSignals()` in components that access these signals
 
 ### Type Definitions (`src/types/index.ts`)
@@ -248,7 +248,7 @@ export default function MyComponent() {
 
   const companies = globalData.companies.value  // All companies (including inactive)
   const users = globalData.users.value          // Company-scoped users
-  const roles = globalData.roles.value          // Company-scoped roles
+  const roles = globalData.roles.value          // Global roles (shared across all companies)
   const loading = globalData.loading.value      // Global loading state
 
   // Component automatically re-renders when signals change
@@ -259,12 +259,12 @@ export default function MyComponent() {
 - **Single Source of Truth**: All components access the same reactive data
 - **Real-time Sync**: Firebase `onSnapshot` listeners keep data updated
 - **Smart Loading**: Tracks when all collections load (no arbitrary timeouts)
-- **Company Scoping**: Roles and users automatically filtered by active company
+- **Company Scoping**: Users automatically filtered by active company (roles are global)
 - **Automatic Cleanup**: Unsubscribes listeners on company switch or unmount
 
 **Architecture:**
 - Companies: Loads ALL (including inactive) for admin pages
-- Roles: Company-scoped, filtered by `companyId`
+- Roles: **GLOBAL** - NOT filtered by `companyId` (shared across all companies)
 - Users: Company-scoped, filtered by `companyId`
 - Loading: Set to `false` only when all 3 collections receive first snapshot
 

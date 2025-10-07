@@ -62,20 +62,15 @@ export function RoleFormModal({ open, onClose, onSuccess, role }: RoleFormModalP
       return
     }
 
-    if (!user?.companyId) {
-      showError("Error", "User company not found")
-      return
-    }
-
     try {
       setLoading(true)
 
+      // NOTE: Roles are GLOBAL - no companyId field
       const roleData: any = {
         name: name.trim(),
         description: description.trim() || null,
         permissionKeys,
         isActive,
-        companyId: user.companyId,
       }
 
       if (isEditing && role) {

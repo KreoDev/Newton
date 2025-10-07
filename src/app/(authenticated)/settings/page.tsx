@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { userOperations } from "@/lib/firebase-utils"
 import { ChangePasswordModal } from "@/components/users/ChangePasswordModal"
 import { ChangeEmailModal } from "@/components/users/ChangeEmailModal"
+import { AvatarUpload } from "@/components/users/AvatarUpload"
 import { useAlert } from "@/hooks/useAlert"
 
 export default function SettingsPage() {
@@ -84,13 +85,10 @@ export default function SettingsPage() {
     showSuccess("Layout Changed", `Your navigation layout has been changed to ${newLayout}.`)
   }
 
-  // Handler for future avatar upload functionality
-  // const handleAvatarUpdated = async (avatarBase64: string) => {
-  //   // Update local profile state
-  //   setProfile(prev => ({ ...prev, avatar: avatarBase64 }))
-  //   // Refresh user data in context to update navbar avatar
-  //   await refreshUser()
-  // }
+  const handleAvatarUpdated = async (avatarBase64: string) => {
+    // Refresh user data in context to update navbar avatar
+    await refreshUser()
+  }
 
   const getThemeIcon = (themeOption: string) => {
     switch (themeOption) {
@@ -179,6 +177,16 @@ export default function SettingsPage() {
               <CardDescription>Update your personal information and contact details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
+              {/* Profile Picture Section */}
+              {user && (
+                <AvatarUpload
+                  userId={user.id}
+                  currentAvatar={user.profilePicture}
+                  userName={`${user.firstName} ${user.lastName}`}
+                  onAvatarUpdated={handleAvatarUpdated}
+                />
+              )}
+
               <div className="border-t pt-8">
                 <h4 className="font-medium mb-6">Personal Details</h4>
                 <div className="space-y-6">

@@ -90,23 +90,41 @@ All foundational systems are implemented and tested. The following components ar
 - Inactive company filtering (hidden from switcher, visible in admin pages)
 - Real-time updates via Preact Signals
 
+**Note:** Roles are **global** and shared across all companies. They do not have a `companyId` field.
+
 ### 1.3 User Management ✅
 **User Flow**: Flow 10 - User Management Configuration
 
 **Completed Components:**
-- `src/app/(authenticated)/admin/users/page.tsx` - User listing
+- `src/app/(authenticated)/admin/users/page.tsx` - User listing with advanced data table
 - `src/components/users/AddUserModal.tsx` - User creation
 - `src/components/users/ChangePasswordModal.tsx` - Password management
 - `src/components/users/ChangeEmailModal.tsx` - Email updates
+- `src/components/users/ProfilePictureUpload.tsx` - Profile picture upload with Firebase Storage
+- `src/components/users/UsersTable.tsx` - Advanced data table with pagination, sorting, filtering, export
+- `src/app/(authenticated)/settings/page.tsx` - User settings with profile picture upload
 - `src/services/user.service.ts` - User operations (if exists, or use firebase-utils directly)
 
 **Completed Features:**
 - User creation with Firebase Auth
 - Role assignment
 - Email/password management
-- Profile picture support
+- **Profile picture upload**: Users can upload profile pictures (JPG/PNG, max 10MB) via settings page
+  - Uploads to Firebase Storage at `profile-pictures/{userId}/{timestamp}-{filename}`
+  - Automatic deletion of old profile pictures when new one uploaded
+  - Real-time display in AppLayout header/avatar
+  - Validation: file type (JPG/PNG), file size (max 10MB)
+- **Advanced Users Table**:
+  - Pagination with customizable page sizes (10, 20, 30, 40, 50, 100)
+  - Row selection with bulk actions support
+  - Column resizing and reordering (drag handles)
+  - Export to CSV/Excel
+  - All table preferences persist to localStorage
+  - Global search across all columns
+  - Filter by user type (Login/Contact) and role
 - Company-scoped user listing
 - Permission override UI (basic)
+- Permission-based cross-company viewing (`admin.users.viewAllCompanies`)
 
 **Partial Implementation:**
 - Notification preferences UI needs full implementation (see Phase 2.6)
@@ -126,6 +144,8 @@ All foundational systems are implemented and tested. The following components ar
 - Smart loading state tracking (no arbitrary timeouts)
 - Automatic cleanup on company switch/unmount
 - Single source of truth for all company/user/role data
+
+**Important:** Roles are **global** (shared across companies), so they are NOT filtered by `companyId`. Users are company-scoped and ARE filtered by `companyId`.
 
 ### 1.5 Search Infrastructure ✅
 **Technical Infrastructure**
@@ -158,7 +178,58 @@ All foundational systems are implemented and tested. The following components ar
 - Contextual messages
 - Button loading states
 
-### 1.7 Alert Dialog System ✅
+### 1.7 Advanced Data Table System ✅
+**Technical Infrastructure**
+
+**Completed Components:**
+- `src/components/ui/data-table/DataTable.tsx` - Main reusable table component
+- `src/components/ui/data-table/DataTableHeader.tsx` - Draggable, sortable, resizable headers
+- `src/components/ui/data-table/DataTableToolbar.tsx` - Search and export controls
+- `src/components/ui/data-table/DataTablePagination.tsx` - Pagination controls
+- `src/components/ui/data-table/DataTableColumnToggle.tsx` - Column visibility toggle
+- `src/components/ui/data-table/index.ts` - Barrel export
+- `src/stores/table-config.store.ts` - Zustand store for table state persistence
+
+**Completed Features:**
+- **TanStack Table v8** integration for headless data management
+- **Pagination**: Customizable page sizes (10, 20, 30, 40, 50, 100 rows)
+- **Row Selection**: Checkboxes with bulk action support via callback
+- **Column Operations**:
+  - Drag-to-reorder using Pragmatic Drag-and-Drop
+  - Resize columns by dragging borders
+  - Toggle column visibility
+  - Sort by clicking headers (asc/desc/none)
+- **Export**: CSV and Excel (.xlsx) using xlsx library
+- **Search**: Global filter across all columns with debouncing
+- **State Persistence**: All preferences saved to localStorage per table:
+  - Column order
+  - Column visibility
+  - Column sizes
+  - Sort state
+  - Pagination state
+- **Type Safety**: Full TypeScript generics for data and column types
+- **Accessibility**: Keyboard navigation, ARIA labels, screen reader support
+- **Glass Morphism Design**: Matches design.json specifications
+
+**Usage Pattern:**
+```typescript
+<DataTable
+  tableId="unique-table-id"
+  columns={columns}
+  data={data}
+  defaultColumnOrder={["col1", "col2"]}
+  searchPlaceholder="Search..."
+  enablePagination={true}
+  enableRowSelection={true}
+  enableColumnResizing={true}
+  enableExport={true}
+  onRowSelectionChange={(selectedRows) => {
+    console.log("Selected:", selectedRows)
+  }}
+/>
+```
+
+### 1.8 Alert Dialog System ✅
 **Technical Infrastructure**
 
 **Completed Components:**
@@ -215,11 +286,11 @@ export default function MyComponent() {
 
 **Migration Status:**
 - ✅ Core infrastructure complete
-- ✅ Example implementation (products page)
-- 🔄 23 component files remaining to migrate from toast to alerts
-- See `ALERT_MIGRATION_STATUS.md` for detailed migration guide
+- ✅ All 23 component files migrated from toast to alerts (100% complete)
+- ✅ 8 admin page files migrated
+- ✅ 15 modal component files migrated
 
-### 1.8 Seed Script ✅
+### 1.9 Seed Script ✅
 **Development Infrastructure**
 
 **Completed Components:**
@@ -228,10 +299,12 @@ export default function MyComponent() {
 
 **Completed Features:**
 - Seed permissions document (`settings/permissions`)
-- Seed 9 default roles per company
+- Seed 9 default global roles (shared across all companies)
 - Seed default company with proper contact IDs
 - Seed default user with correct permissions
 - Proper timestamp handling (client + server)
+
+**Important:** Roles are seeded as **global** resources (no `companyId` field). They are shared across all companies.
 
 ---
 
@@ -454,7 +527,7 @@ Reference `docs/data-model.md` → `sites` collection
 **Role Manager Modal:**
 - User name and current company (header)
 - Available roles section:
-  - List of all roles for user's company (from globalData.roles.value)
+  - List of all global roles (from globalData.roles.value)
   - Each role shows:
     - Role name
     - Description
@@ -465,6 +538,8 @@ Reference `docs/data-model.md` → `sites` collection
 - "Quick Assign" presets (optional):
   - Standard combinations like "Basic User", "Manager", "Administrator"
 - Save button (updates user.roles array)
+
+**Note:** Roles are global and shared across all companies (no `companyId` field).
 
 **Permission Override Editor:**
 - User name and current company (header)
@@ -530,7 +605,7 @@ Reference `docs/data-model.md` → `users` collection:
 ### 2.5 Role Management ✅
 **User Flow**: Administrative configuration for role-based access control
 
-**Goal**: Create, edit, and manage roles with permission assignments for all users within a company.
+**Goal**: Create, edit, and manage global roles with permission assignments. Roles are shared across all companies with company-specific visibility control.
 
 **Files to Create/Modify:**
 - `src/app/(authenticated)/admin/roles/page.tsx`
@@ -539,10 +614,19 @@ Reference `docs/data-model.md` → `users` collection:
 - `src/services/role.service.ts` (optional, or use firebase-utils directly)
 
 **Implementation Pattern:**
-- Use `createDocument()`, `updateDocument()`, `deleteDocument()` from firebase-utils directly in components
+- Use `createDocument()`, `updateDocument()`, `updateDoc()` from firebase-utils directly in components
 - No service file needed - simple CRUD operations only
 - Access role data via `globalData.roles.value` (from data.service.ts)
 - Search: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.roles`
+
+**Important:**
+- Roles are **global** and do NOT have a `companyId` field. They are shared across all companies.
+- **Company-Specific Visibility**: Roles have a `hiddenForCompanies` array that tracks which companies have hidden that role.
+  - `isActive: false` → Role is globally inactive (hidden from all companies)
+  - `hiddenForCompanies: ["c_123"]` → Role is active globally but hidden for company c_123
+- When displaying roles for user management, filter out:
+  - Roles where `isActive === false`
+  - Roles where `hiddenForCompanies.includes(user.companyId)`
 
 **UI Requirements:**
 
@@ -632,7 +716,7 @@ Reference `docs/data-model.md` → `users` collection:
   - Show success: "{count} user(s) reassigned and role deleted"
 
 **Default Roles (Seed Script):**
-Per company, create 9 default roles:
+Create 9 default global roles (once, not per company):
 1. **Newton Administrator** - Full system access
 2. **Weighbridge Operator** - Weighbridge operations only
 3. **Security Officer** - Security checkpoints only
@@ -645,11 +729,11 @@ Per company, create 9 default roles:
 
 **Data Model:**
 Reference `docs/data-model.md` → `roles` collection:
+- **Note:** Roles are GLOBAL - no `companyId` field
 - `name: string` - Role display name
 - `description: string` - Role description
 - `permissionKeys: string[]` - Array of permission keys
 - `isActive: boolean` - Active status
-- `companyId: string` - Company-scoped
 
 **Permission Keys Structure:**
 Stored in `settings/permissions` document (global):

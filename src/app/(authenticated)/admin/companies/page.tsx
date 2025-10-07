@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Building2, Edit, ToggleLeft, ToggleRight, Mountain, Truck, PackageSearch, Trash2 } from "lucide-react"
+import { Plus, Search, Building2, Edit, ToggleLeft, ToggleRight, Mountain, Truck, PackageSearch, Trash2, ChevronDown } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CompanyService } from "@/services/company.service"
 import type { Company } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
@@ -149,7 +150,7 @@ export default function CompaniesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
           <p className="text-muted-foreground">Manage company profiles and configurations</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button variant="outline" onClick={() => setShowCreateModal(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Company
         </Button>
@@ -162,12 +163,20 @@ export default function CompaniesPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search by name or registration..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
             </div>
-            <select value={filterType} onChange={e => setFilterType(e.target.value)} className="border rounded-md px-3 py-2 bg-background/60 backdrop-blur-md">
-              <option value="all">All Types</option>
-              <option value="mine">Mine</option>
-              <option value="transporter">Transporter</option>
-              <option value="logistics_coordinator">Logistics Coordinator</option>
-            </select>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  {filterType === "all" ? "All Types" : filterType === "mine" ? "Mine" : filterType === "transporter" ? "Transporter" : "Logistics Coordinator"}
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setFilterType("all")}>All Types</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterType("mine")}>Mine</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterType("transporter")}>Transporter</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterType("logistics_coordinator")}>Logistics Coordinator</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardHeader>
         <CardContent>

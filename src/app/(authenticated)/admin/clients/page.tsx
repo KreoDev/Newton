@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Building, Edit, ToggleLeft, ToggleRight, Trash2 } from "lucide-react"
+import { Plus, Search, Building, Edit, ToggleLeft, ToggleRight, Trash2, ChevronDown } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { Client } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
 import { ClientFormModal } from "@/components/clients/ClientFormModal"
@@ -127,7 +128,7 @@ export default function ClientsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
           <p className="text-muted-foreground">Manage client companies and contacts</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button variant="outline" onClick={() => setShowCreateModal(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Client
         </Button>
@@ -140,11 +141,19 @@ export default function ClientsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search by name, registration, or contact..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
             </div>
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="border rounded-md px-3 py-2 bg-background/60 backdrop-blur-md">
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  {filterStatus === "all" ? "All Status" : filterStatus === "active" ? "Active" : "Inactive"}
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setFilterStatus("all")}>All Status</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterStatus("active")}>Active</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterStatus("inactive")}>Inactive</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </CardHeader>
         <CardContent>

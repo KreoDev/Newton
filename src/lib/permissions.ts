@@ -26,6 +26,8 @@ export type PermissionKey =
   // Administrative
   | "admin.companies"
   | "admin.users"
+  | "admin.users.viewAllCompanies"
+  | "admin.roles"
   | "admin.products"
   | "admin.orderSettings"
   | "admin.clients"
@@ -75,6 +77,8 @@ export const PERMISSIONS: Record<string, PermissionKey> = {
   // Administrative
   ADMIN_COMPANIES: "admin.companies",
   ADMIN_USERS: "admin.users",
+  ADMIN_USERS_VIEW_ALL_COMPANIES: "admin.users.viewAllCompanies",
+  ADMIN_ROLES: "admin.roles",
   ADMIN_PRODUCTS: "admin.products",
   ADMIN_ORDER_SETTINGS: "admin.orderSettings",
   ADMIN_CLIENTS: "admin.clients",
@@ -127,6 +131,8 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   // Administrative
   "admin.companies": "Manage companies",
   "admin.users": "Manage users",
+  "admin.users.viewAllCompanies": "View users from all companies",
+  "admin.roles": "Manage roles",
   "admin.products": "Manage products",
   "admin.orderSettings": "Configure order settings",
   "admin.clients": "Manage clients",

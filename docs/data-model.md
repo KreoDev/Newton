@@ -9,8 +9,9 @@
 - Client times reflect when the action happened; server times reflect when Firestore accepted the write.
 - QR codes and vehicle disks are stored as plain strings.
 - All deletion operations are soft deletes using `isActive` flag except for immediate induction errors.
-- Unless explicitly stated otherwise, **every document is scoped to a company via `companyId`**. This field references the owning company’s document id (e.g. `c_dev`). Multi-tenant isolation must be enforced with Firestore security rules using this value. Users marked as global can temporarily switch their active `companyId`, but still only interact with one company at a time.
-- Users with `isGlobal = true` may use the company switcher UI to change which company they are acting on. Switching updates the user’s `companyId` document field before further reads/writes so security rules continue to evaluate in a single-tenant context.
+- Unless explicitly stated otherwise, **every document is scoped to a company via `companyId`**. This field references the owning company's document id (e.g. `c_dev`). Multi-tenant isolation must be enforced with Firestore security rules using this value. Users marked as global can temporarily switch their active `companyId`, but still only interact with one company at a time.
+- Users with `isGlobal = true` may use the company switcher UI to change which company they are acting on. Switching updates the user's `companyId` document field before further reads/writes so security rules continue to evaluate in a single-tenant context.
+- **Exception: Roles are global** and shared across all companies. The `roles` collection does NOT have a `companyId` field. All companies use the same set of roles.
 
 ## Core Collections
 
@@ -73,18 +74,22 @@
 
 ### roles (documents)
 
-| Field          | Type            | Required | Description                                        | Example                              |
-| -------------- | --------------- | -------- | -------------------------------------------------- | ------------------------------------ |
-| id             | string (doc id) | yes      | Unique role id                                     | r_newton_admin                       |
-| companyId      | string          | yes      | Owning company reference                           | c_123                                |
-| name           | string          | yes      | Role display name                                  | Newton Administrator                 |
-| permissionKeys | string[]        | yes      | Keys referencing entries in `settings/permissions` | ["assets.manage", "orders.create"]   |
-| description    | string          | no       | Role description                                   | Full system access and configuration |
-| createdAt      | number          | yes      | Client event time (ms)                             | Date.now()                           |
-| updatedAt      | number          | yes      | Last client event time (ms)                        | Date.now()                           |
-| dbCreatedAt    | timestamp       | yes      | Server creation time                               | serverTimestamp                      |
-| dbUpdatedAt    | timestamp       | yes      | Last server update time                            | serverTimestamp                      |
-| isActive       | boolean         | yes      | Role currently usable                              | true                                 |
+**Note:** Roles are **global** and shared across all companies. They are **not** company-scoped.
+
+**Company-Specific Visibility:** While roles are global, individual companies can hide specific roles from their users using the `hiddenForCompanies` field. This allows flexible role management where a role can be active globally but hidden for specific companies.
+
+| Field              | Type            | Required | Description                                                       | Example                              |
+| ------------------ | --------------- | -------- | ----------------------------------------------------------------- | ------------------------------------ |
+| id                 | string (doc id) | yes      | Unique role id                                                    | r_newton_admin                       |
+| name               | string          | yes      | Role display name                                                 | Newton Administrator                 |
+| permissionKeys     | string[]        | yes      | Keys referencing entries in `settings/permissions`                | ["assets.manage", "orders.create"]   |
+| description        | string          | no       | Role description                                                  | Full system access and configuration |
+| isActive           | boolean         | yes      | Role globally active (if false, hidden from all companies)        | true                                 |
+| hiddenForCompanies | string[]        | no       | Array of companyIds that have hidden this role from their users   | ["c_123", "c_456"]                   |
+| createdAt          | number          | yes      | Client event time (ms)                                            | Date.now()                           |
+| updatedAt          | number          | yes      | Last client event time (ms)                                       | Date.now()                           |
+| dbCreatedAt        | timestamp       | yes      | Server creation time                                              | serverTimestamp                      |
+| dbUpdatedAt        | timestamp       | yes      | Last server update time                                           | serverTimestamp                      |
 
 ### companies (documents)
 
@@ -567,7 +572,7 @@ Newton System
 
 ## Default Roles Configuration
 
-The system should be initialized with these default roles. Each role document should be created separately for every company that needs it (e.g. seed them under `c_dev`).
+The system should be initialized with these default global roles. Roles are shared across all companies and should be seeded once (not per company).
 
 1. **Newton Administrator** (r_newton_admin): All permissions
 2. **Site Administrator** (r_site_admin): Site-level permissions

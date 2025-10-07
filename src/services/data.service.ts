@@ -43,8 +43,9 @@ class Data {
       onFirstLoad: () => this.markCollectionLoaded("companies"),
     })
 
+    // NOTE: Roles are GLOBAL - not company-scoped
     const rolesListener = createCollectionListener<Role>("roles", this.roles, {
-      companyScoped: true,
+      companyScoped: false,
       onFirstLoad: () => this.markCollectionLoaded("roles"),
     })
 
@@ -54,7 +55,7 @@ class Data {
     })
 
     const unsubCompanies = companiesListener()
-    const unsubRoles = rolesListener(companyId)
+    const unsubRoles = rolesListener() // No companyId - roles are global
     const unsubUsers = usersListener(companyId)
 
     this.unsubscribers = [unsubCompanies, unsubRoles, unsubUsers]

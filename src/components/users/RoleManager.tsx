@@ -11,6 +11,7 @@ import { useAlert } from "@/hooks/useAlert"
 import { updateDocument } from "@/lib/firebase-utils"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
+import { filterVisibleRoles } from "@/lib/role-utils"
 
 interface RoleManagerProps {
   open: boolean
@@ -25,8 +26,8 @@ export function RoleManager({ open, onClose, onSuccess, user }: RoleManagerProps
   const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Filter roles by user's company
-  const availableRoles = globalData.roles.value.filter((r: Role) => r.companyId === user.companyId && r.isActive)
+  // Filter global roles to only show those visible for the user's company
+  const availableRoles = filterVisibleRoles(globalData.roles.value, user.companyId)
 
   useEffect(() => {
     if (user && open) {

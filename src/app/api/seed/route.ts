@@ -1069,7 +1069,8 @@ async function seedRoles(sendProgress: (data: ProgressData) => void) {
       .doc(role.id)
       .set({
         ...role,
-        companyId: DEFAULT_COMPANY_ID,
+        // NOTE: Roles are GLOBAL - no companyId field
+        hiddenForCompanies: [], // Initialize as empty - companies can hide roles individually
         createdAt: Date.now(),
         updatedAt: Date.now(),
         dbCreatedAt: FieldValue.serverTimestamp(),
@@ -1079,7 +1080,7 @@ async function seedRoles(sendProgress: (data: ProgressData) => void) {
     count += 1
     sendProgress({
       stage: "seeding_roles",
-      message: `Seeded role ${role.name}`,
+      message: `Seeded global role ${role.name}`,
       collection: "roles",
       progress: { current: count, total: DEFAULT_ROLES.length },
     })
@@ -1087,7 +1088,7 @@ async function seedRoles(sendProgress: (data: ProgressData) => void) {
 
   sendProgress({
     stage: "seeding_roles",
-    message: `Completed seeding ${count} roles`,
+    message: `Completed seeding ${count} global roles (shared across all companies)`,
     collection: "roles",
     count,
     completed: true,

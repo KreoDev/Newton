@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAlert } from "@/hooks/useAlert"
 import { data } from "@/services/data.service"
 import { InlineSpinner } from "@/components/ui/loading-spinner"
+import { filterVisibleRoles } from "@/lib/role-utils"
 
 interface AddUserModalProps {
   isOpen: boolean
@@ -117,7 +118,7 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                {data.roles.value.map(role => (
+                {filterVisibleRoles(data.roles.value, companyId).map(role => (
                   <SelectItem key={role.id} value={role.id}>
                     {role.name}
                   </SelectItem>
