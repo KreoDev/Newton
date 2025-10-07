@@ -7,14 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { KeyRound, UserCircle2, ToggleRight, ToggleLeft, MoreHorizontal, Edit, User } from "lucide-react"
 import Image from "next/image"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DataTable } from "@/components/ui/data-table"
 import { useAlert } from "@/hooks/useAlert"
 import { useAuth } from "@/contexts/AuthContext"
@@ -34,16 +27,7 @@ interface UsersTableProps {
   onMoveCompany?: (user: UserType) => void
 }
 
-export function UsersTable({
-  users,
-  canViewAllCompanies,
-  onEdit,
-  onManageRoles,
-  onEditPermissions,
-  onChangePassword,
-  onChangeEmail,
-  onMoveCompany,
-}: UsersTableProps) {
+export function UsersTable({ users, canViewAllCompanies, onEdit, onManageRoles, onEditPermissions, onChangePassword, onChangeEmail, onMoveCompany }: UsersTableProps) {
   useSignals()
   const { showSuccess, showError } = useAlert()
   const { user: currentUser } = useAuth()
@@ -54,10 +38,7 @@ export function UsersTable({
         isActive: !user.isActive,
         updatedAt: Date.now(),
       })
-      showSuccess(
-        `User ${user.isActive ? "Deactivated" : "Activated"}`,
-        `${user.firstName} ${user.lastName} has been ${user.isActive ? "deactivated" : "activated"} successfully.`
-      )
+      showSuccess(`User ${user.isActive ? "Deactivated" : "Activated"}`, `${user.firstName} ${user.lastName} has been ${user.isActive ? "deactivated" : "activated"} successfully.`)
     } catch (error) {
       console.error("Error toggling user status:", error)
       showError("Failed to Update User", error instanceof Error ? error.message : "An unexpected error occurred.")
@@ -77,41 +58,31 @@ export function UsersTable({
   const columns: ColumnDef<UserType>[] = [
     {
       id: "name",
-      accessorFn: (row) => `${row.firstName} ${row.lastName}`,
+      accessorFn: row => `${row.firstName} ${row.lastName}`,
       header: "Name",
       cell: ({ row }) => {
         const user = row.original
         return (
           <div className="flex items-center gap-3">
             <div className="relative flex-shrink-0">
-              <div className="h-10 w-10 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
-                {user.profilePicture ? (
-                  <Image
-                    src={user.profilePicture}
-                    alt={`${user.firstName} ${user.lastName}`}
-                    width={40}
-                    height={40}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <User className="h-5 w-5 text-primary" />
-                )}
-              </div>
-              <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-background border-2 border-background flex items-center justify-center" title={user.canLogin !== false ? "Can log in" : "Contact only"}>
-                {user.canLogin !== false ? (
-                  <KeyRound className="h-3 w-3 text-green-600" />
-                ) : (
-                  <UserCircle2 className="h-3 w-3 text-blue-600" />
-                )}
+              <div className="h-10 w-10 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">{user.profilePicture ? <Image src={user.profilePicture} alt={`${user.firstName} ${user.lastName}`} width={40} height={40} className="h-full w-full object-cover" /> : <User className="h-5 w-5 text-primary" />}</div>
+              <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-background flex items-center justify-center" title={user.canLogin !== false ? "Can log in" : "Contact only"}>
+                {user.canLogin !== false ? <KeyRound className="h-3 w-3 text-green-600" /> : <UserCircle2 className="h-3 w-3 text-blue-600" />}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold whitespace-nowrap">{user.firstName} {user.lastName}</span>
+              <span className="font-semibold whitespace-nowrap">
+                {user.firstName} {user.lastName}
+              </span>
               {user.isGlobal && (
-                <Badge variant="info" className="text-xs">Global Admin</Badge>
+                <Badge variant="info" className="text-xs">
+                  Global Admin
+                </Badge>
               )}
               {user.id === currentUser?.id && (
-                <Badge variant="lime" className="text-xs">You</Badge>
+                <Badge variant="lime" className="text-xs">
+                  You
+                </Badge>
               )}
             </div>
           </div>
@@ -122,13 +93,11 @@ export function UsersTable({
       id: "email",
       accessorKey: "email",
       header: "Email",
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">{row.original.email}</span>
-      ),
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.email}</span>,
     },
     {
       id: "userType",
-      accessorFn: (row) => (row.canLogin !== false ? "login" : "contact"),
+      accessorFn: row => (row.canLogin !== false ? "login" : "contact"),
       header: "User Type",
       cell: ({ row }) => {
         const user = row.original
@@ -147,7 +116,7 @@ export function UsersTable({
     },
     {
       id: "role",
-      accessorFn: (row) => getRoleName(row.roleId),
+      accessorFn: row => getRoleName(row.roleId),
       header: "Role",
       cell: ({ row }) => (
         <Badge variant="outline" className="text-xs">
@@ -157,11 +126,9 @@ export function UsersTable({
     },
     {
       id: "company",
-      accessorFn: (row) => getCompanyName(row.companyId),
+      accessorFn: row => getCompanyName(row.companyId),
       header: "Company",
-      cell: ({ row }) => (
-        <span className="text-xs text-muted-foreground">{getCompanyName(row.original.companyId)}</span>
-      ),
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{getCompanyName(row.original.companyId)}</span>,
       enableHiding: canViewAllCompanies,
     },
     {
@@ -180,12 +147,7 @@ export function UsersTable({
         const user = row.original
         return (
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleUserStatus(user)}
-              title={user.isActive ? "Deactivate user" : "Activate user"}
-            >
+            <Button variant="ghost" size="sm" onClick={() => toggleUserStatus(user)} title={user.isActive ? "Deactivate user" : "Activate user"}>
               {user.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
             </Button>
             <DropdownMenu>
@@ -203,18 +165,12 @@ export function UsersTable({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onChangePassword?.(user)}>Change Password</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onChangeEmail?.(user)}>Change Email</DropdownMenuItem>
-                {canViewAllCompanies && (
-                  <DropdownMenuItem onClick={() => onMoveCompany?.(user)}>Move to Another Company</DropdownMenuItem>
-                )}
+                {canViewAllCompanies && <DropdownMenuItem onClick={() => onMoveCompany?.(user)}>Move to Another Company</DropdownMenuItem>}
                 <DropdownMenuItem onClick={() => onManageRoles?.(user)}>Manage Roles</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEditPermissions?.(user)}>Edit Permissions</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Checkbox
-              checked={row.getIsSelected()}
-              onCheckedChange={(value) => row.toggleSelected(!!value)}
-              aria-label="Select row"
-            />
+            <Checkbox checked={row.getIsSelected()} onCheckedChange={value => row.toggleSelected(!!value)} aria-label="Select row" />
           </div>
         )
       },
@@ -234,7 +190,7 @@ export function UsersTable({
       enableRowSelection={true}
       enableColumnResizing={true}
       enableExport={true}
-      onRowSelectionChange={(selectedRows) => {
+      onRowSelectionChange={selectedRows => {
         console.log("Selected users:", selectedRows)
       }}
     />
