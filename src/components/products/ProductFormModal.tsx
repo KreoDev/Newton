@@ -99,7 +99,7 @@ export function ProductFormModal({ open, onClose, onSuccess, product, viewOnly =
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-[calc(100vw-3rem)] max-h-[calc(100vh-3rem)] w-auto h-auto">
         <DialogHeader>
           <DialogTitle>{viewOnly ? "View Product" : isEditing ? "Edit Product" : "Create New Product"}</DialogTitle>
           <DialogDescription>

@@ -164,7 +164,7 @@ export function ClientFormModal({ open, onClose, onSuccess, client, viewOnly = f
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[calc(100vw-3rem)] max-h-[calc(100vh-3rem)] w-auto h-auto overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{viewOnly ? "View Client" : isEditing ? "Edit Client" : "Create New Client"}</DialogTitle>
           <DialogDescription>
@@ -237,7 +237,7 @@ export function ClientFormModal({ open, onClose, onSuccess, client, viewOnly = f
             ) : sites.length === 0 ? (
               <p className="text-sm text-muted-foreground">No active sites available. Please create sites first.</p>
             ) : (
-              <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+              <div className="border rounded-md p-3 space-y-2">
                 {sites.map(site => (
                   <div key={site.id} className="flex items-center space-x-2">
                     <Checkbox id={`site-${site.id}`} checked={allowedSiteIds.includes(site.id)} onCheckedChange={() => toggleSite(site.id)} />

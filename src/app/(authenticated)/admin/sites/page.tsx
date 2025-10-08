@@ -173,8 +173,12 @@ export default function SitesPage() {
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">{site.physicalAddress}</p>
-                      {site.contactUserId && (
-                        <p className="text-xs text-muted-foreground mt-1">Contact assigned</p>
+                      {site.mainContactId && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {site.secondaryContactIds && site.secondaryContactIds.length > 0
+                            ? `${site.secondaryContactIds.length + 1} contact(s) assigned`
+                            : "1 contact assigned"}
+                        </p>
                       )}
                     </div>
                   </div>

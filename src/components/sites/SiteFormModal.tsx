@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import { X } from "lucide-react"
 import type { Site } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
 import { useAuth } from "@/contexts/AuthContext"
@@ -42,7 +43,8 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
   const [name, setName] = useState("")
   const [siteType, setSiteType] = useState<"collection" | "destination">("collection")
   const [physicalAddress, setPhysicalAddress] = useState("")
-  const [contactUserId, setContactUserId] = useState<string>("")
+  const [mainContactId, setMainContactId] = useState<string>("")
+  const [secondaryContactIds, setSecondaryContactIds] = useState<string[]>([])
   const [groupId, setGroupId] = useState<string>("")
   const [operatingHours, setOperatingHours] = useState<OperatingHours>(DEFAULT_OPERATING_HOURS)
   const [isActive, setIsActive] = useState(true)
@@ -77,7 +79,8 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
       setName(site.name)
       setSiteType(site.siteType)
       setPhysicalAddress(site.physicalAddress)
-      setContactUserId(site.contactUserId || "")
+      setMainContactId(site.mainContactId || "")
+      setSecondaryContactIds(site.secondaryContactIds || [])
       setGroupId(site.groupId || "")
       setOperatingHours((site.operatingHours as unknown as OperatingHours) || DEFAULT_OPERATING_HOURS)
       setIsActive(site.isActive)
@@ -90,11 +93,28 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
     setName("")
     setSiteType("collection")
     setPhysicalAddress("")
-    setContactUserId("")
+    setMainContactId("")
+    setSecondaryContactIds([])
     setGroupId("")
     setOperatingHours(DEFAULT_OPERATING_HOURS)
     setIsActive(true)
   }
+
+  // Helper functions for secondary contacts
+  const addSecondaryContact = (userId: string) => {
+    if (userId && !secondaryContactIds.includes(userId) && userId !== mainContactId) {
+      setSecondaryContactIds([...secondaryContactIds, userId])
+    }
+  }
+
+  const removeSecondaryContact = (userId: string) => {
+    setSecondaryContactIds(secondaryContactIds.filter(id => id !== userId))
+  }
+
+  // Get available users for secondary contacts (excluding primary contact)
+  const availableSecondaryContacts = useMemo(() => {
+    return users.filter(u => u.id !== mainContactId && !secondaryContactIds.includes(u.id))
+  }, [users, mainContactId, secondaryContactIds])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -109,11 +129,23 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
       return
     }
 
-    // Validate contact person has phone number
-    if (contactUserId) {
-      const selectedUser = users.find(u => u.id === contactUserId)
-      if (!selectedUser || !selectedUser.phoneNumber || selectedUser.phoneNumber.trim() === "") {
-        showError("Error", "Selected contact person must have a phone number")
+    // Validate main contact has phone number
+    if (!mainContactId) {
+      showError("Error", "Primary contact is required")
+      return
+    }
+
+    const mainContact = users.find(u => u.id === mainContactId)
+    if (!mainContact || !mainContact.phoneNumber || mainContact.phoneNumber.trim() === "") {
+      showError("Error", "Primary contact must have a phone number")
+      return
+    }
+
+    // Validate secondary contacts have phone numbers
+    for (const secondaryId of secondaryContactIds) {
+      const secondaryContact = users.find(u => u.id === secondaryId)
+      if (!secondaryContact || !secondaryContact.phoneNumber || secondaryContact.phoneNumber.trim() === "") {
+        showError("Error", "All secondary contacts must have phone numbers")
         return
       }
     }
@@ -130,7 +162,8 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
         name: name.trim(),
         siteType,
         physicalAddress: physicalAddress.trim(),
-        contactUserId: contactUserId || null,
+        mainContactId,
+        secondaryContactIds,
         groupId: groupId || null,
         operatingHours,
         isActive,
@@ -158,7 +191,7 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[calc(100vw-3rem)] max-h-[calc(100vh-3rem)] w-auto h-auto overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{viewOnly ? "View Site" : isEditing ? "Edit Site" : "Create New Site"}</DialogTitle>
           <DialogDescription>
@@ -206,21 +239,25 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
             />
           </div>
 
+          {/* Primary Contact */}
           <div className="space-y-2">
-            <Label htmlFor="contactUserId">Contact Person</Label>
+            <Label htmlFor="mainContactId">
+              Primary Contact <span className="text-destructive">*</span>
+            </Label>
             {loadingUsers ? (
               <p className="text-sm text-muted-foreground">Loading users...</p>
             ) : users.length === 0 ? (
               <p className="text-sm text-muted-foreground">No users with phone numbers available.</p>
             ) : (
               <select
-                id="contactUserId"
-                value={contactUserId}
-                onChange={e => setContactUserId(e.target.value)}
+                id="mainContactId"
+                value={mainContactId}
+                onChange={e => setMainContactId(e.target.value)}
                 className="w-full border rounded-md px-3 py-2 bg-background"
+                required
                 disabled={viewOnly}
               >
-                <option value="">-- No Contact Person --</option>
+                <option value="">-- Select Primary Contact --</option>
                 {users.map(u => (
                   <option key={u.id} value={u.id}>
                     {u.firstName} {u.lastName} ({u.email}) - {u.phoneNumber}
@@ -228,7 +265,64 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
                 ))}
               </select>
             )}
-            <p className="text-xs text-muted-foreground">Only users with phone numbers are shown</p>
+            <p className="text-xs text-muted-foreground">Main site contact person (required)</p>
+          </div>
+
+          {/* Secondary Contacts */}
+          <div className="space-y-2">
+            <Label>Secondary Contacts (Optional)</Label>
+
+            {/* List of selected secondary contacts */}
+            {secondaryContactIds.length > 0 && (
+              <div className="space-y-2 mb-2">
+                {secondaryContactIds.map(userId => {
+                  const contactUser = users.find(u => u.id === userId)
+                  if (!contactUser) return null
+                  return (
+                    <div key={userId} className="flex items-center justify-between p-2 border rounded-md bg-muted/50">
+                      <span className="text-sm">
+                        {contactUser.firstName} {contactUser.lastName} ({contactUser.email}) - {contactUser.phoneNumber}
+                      </span>
+                      {!viewOnly && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeSecondaryContact(userId)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Add secondary contact dropdown */}
+            {!viewOnly && availableSecondaryContacts.length > 0 && (
+              <select
+                onChange={e => {
+                  if (e.target.value) {
+                    addSecondaryContact(e.target.value)
+                    e.target.value = ""
+                  }
+                }}
+                className="w-full border rounded-md px-3 py-2 bg-background"
+              >
+                <option value="">-- Add Secondary Contact --</option>
+                {availableSecondaryContacts.map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.firstName} {u.lastName} ({u.email}) - {u.phoneNumber}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              {secondaryContactIds.length} secondary contact(s) selected. Only users with phone numbers are shown.
+            </p>
           </div>
 
           {/* Group selector - only for mine companies */}

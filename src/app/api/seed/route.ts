@@ -1,5 +1,6 @@
 import { adminAuth, adminDb } from "@/lib/firebase-admin"
 import { FieldValue } from "firebase-admin/firestore"
+import { getDefaultNotificationPreferences } from "@/lib/notification-config"
 import fs from "fs"
 import path from "path"
 
@@ -123,34 +124,7 @@ const DEFAULT_USER_PROFILE = {
     "admin.users.managePermissions": true,
     "admin.users.viewAllCompanies": true,
   },
-  notificationPreferences: {
-    "asset.added": true,
-    "asset.inactive": true,
-    "asset.edited": true,
-    "asset.deleted": true,
-    "order.created": true,
-    "order.allocated": true,
-    "order.cancelled": true,
-    "order.completed": true,
-    "order.expiring": true,
-    "weighbridge.overload": true,
-    "weighbridge.underweight": true,
-    "weighbridge.violations": true,
-    "weighbridge.manualOverride": true,
-    "preBooking.created": true,
-    "preBooking.lateArrival": true,
-    "security.invalidLicense": true,
-    "security.unbookedArrival": true,
-    "security.noActiveOrder": true,
-    "security.sealMismatch": true,
-    "security.incorrectSealsNo": true,
-    "security.unregisteredAsset": true,
-    "security.inactiveEntity": true,
-    "security.incompleteTruck": true,
-    "driver.licenseExpiring7": true,
-    "driver.licenseExpiring30": true,
-    "system.calibrationDue": true,
-  },
+  notificationPreferences: getDefaultNotificationPreferences("mine"),
   createdAt: Date.now(),
   updatedAt: Date.now(),
   dbCreatedAt: FieldValue.serverTimestamp(),
@@ -167,34 +141,7 @@ const SECOND_USER_PROFILE = {
   roleId: "r_allocation_officer", // Allocation Officer role
   companyId: DEFAULT_COMPANY_ID,
   isGlobal: false, // Regular user, not global admin
-  notificationPreferences: {
-    "asset.added": true,
-    "asset.inactive": true,
-    "asset.edited": true,
-    "asset.deleted": true,
-    "order.created": true,
-    "order.allocated": true,
-    "order.cancelled": true,
-    "order.completed": true,
-    "order.expiring": true,
-    "weighbridge.overload": true,
-    "weighbridge.underweight": true,
-    "weighbridge.violations": true,
-    "weighbridge.manualOverride": true,
-    "preBooking.created": true,
-    "preBooking.lateArrival": true,
-    "security.invalidLicense": true,
-    "security.unbookedArrival": true,
-    "security.noActiveOrder": true,
-    "security.sealMismatch": true,
-    "security.incorrectSealsNo": true,
-    "security.unregisteredAsset": true,
-    "security.inactiveEntity": true,
-    "security.incompleteTruck": true,
-    "driver.licenseExpiring7": true,
-    "driver.licenseExpiring30": true,
-    "system.calibrationDue": true,
-  },
+  notificationPreferences: getDefaultNotificationPreferences("mine"),
   createdAt: Date.now(),
   updatedAt: Date.now(),
   dbCreatedAt: FieldValue.serverTimestamp(),
@@ -247,7 +194,6 @@ const DEFAULT_SITES = [
     name: "North Collection Point",
     siteType: "collection",
     physicalAddress: "789 Collection St, Rustenburg, 0299",
-    contactUserId: "", // Will be set to one of the contact users
     groupId: "group_north_sector", // Assigned to North Sector group
     operatingHours: {
       monday: { open: "06:00", close: "18:00" },
@@ -264,7 +210,6 @@ const DEFAULT_SITES = [
     name: "South Collection Point",
     siteType: "collection",
     physicalAddress: "321 Mining Rd, Polokwane, 0699",
-    contactUserId: "", // Will be set to one of the contact users
     groupId: "group_south_sector", // Assigned to South Sector group
     operatingHours: {
       monday: { open: "07:00", close: "17:00" },
@@ -281,7 +226,6 @@ const DEFAULT_SITES = [
     name: "Main Processing Plant",
     siteType: "destination",
     physicalAddress: "999 Processing Ave, Johannesburg, 2001",
-    contactUserId: "", // Will be set to one of the contact users
     groupId: "group_primary_processing", // Assigned to Primary Processing group
     operatingHours: {
       monday: { open: "00:00", close: "23:59" }, // 24 hours
@@ -298,7 +242,6 @@ const DEFAULT_SITES = [
     name: "Secondary Processing Facility",
     siteType: "destination",
     physicalAddress: "555 Industry Blvd, Pretoria, 0002",
-    contactUserId: "", // Will be set to one of the contact users
     groupId: "group_secondary_processing", // Assigned to Secondary Processing group
     operatingHours: {
       monday: { open: "06:00", close: "22:00" },
@@ -716,9 +659,6 @@ const DEFAULT_ROLES = [
       "weighbridge.gross",
       "security.in",
       "security.out",
-      "reports.daily",
-      "reports.monthly",
-      "reports.export",
       "admin.sites.view",
       "admin.sites",
       "admin.weighbridge",
@@ -737,28 +677,25 @@ const DEFAULT_ROLES = [
       "preBooking.view",
       "preBooking.create",
       "preBooking.edit",
-      "reports.daily",
-      "reports.monthly",
-      "reports.export",
     ],
     description: "Order and pre-booking management",
   },
   {
     id: "r_allocation_officer",
     name: "Allocation Officer",
-    permissionKeys: ["orders.view", "orders.allocate", "orders.viewAll", "preBooking.view", "reports.daily"],
+    permissionKeys: ["orders.view", "orders.allocate", "orders.viewAll", "preBooking.view"],
     description: "Order allocation and distribution",
   },
   {
     id: "r_transporter",
     name: "Transporter",
-    permissionKeys: ["assets.view", "orders.view", "preBooking.view", "reports.daily"],
+    permissionKeys: ["assets.view", "orders.view", "preBooking.view"],
     description: "View assigned orders and assets only",
   },
   {
     id: "r_induction_officer",
     name: "Induction Officer",
-    permissionKeys: ["assets.view", "assets.add", "assets.edit", "assets.delete", "reports.daily"],
+    permissionKeys: ["assets.view", "assets.add", "assets.edit", "assets.delete"],
     description: "Asset induction and management",
   },
   {
@@ -769,9 +706,6 @@ const DEFAULT_ROLES = [
       "weighbridge.gross",
       "weighbridge.calibrate",
       "weighbridge.override",
-      "reports.daily",
-      "reports.monthly",
-      "reports.export",
       "admin.weighbridge",
     ],
     description: "Weighbridge operations and calibration",
@@ -779,13 +713,13 @@ const DEFAULT_ROLES = [
   {
     id: "r_weighbridge_operator",
     name: "Weighbridge Operator",
-    permissionKeys: ["weighbridge.tare", "weighbridge.gross", "reports.daily"],
+    permissionKeys: ["weighbridge.tare", "weighbridge.gross"],
     description: "Weight capture operations only",
   },
   {
     id: "r_security",
     name: "Security Personnel",
-    permissionKeys: ["security.in", "security.out", "reports.daily"],
+    permissionKeys: ["security.in", "security.out"],
     description: "Security checkpoint operations",
   },
   {
@@ -950,34 +884,9 @@ async function seedContactUsers(sendProgress: (data: ProgressData) => void): Pro
         companyId: DEFAULT_COMPANY_ID,
         isGlobal: false,
         canLogin: false, // Contact-only user, cannot log in
-        notificationPreferences: {
-          "asset.added": false,
-          "asset.inactive": false,
-          "asset.edited": false,
-          "asset.deleted": false,
-          "order.created": false,
-          "order.allocated": false,
-          "order.cancelled": false,
-          "order.completed": false,
-          "order.expiring": false,
-          "weighbridge.overload": false,
-          "weighbridge.underweight": false,
-          "weighbridge.violations": false,
-          "weighbridge.manualOverride": false,
-          "preBooking.created": false,
-          "preBooking.lateArrival": false,
-          "security.invalidLicense": false,
-          "security.unbookedArrival": false,
-          "security.noActiveOrder": false,
-          "security.sealMismatch": false,
-          "security.incorrectSealsNo": false,
-          "security.unregisteredAsset": false,
-          "security.inactiveEntity": false,
-          "security.incompleteTruck": false,
-          "driver.licenseExpiring7": false,
-          "driver.licenseExpiring30": false,
-          "system.calibrationDue": false,
-        },
+        notificationPreferences: Object.fromEntries(
+          Object.keys(getDefaultNotificationPreferences("mine")).map(key => [key, false])
+        ),
         createdAt: Date.now(),
         updatedAt: Date.now(),
         dbCreatedAt: FieldValue.serverTimestamp(),
@@ -1172,12 +1081,6 @@ async function seedPermissions(sendProgress: (data: ProgressData) => void) {
       "admin.system": { description: "System-wide settings" },
       "admin.securityAlerts": { description: "Configure security alerts" },
 
-      // Reports
-      "reports.daily": { description: "View daily reports" },
-      "reports.monthly": { description: "View monthly reports" },
-      "reports.custom": { description: "Create custom reports" },
-      "reports.export": { description: "Export report data" },
-
       // Special
       "emergency.override": { description: "Emergency override access" },
       "orders.editCompleted": { description: "Edit completed orders" },
@@ -1308,14 +1211,23 @@ async function seedSites(sendProgress: (data: ProgressData) => void, contactUser
   for (let i = 0; i < DEFAULT_SITES.length; i++) {
     const site = DEFAULT_SITES[i]
     // Assign contact users to sites (rotate through available contacts)
-    const contactUserId = contactUserIds[i % contactUserIds.length]
+    const mainContactId = contactUserIds[i % contactUserIds.length]
+    // Assign 1-2 secondary contacts
+    const secondaryContactIds: string[] = []
+    if (contactUserIds.length > 1) {
+      secondaryContactIds.push(contactUserIds[(i + 1) % contactUserIds.length])
+    }
+    if (contactUserIds.length > 2) {
+      secondaryContactIds.push(contactUserIds[(i + 2) % contactUserIds.length])
+    }
 
     await adminDb
       .collection("sites")
       .doc(site.id)
       .set({
         ...site,
-        contactUserId,
+        mainContactId,
+        secondaryContactIds,
         companyId: DEFAULT_COMPANY_ID,
         createdAt: Date.now(),
         updatedAt: Date.now(),

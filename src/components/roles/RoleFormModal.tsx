@@ -95,52 +95,56 @@ export function RoleFormModal({ open, onClose, onSuccess, role, viewOnly = false
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-[calc(100vw-3rem)] max-h-[calc(100vh-3rem)] w-auto h-auto flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>{viewOnly ? "View Role" : isEditing ? "Edit Role" : "Create New Role"}</DialogTitle>
           <DialogDescription>
             {viewOnly ? "View role information and permissions" : isEditing ? "Update role information and permissions" : "Add a new role with custom permissions"}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <fieldset disabled={viewOnly} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">
-              Role Name <span className="text-destructive">*</span>
-            </Label>
-            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Weighbridge Operator" required />
-          </div>
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <fieldset disabled={viewOnly} className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-shrink-0 space-y-4 pb-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">
+                  Role Name <span className="text-destructive">*</span>
+                </Label>
+                <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Weighbridge Operator" required />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Describe the role and its responsibilities"
-              rows={3}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Describe the role and its responsibilities"
+                  rows={3}
+                />
+              </div>
+            </div>
 
-          <PermissionSelector selectedPermissions={permissionKeys} onChange={setPermissionKeys} />
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <PermissionSelector selectedPermissions={permissionKeys} onChange={setPermissionKeys} />
+            </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox id="isActive" checked={isActive} onCheckedChange={checked => setIsActive(checked as boolean)} />
-            <Label htmlFor="isActive" className="cursor-pointer">
-              Active
-            </Label>
-          </div>
+            <div className="flex-shrink-0 flex items-center space-x-2 pt-4">
+              <Checkbox id="isActive" checked={isActive} onCheckedChange={checked => setIsActive(checked as boolean)} />
+              <Label htmlFor="isActive" className="cursor-pointer">
+                Active
+              </Label>
+            </div>
           </fieldset>
 
           {viewOnly ? (
-            <div className="flex justify-end pt-4 border-t">
+            <div className="flex justify-end pt-4 border-t flex-shrink-0">
               <Button type="button" onClick={onClose}>
                 Close
               </Button>
             </div>
           ) : (
-            <div className="flex justify-end gap-3 pt-4 border-t">
+            <div className="flex justify-end gap-3 pt-4 border-t flex-shrink-0">
               <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
                 Cancel
               </Button>

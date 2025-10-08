@@ -59,6 +59,8 @@ export interface NotificationPreferences {
   "system.calibrationDue": boolean
 }
 
+export type NotificationKey = keyof NotificationPreferences
+
 export interface User extends Timestamped, CompanyScoped {
   id: string
   email: string
@@ -253,7 +255,8 @@ export interface Site extends Timestamped, CompanyScoped {
   name: string
   siteType: "collection" | "destination"
   physicalAddress: string
-  contactUserId: string
+  mainContactId: string // Primary contact user ID
+  secondaryContactIds: string[] // Secondary contact user IDs
   groupId?: string // Assignment to organizational group (only for mine companies)
   operatingHours: Record<string, { open: string; close: string }>
   isActive: boolean

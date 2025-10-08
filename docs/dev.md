@@ -796,10 +796,6 @@ Reference `docs/data-model.md` → `users` collection:
     - admin.systemSettings (System-wide settings)
     - admin.securityAlerts (Security alert configuration)
 
-  - **Reporting:**
-    - reports.view (View reports)
-    - reports.export (Export reports)
-
   - **Transporter-Specific:**
     - transporter.viewOnlyAssigned (View only assigned orders)
     - transporter.viewOtherTransporters (View other transporters' data)
@@ -832,14 +828,14 @@ Reference `docs/data-model.md` → `users` collection:
 **Default Roles (Seed Script):**
 Create 9 default global roles (once, not per company):
 1. **Newton Administrator** - Full system access
-2. **Weighbridge Operator** - Weighbridge operations only
-3. **Security Officer** - Security checkpoints only
-4. **Asset Manager** - Asset management only
-5. **Order Coordinator** - Order creation and allocation
-6. **Logistics Coordinator** - Pre-booking and order allocation
-7. **Transporter User** - View assigned orders, create pre-bookings
-8. **Report Viewer** - View and export reports only
-9. **Basic User** - View-only access
+2. **Site Administrator** - Site-level management and operations
+3. **Logistics Coordinator** - Order and pre-booking management
+4. **Allocation Officer** - Order allocation and distribution
+5. **Transporter** - View assigned orders and assets only
+6. **Induction Officer** - Asset induction and management
+7. **Weighbridge Supervisor** - Weighbridge operations and calibration
+8. **Weighbridge Operator** - Weight capture operations only
+9. **Security Personnel** - Security checkpoint operations
 
 **Data Model:**
 Reference `docs/data-model.md` → `roles` collection:
@@ -1941,489 +1937,14 @@ Reference `docs/data-model.md` → `pre_bookings` collection
 - ✅ Late arrival notifications sent
 - ✅ Mark arrived button updates status
 
----
-
-## Phase 6: Operational Flows (Security & Weighbridge)
-
-### Overview
-Implement security checkpoint and weighbridge operations that tie together assets, orders, and pre-bookings.
-
----
-
-### 6.1 Security Checkpoint - Entry
-**User Flow**: Flow implied from security flow in user-flow-web.md
-
-**Goal**: Verify trucks, drivers, trailers at entry gate.
-
-**Files to Create/Modify:**
-- `src/app/(authenticated)/operations/security-in/page.tsx`
-- `src/components/security/SecurityCheckWizard.tsx`
-- `src/components/security/wizard-steps/Step1DriverScan.tsx`
-- `src/components/security/wizard-steps/Step2TruckScan.tsx`
-- `src/components/security/wizard-steps/Step3TrailerScan.tsx`
-- `src/components/security/wizard-steps/Step4OrderVerification.tsx`
-- `src/components/security/wizard-steps/Step5PreBookingCheck.tsx`
-- `src/components/security/wizard-steps/Step6SealVerification.tsx`
-- `src/components/security/wizard-steps/Step7ApprovalDenial.tsx`
-- `src/services/security-check.service.ts`
-
-**Wizard Steps:**
-
-**Step 1: Driver Scan**
-- QR scanner for driver
-- On scan:
-  - Look up asset by qrCode
-  - Validate assetType = 'driver'
-  - Check isActive
-  - Check license expiry
-  - If expired: Error + Send "security.invalidLicense" notification
-  - If expiring <7 days: Warning
-  - Display driver info:
-    - Name, surname
-    - License number
-    - Expiry date
-- Next button
-
-**Step 2: Truck Scan**
-- QR scanner for truck
-- On scan:
-  - Look up asset by qrCode
-  - Validate assetType = 'truck'
-  - Check isActive
-  - Check disk expiry
-  - If expired: Error + Send "security.invalidLicense" notification
-  - Display truck info:
-    - Registration
-    - Make, model
-    - Fleet number
-- Next button
-
-**Step 3: Trailer Scan (Optional)**
-- QR scanner for trailer 1
-- QR scanner for trailer 2 (optional)
-- For each trailer:
-  - Look up asset by qrCode
-  - Validate assetType = 'trailer'
-  - Check isActive
-  - Check disk expiry
-  - Display trailer info
-- Skip button / Next button
-
-**Step 4: Order Verification**
-- Search for active orders:
-  - Query orders where:
-    - companyId matches truck's company
-    - status = 'allocated'
-    - dispatchStartDate <= today <= dispatchEndDate
-- Display list of applicable orders:
-  - Order number
-  - Product
-  - Remaining weight
-  - Select radio button
-- If no orders found:
-  - Show error: "No active orders for this company"
-  - Send notification to users with "security.noActiveOrder" enabled
-  - Deny entry button
-- If orders found: Select order and next
-
-**Step 5: Pre-Booking Check**
-- Check if order requires pre-booking (company.orderConfig.preBookingMode = 'compulsory')
-- If compulsory:
-  - Query pre_bookings where:
-    - orderId = selected order
-    - assetId = truck
-    - scheduledDate = today
-    - status = 'pending'
-  - If no booking:
-    - Show error: "No pre-booking found for this truck on this order today"
-    - Send notification to users with "security.unbookedArrival" enabled
-    - Option to bypass (if user has "preBooking.bypass" permission)
-    - Deny entry button
-  - If booking found:
-    - Display booking details
-    - Update pre-booking status = 'arrived', arrivalTime = now
-    - Check if >24h late: Send "preBooking.lateArrival" notification
-- If optional:
-  - Display "Pre-booking is optional for this order"
-- Next button
-
-**Step 6: Seal Verification (if order requires seals)**
-- If order.sealRequired = false: Skip this step
-- If order.sealRequired = true:
-  - Input seal numbers (multiple text inputs based on order.sealQuantity)
-  - Validate:
-    - Count matches order.sealQuantity
-    - No duplicates
-  - If incorrect count:
-    - Show error: "Expected {quantity} seals, found {count}"
-    - Send notification to users with "security.incorrectSealsNo" enabled
-    - Deny entry option
-  - If correct:
-    - Save seal numbers to security check record
-- Next button
-
-**Step 7: Approval/Denial**
-- Summary of all scans:
-  - Driver (name, license, expiry)
-  - Truck (registration, expiry)
-  - Trailers (if any)
-  - Order (number, product)
-  - Pre-booking (status)
-  - Seals (numbers)
-- Verification status:
-  - ✅ All checks passed
-  - ❌ Issues found: (list issues)
-- Buttons:
-  - Approve Entry (green) - only if all checks passed
-  - Deny Entry (red) - requires reason
-- On approve:
-  - Create security_check record with checkType = 'entry', verificationStatus = 'passed'
-  - Update pre-booking arrivalTime
-  - Show success message: "Entry approved. Proceed to weighbridge."
-- On deny:
-  - Show reason modal (textarea required)
-  - Create security_check record with checkType = 'entry', verificationStatus = 'denied', denialReason = reason
-  - Send notifications for denial reasons
-  - Show message: "Entry denied. Truck must leave premises."
-
-**Methods/Functions:**
-- `SecurityCheckService.create(data: SecurityCheckInput)` - Create check record
-- `SecurityCheckService.verifyAsset(qrCode: string, expectedType: 'truck' | 'trailer' | 'driver')` - Validate asset
-- `SecurityCheckService.findActiveOrders(companyId: string)` - Get applicable orders
-- `SecurityCheckService.checkPreBooking(orderId: string, assetId: string, date: string)` - Find booking
-- `SecurityCheckService.validateSeals(sealNumbers: string[], requiredQuantity: number)` - Seal validation
-- `SecurityCheckService.approve(checkData: SecurityCheck)` - Approve entry
-- `SecurityCheckService.deny(checkData: SecurityCheck, reason: string)` - Deny entry
-
-**Data Model:**
-Reference `docs/data-model.md` → `security_checks` collection
-
-**Acceptance Criteria:**
-- ✅ All assets scanned and validated
-- ✅ Expired assets blocked
-- ✅ Order verification works
-- ✅ Pre-booking requirement enforced
-- ✅ Seal count validated
-- ✅ Approval creates security check record
-- ✅ Denial sends notifications
-- ✅ All security alerts trigger correctly
-
----
-
-### 6.2 Security Checkpoint - Exit
-**User Flow**: Implicit (mirror of entry)
-
-**Goal**: Verify truck completed process before exit.
-
-**Files to Create/Modify:**
-- `src/app/(authenticated)/operations/security-out/page.tsx`
-- `src/components/security/SecurityExitWizard.tsx`
-- Reuse/modify entry components
-
-**Wizard Steps:**
-
-**Step 1: Truck QR Scan**
-- Scan truck QR code
-- Look up most recent entry security check (checkType = 'entry', status = 'passed')
-- If no entry record:
-  - Error: "No entry record found. Truck should not be on premises."
-  - Send alert to security contacts
-  - Deny exit
-- If entry record exists:
-  - Display entry details
-  - Next button
-
-**Step 2: Weighing Verification**
-- Check for weighing record:
-  - Query weighing_records where assetId = truck, status = 'completed'
-  - If no record:
-    - Warning: "No weighing record found. Has this truck been weighed?"
-    - Option to bypass (if user has permission)
-    - Send notification to users with "security.incompleteTruck" enabled
-  - If record found:
-    - Display ticket number, weight, timestamp
-    - Next button
-
-**Step 3: Seal Verification (if applicable)**
-- If order required seals at entry:
-  - Scan/input seal numbers on exit
-  - Compare with entry seal numbers
-  - If mismatch:
-    - Error: "Seal numbers don't match entry seals"
-    - Send notification to users with "security.sealMismatch" enabled
-    - Deny exit
-  - If match:
-    - Next button
-- If no seals required: Skip
-
-**Step 4: Exit Approval**
-- Summary:
-  - Entry time
-  - Weighing ticket
-  - Seals verified (if applicable)
-- Buttons:
-  - Approve Exit (green)
-  - Deny Exit (red, requires reason)
-- On approve:
-  - Create security_check record with checkType = 'exit', verificationStatus = 'passed'
-  - Show success message: "Exit approved. Safe travels."
-- On deny:
-  - Reason modal
-  - Create security_check with checkType = 'exit', verificationStatus = 'denied', denialReason = reason
-  - Send alert to security contacts
-  - Show message: "Exit denied. Contact supervisor."
-
-**Methods/Functions:**
-- `SecurityCheckService.findEntryRecord(assetId: string)` - Find matching entry
-- `SecurityCheckService.verifyWeighingCompleted(assetId: string)` - Check weighing record exists
-- `SecurityCheckService.compareSeals(entrySeals: string[], exitSeals: string[])` - Validate seals match
-- `SecurityCheckService.approveExit(checkData: SecurityCheck)` - Approve exit
-- `SecurityCheckService.denyExit(checkData: SecurityCheck, reason: string)` - Deny exit
-
-**Acceptance Criteria:**
-- ✅ Entry record verified
-- ✅ Weighing record checked
-- ✅ Seal verification works
-- ✅ Approval creates exit record
-- ✅ Denial sends alerts
-- ✅ Incomplete process detected and flagged
-
----
-
-### 6.3 Weighbridge - Tare Weight
-**User Flow**: Implied from weighbridge operations
-
-**Goal**: Capture empty truck weight before loading.
-
-**Files to Create/Modify:**
-- `src/app/(authenticated)/operations/weighbridge-tare/page.tsx`
-- `src/components/weighbridge/TareWeightForm.tsx`
-- `src/components/weighbridge/WeighbridgeScaleDisplay.tsx`
-- `src/components/weighbridge/SerialPortReader.tsx`
-- `src/services/weighbridge.service.ts`
-- `src/services/weighing-record.service.ts`
-
-**UI Requirements:**
-
-**Step 1: Security Check Verification**
-- Scan truck QR code
-- Look up most recent entry security check
-- If no entry or entry denied:
-  - Error: "Truck has not been cleared by security"
-  - Block process
-- If entry approved:
-  - Display truck details
-  - Display order details
-  - Next button
-
-**Step 2: Weighbridge Selection**
-- Dropdown: Select weighbridge (active weighbridges only)
-- Display weighbridge details:
-  - Name, location
-  - Axle setup
-  - Calibration status (warn if due/overdue)
-- Next button
-
-**Step 3: Weight Capture**
-- Live scale display (if serial port configured):
-  - Large numeric display of current weight
-  - Unit (tons/kg - configurable)
-  - "Reading from {weighbridgeName}"
-  - Refresh button (re-read serial port)
-- Manual entry option:
-  - Text input for weight
-  - Validation: > 0, reasonable range (e.g., 1-50 tons for trucks)
-- Tare weight field (number input)
-- Capture button
-
-**Step 4: Ticket Generation**
-- On capture:
-  - Generate ticket number: `TKT-YYYY-NNNNNN`
-  - Create weighing_record with:
-    - orderId, assetId, weighbridgeId
-    - status = 'tare_only'
-    - tareWeight = captured weight
-    - tareTimestamp = now
-    - ticketNumber
-    - operatorId = current user
-  - Display ticket:
-    - Ticket number (large, prominent)
-    - Truck registration
-    - Order number
-    - Tare weight
-    - Timestamp
-    - Operator name
-    - Weighbridge name
-  - Print button (PDF generation)
-  - "Weigh Again" button (clears and restarts)
-  - "Finish" button (redirect to list)
-
-**Methods/Functions:**
-- `WeighingRecordService.create(data: WeighingRecordInput)` - Create record
-- `WeighingRecordService.generateTicketNumber()` - Auto-generate ticket number
-- `WeighbridgeService.readWeight(weighbridgeId: string)` - Read from serial port (if configured)
-- `WeighbridgeService.validateWeight(weight: number, weighbridgeId: string)` - Check tolerance
-- `WeighingRecordService.generateTicketPDF(recordId: string)` - Create PDF ticket
-
-**Serial Port Integration:**
-- Use Node.js `serialport` library (server-side API route)
-- API endpoint: `POST /api/weighbridge/read-weight`
-- Request: `{ weighbridgeId: string }`
-- Response: `{ weight: number, unit: string, timestamp: Date }`
-- Parse weight from serial string based on weighbridge.serialPortConfig.decodingRules
-
-**Data Model:**
-Reference `docs/data-model.md` → `weighing_records` collection
-
-**Acceptance Criteria:**
-- ✅ Security check verified before weighing
-- ✅ Weight captured from scale or manual entry
-- ✅ Ticket number generated
-- ✅ Weighing record created with status 'tare_only'
-- ✅ PDF ticket printable
-- ✅ Serial port reading works (if configured)
-
----
-
-### 6.4 Weighbridge - Gross Weight
-**User Flow**: Implied from weighbridge operations
-
-**Goal**: Capture loaded truck weight after loading, calculate net weight.
-
-**Files to Create/Modify:**
-- Modify `src/app/(authenticated)/operations/weighbridge-gross/page.tsx`
-- `src/components/weighbridge/GrossWeightForm.tsx`
-- Reuse tare components
-
-**UI Requirements:**
-
-**Step 1: Find Tare Record**
-- Scan truck QR code
-- Look up weighing_record where:
-  - assetId = truck
-  - status = 'tare_only'
-  - tareTimestamp within last 24 hours (configurable)
-- If no record:
-  - Error: "No tare record found. Truck must weigh empty first."
-  - Redirect to tare page
-- If record found:
-  - Display tare details:
-    - Ticket number
-    - Tare weight
-    - Tare timestamp
-  - Next button
-
-**Step 2: Weighbridge Selection**
-- Same as tare
-- Ideally same weighbridge as tare (but not required)
-
-**Step 3: Gross Weight Capture**
-- Same UI as tare weight capture
-- Live scale display or manual entry
-- Gross weight field (number input)
-- Capture button
-
-**Step 4: Net Weight Calculation & Validation**
-- Calculate: netWeight = grossWeight - tareWeight
-- Display:
-  - Tare Weight: {tare} tons
-  - Gross Weight: {gross} tons
-  - **Net Weight: {net} tons** (large, prominent)
-- Validation checks:
-
-  **Overload Check:**
-  - Compare net weight to order daily weight limit OR truck capacity
-  - If > threshold (e.g., weighbridge.overloadThreshold = 5%):
-    - Show red alert: "OVERLOAD DETECTED: {net} tons exceeds limit by {percentage}%"
-    - Send notification to users with "weighbridge.overload" enabled
-    - Display: "Truck MUST offload excess weight before proceeding"
-    - Block ticket completion
-    - "Offload & Re-Weigh" button
-
-  **Underweight Check:**
-  - If < threshold (e.g., weighbridge.underweightThreshold = 10% of expected):
-    - Show yellow warning: "Underweight: {net} tons is {percentage}% below expected"
-    - Send notification to users with "weighbridge.underweight" enabled
-    - Allow to proceed with confirmation
-
-  **Weight Limit Violation:**
-  - Check against order.dailyWeightLimit
-  - If today's total weight + net > dailyWeightLimit:
-    - Show warning: "Daily weight limit exceeded"
-    - Send notification to users with "weighbridge.violations" enabled
-    - Option to override (if user has "weighbridge.override" permission)
-
-- If all validations pass or overridden:
-  - Next button
-
-**Step 5: Seal Recording (if applicable)**
-- If order.sealRequired = true:
-  - Display seal numbers from security entry
-  - Confirm seals intact (checkbox)
-  - If seals broken/missing:
-    - Red alert + send notification to users with "security.sealMismatch" enabled
-    - Require supervisor override
-- If no seals required: Skip
-
-**Step 6: Ticket Completion**
-- Update weighing_record:
-  - status = 'completed'
-  - grossWeight = captured weight
-  - netWeight = calculated
-  - grossTimestamp = now
-  - overloadFlag = true/false
-  - underweightFlag = true/false
-  - sealNumbers = from entry (if applicable)
-- Update order:
-  - completedWeight += netWeight
-  - completedTrips += 1
-  - If completedWeight >= totalWeight: status = 'completed', send "order.completed" notification
-- Display final ticket:
-  - Ticket number
-  - Truck, driver, order
-  - Tare, gross, net weights
-  - Seal numbers
-  - Operator name
-  - Timestamp
-  - Overload/underweight warnings (if any)
-- Print button (PDF)
-- "Complete Another" button
-
-**Methods/Functions:**
-- `WeighingRecordService.findTareRecord(assetId: string)` - Find incomplete tare
-- `WeighingRecordService.complete(id: string, grossData: GrossWeightInput)` - Update to completed
-- `WeighingRecordService.calculateNetWeight(gross: number, tare: number)` - Net calculation
-- `WeighingRecordService.checkOverload(netWeight: number, limit: number, threshold: number)` - Overload validation
-- `WeighingRecordService.checkUnderweight(netWeight: number, expected: number, threshold: number)` - Underweight validation
-- `OrderService.updateProgress(orderId: string, netWeight: number)` - Update order stats
-- `OrderService.checkCompletion(orderId: string)` - Check if order complete
-
-**Data Model:**
-Reference `docs/data-model.md` → `weighing_records` collection
-
-**Acceptance Criteria:**
-- ✅ Tare record found and linked
-- ✅ Gross weight captured
-- ✅ Net weight calculated correctly
-- ✅ Overload detection works and blocks ticket
-- ✅ Underweight warning shown
-- ✅ Daily limit validation works
-- ✅ Override permission respected
-- ✅ Seals verified if required
-- ✅ Order progress updated
-- ✅ Order completion detected
-- ✅ Notifications sent for violations
-
----
-
-## Phase 7: Dashboard
+## Phase 6: Dashboard
 
 ### Overview
 Implement role-based dashboards with different views for mine companies, transporter companies, and logistics coordinator companies. Each company type sees relevant metrics and data.
 
 ---
 
-### 7.1 Dashboard for Mine Companies
+### 6.1 Dashboard for Mine Companies
 **User Flow**: Implicit - landing page after login for mine users
 
 **Goal**: Provide mine operators with operational overview and order/weighing metrics.
@@ -2539,7 +2060,7 @@ Implement role-based dashboards with different views for mine companies, transpo
 
 ---
 
-### 7.3 Dashboard for Logistics Coordinator Companies
+### 6.3 Dashboard for Logistics Coordinator Companies
 **User Flow**: Implicit - landing page after login for LC users
 
 **Goal**: Provide coordinators with order allocation overview, transporter performance, and pending allocations.
@@ -2601,7 +2122,7 @@ Implement role-based dashboards with different views for mine companies, transpo
 
 ---
 
-### 7.4 Global Admin Dashboard (Optional Enhancement)
+### 6.4 Global Admin Dashboard (Optional Enhancement)
 **Goal**: System-wide overview for global administrators.
 
 **Dashboard Sections:**
@@ -2638,14 +2159,14 @@ Implement role-based dashboards with different views for mine companies, transpo
 
 ---
 
-## Phase 8: Notifications
+## Phase 7: Notifications
 
 ### Overview
 Implement automated email notification system triggered by events throughout the application.
 
 ---
 
-### 8.1 Notification Sending Service
+### 7.1 Notification Sending Service
 **User Flow**: Flow 16 - Notification System Infrastructure (backend)
 
 **Goal**: Automated email sending based on events.
@@ -2724,7 +2245,7 @@ Implement automated email notification system triggered by events throughout the
 
 ---
 
-### 8.2 Notification History
+### 7.2 Notification History
 **User Flow**: Implicit (admin debugging)
 
 **Goal**: View log of all sent notifications.
@@ -2765,14 +2286,14 @@ Implement automated email notification system triggered by events throughout the
 
 ---
 
-## Phase 9: Audit Logging
+## Phase 8: Audit Logging
 
 ### Overview
 Comprehensive audit logging system to track all user actions for compliance, debugging, and security.
 
 ---
 
-### 9.1 Audit Logging Implementation
+### 8.1 Audit Logging Implementation
 **User Flow**: Implicit (compliance and debugging)
 
 **Goal**: Track all user actions for compliance.

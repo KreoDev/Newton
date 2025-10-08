@@ -505,12 +505,6 @@ Example structure:
     "admin.system": { description: "System-wide settings" },
     "admin.securityAlerts": { description: "Configure security alerts" },
 
-    // Reports
-    "reports.daily": { description: "View daily reports" },
-    "reports.monthly": { description: "View monthly reports" },
-    "reports.custom": { description: "Create custom reports" },
-    "reports.export": { description: "Export report data" },
-
     // Special
     "emergency.override": { description: "Emergency override access" },
     "orders.editCompleted": { description: "Edit completed orders" },

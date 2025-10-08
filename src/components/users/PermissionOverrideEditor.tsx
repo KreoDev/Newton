@@ -12,6 +12,8 @@ import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { AlertTriangle } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
+import { useCompany } from "@/contexts/CompanyContext"
+import { getPermissionCategoriesForCompanyType } from "@/lib/permission-config"
 
 interface PermissionOverrideEditorProps {
   open: boolean
@@ -19,34 +21,6 @@ interface PermissionOverrideEditorProps {
   onSuccess: () => void
   user: User
   viewOnly?: boolean
-}
-
-// Simplified permission categories
-const PERMISSION_CATEGORIES = {
-  "Asset Management": [
-    { key: "assets.view", label: "View Assets" },
-    { key: "assets.add", label: "Add Assets" },
-    { key: "assets.edit", label: "Edit Assets" },
-    { key: "assets.delete", label: "Delete Assets" },
-  ],
-  "Order Management": [
-    { key: "orders.view", label: "View Orders" },
-    { key: "orders.create", label: "Create Orders" },
-    { key: "orders.allocate", label: "Allocate Orders" },
-    { key: "orders.edit", label: "Edit Orders" },
-    { key: "orders.cancel", label: "Cancel Orders" },
-  ],
-  "Administrative": [
-    { key: "admin.users", label: "User Management" },
-    { key: "admin.users.manageGlobalAdmins", label: "Manage Global Admins" },
-    { key: "admin.users.managePermissions", label: "Manage Permissions" },
-    { key: "admin.users.viewAllCompanies", label: "View All Companies (Users)" },
-    { key: "admin.companies", label: "Company Management" },
-    { key: "admin.roles", label: "Role Management" },
-    { key: "admin.products", label: "Product Management" },
-    { key: "admin.clients", label: "Client Management" },
-    { key: "admin.sites", label: "Site Management" },
-  ],
 }
 
 const ACCESS_LEVELS = [
@@ -59,17 +33,22 @@ const ACCESS_LEVELS = [
 export function PermissionOverrideEditor({ open, onClose, onSuccess, user, viewOnly = false }: PermissionOverrideEditorProps) {
   const { showSuccess, showError } = useAlert()
   const { user: currentUser } = useAuth()
+  const { company } = useCompany()
   const { hasPermission: canManagePermissions } = usePermission(PERMISSIONS.ADMIN_USERS_MANAGE_PERMISSIONS)
   const { hasPermission: canManageGlobalAdmins } = usePermission(PERMISSIONS.ADMIN_USERS_MANAGE_GLOBAL_ADMINS)
   const [overrides, setOverrides] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
 
-  // Filter permissions based on current user's capabilities
+  // Get permissions for current company type and filter based on user capabilities
   const getFilteredPermissions = () => {
-    const filteredCategories = { ...PERMISSION_CATEGORIES }
+    if (!company) return {}
+
+    // Get company-type-specific permissions
+    const baseCategories = getPermissionCategoriesForCompanyType(company.companyType)
+    const filteredCategories = { ...baseCategories }
 
     // Only global admins with manageGlobalAdmins permission can see/assign that permission
-    if (!currentUser?.isGlobal || !canManageGlobalAdmins) {
+    if (filteredCategories.Administrative && (!currentUser?.isGlobal || !canManageGlobalAdmins)) {
       filteredCategories.Administrative = filteredCategories.Administrative.filter(
         p => p.key !== "admin.users.manageGlobalAdmins"
       )
@@ -77,6 +56,8 @@ export function PermissionOverrideEditor({ open, onClose, onSuccess, user, viewO
 
     return filteredCategories
   }
+
+  const PERMISSION_CATEGORIES = getFilteredPermissions()
 
   useEffect(() => {
     if (user && open) {

@@ -235,7 +235,7 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-[calc(100vw-3rem)] max-h-[calc(100vh-3rem)] w-auto h-auto">
         <DialogHeader>
           <DialogTitle>{viewOnly ? "View User" : "Edit User"}</DialogTitle>
         </DialogHeader>

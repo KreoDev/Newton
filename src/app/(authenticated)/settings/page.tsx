@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSignals } from "@preact/signals-react/runtime"
-import { Save, User, Shield, Palette, Moon, Sun, Layout, LayoutGrid } from "lucide-react"
+import { Save, User, Shield, Palette, Moon, Sun, Layout, LayoutGrid, Bell } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useLayout } from "@/hooks/useLayout"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,7 @@ import { userOperations } from "@/lib/firebase-utils"
 import { ChangePasswordModal } from "@/components/users/ChangePasswordModal"
 import { ChangeEmailModal } from "@/components/users/ChangeEmailModal"
 import { AvatarUpload } from "@/components/users/AvatarUpload"
+import { NotificationPreferencesTab } from "@/components/settings/NotificationPreferencesTab"
 import { useAlert } from "@/hooks/useAlert"
 
 export default function SettingsPage() {
@@ -167,6 +168,10 @@ export default function SettingsPage() {
             <Palette className="h-4 w-4" />
             <span>Appearance</span>
           </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center space-x-2">
+            <Bell className="h-4 w-4" />
+            <span>Notifications</span>
+          </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center space-x-2">
             <Shield className="h-4 w-4" />
             <span>Security</span>
@@ -295,6 +300,10 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="space-y-4">
+          <NotificationPreferencesTab />
         </TabsContent>
 
         <TabsContent value="security" className="space-y-4">

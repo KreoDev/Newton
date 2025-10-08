@@ -46,11 +46,6 @@ export type PermissionKey =
   | "admin.notifications"
   | "admin.system"
   | "admin.securityAlerts"
-  // Reports
-  | "reports.daily"
-  | "reports.monthly"
-  | "reports.custom"
-  | "reports.export"
   // Special
   | "emergency.override"
   | "orders.editCompleted"
@@ -108,12 +103,6 @@ export const PERMISSIONS: Record<string, PermissionKey> = {
   ADMIN_NOTIFICATIONS: "admin.notifications",
   ADMIN_SYSTEM: "admin.system",
   ADMIN_SECURITY_ALERTS: "admin.securityAlerts",
-
-  // Reports
-  REPORTS_DAILY: "reports.daily",
-  REPORTS_MONTHLY: "reports.monthly",
-  REPORTS_CUSTOM: "reports.custom",
-  REPORTS_EXPORT: "reports.export",
 
   // Special
   EMERGENCY_OVERRIDE: "emergency.override",
@@ -173,12 +162,6 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   "admin.notifications": "Configure notifications",
   "admin.system": "System-wide settings",
   "admin.securityAlerts": "Configure security alerts",
-
-  // Reports
-  "reports.daily": "View daily reports",
-  "reports.monthly": "View monthly reports",
-  "reports.custom": "Create custom reports",
-  "reports.export": "Export report data",
 
   // Special
   "emergency.override": "Emergency override access",

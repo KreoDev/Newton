@@ -3,62 +3,41 @@
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/contexts/AuthContext"
+import { useCompany } from "@/contexts/CompanyContext"
+import { usePermission } from "@/hooks/usePermission"
+import { PERMISSIONS } from "@/lib/permissions"
+import { getPermissionCategoriesForCompanyType } from "@/lib/permission-config"
 
 interface PermissionSelectorProps {
   selectedPermissions: string[]
   onChange: (permissions: string[]) => void
 }
 
-// Permission structure with categories
-const PERMISSION_CATEGORIES = {
-  "Asset Management": [
-    { key: "assets.view", label: "View Assets" },
-    { key: "assets.add", label: "Add Assets" },
-    { key: "assets.edit", label: "Edit Assets" },
-    { key: "assets.delete", label: "Delete Assets" },
-  ],
-  "Order Management": [
-    { key: "orders.view", label: "View Orders" },
-    { key: "orders.create", label: "Create Orders" },
-    { key: "orders.allocate", label: "Allocate Orders" },
-    { key: "orders.edit", label: "Edit Orders" },
-    { key: "orders.cancel", label: "Cancel Orders" },
-  ],
-  "Pre-Booking Management": [
-    { key: "prebookings.view", label: "View Pre-Bookings" },
-    { key: "prebookings.create", label: "Create Pre-Bookings" },
-    { key: "prebookings.edit", label: "Edit Pre-Bookings" },
-    { key: "prebookings.cancel", label: "Cancel Pre-Bookings" },
-  ],
-  "Operational Flow": [
-    { key: "operations.securityIn", label: "Security Checkpoint - Entry" },
-    { key: "operations.securityOut", label: "Security Checkpoint - Exit" },
-    { key: "operations.weighbridgeTare", label: "Weighbridge Tare Weight" },
-    { key: "operations.weighbridgeGross", label: "Weighbridge Gross Weight" },
-  ],
-  "Administrative": [
-    { key: "admin.users", label: "User Management" },
-    { key: "admin.companies", label: "Company Management" },
-    { key: "admin.roles", label: "Role Management" },
-    { key: "admin.products", label: "Product Management" },
-    { key: "admin.clients", label: "Client Management" },
-    { key: "admin.sites", label: "Site Management" },
-    { key: "admin.weighbridges", label: "Weighbridge Management" },
-    { key: "admin.notifications", label: "Notification Templates" },
-    { key: "admin.systemSettings", label: "System-Wide Settings" },
-    { key: "admin.securityAlerts", label: "Security Alert Configuration" },
-  ],
-  "Reporting": [
-    { key: "reports.view", label: "View Reports" },
-    { key: "reports.export", label: "Export Reports" },
-  ],
-  "Transporter-Specific": [
-    { key: "transporter.viewOnlyAssigned", label: "View Only Assigned Orders" },
-    { key: "transporter.viewOtherTransporters", label: "View Other Transporters' Data" },
-  ],
-}
-
 export function PermissionSelector({ selectedPermissions, onChange }: PermissionSelectorProps) {
+  const { user: currentUser } = useAuth()
+  const { company } = useCompany()
+  const { hasPermission: canManageGlobalAdmins } = usePermission(PERMISSIONS.ADMIN_USERS_MANAGE_GLOBAL_ADMINS)
+
+  // Get permissions for current company type and filter based on user capabilities
+  const getFilteredPermissions = () => {
+    if (!company) return {}
+
+    // Get company-type-specific permissions
+    const baseCategories = getPermissionCategoriesForCompanyType(company.companyType)
+    const filteredCategories = { ...baseCategories }
+
+    // Only global admins with manageGlobalAdmins permission can see/assign that permission
+    if (filteredCategories.Administrative && (!currentUser?.isGlobal || !canManageGlobalAdmins)) {
+      filteredCategories.Administrative = filteredCategories.Administrative.filter(
+        p => p.key !== "admin.users.manageGlobalAdmins"
+      )
+    }
+
+    return filteredCategories
+  }
+
+  const PERMISSION_CATEGORIES = getFilteredPermissions()
   const togglePermission = (permissionKey: string) => {
     if (selectedPermissions.includes(permissionKey)) {
       onChange(selectedPermissions.filter(key => key !== permissionKey))
@@ -69,15 +48,16 @@ export function PermissionSelector({ selectedPermissions, onChange }: Permission
 
   const toggleCategory = (category: string) => {
     const categoryPermissions = PERMISSION_CATEGORIES[category as keyof typeof PERMISSION_CATEGORIES].map(p => p.key)
-    const allSelected = categoryPermissions.every(key => selectedPermissions.includes(key))
+    const categoryPermissionStrings = categoryPermissions as string[]
+    const allSelected = categoryPermissionStrings.every(key => selectedPermissions.includes(key))
 
     if (allSelected) {
       // Deselect all in category
-      onChange(selectedPermissions.filter(key => !categoryPermissions.includes(key)))
+      onChange(selectedPermissions.filter(key => !categoryPermissionStrings.includes(key)))
     } else {
       // Select all in category
       const newPermissions = [...selectedPermissions]
-      categoryPermissions.forEach(key => {
+      categoryPermissionStrings.forEach(key => {
         if (!newPermissions.includes(key)) {
           newPermissions.push(key)
         }
@@ -88,19 +68,23 @@ export function PermissionSelector({ selectedPermissions, onChange }: Permission
 
   const isCategorySelected = (category: string) => {
     const categoryPermissions = PERMISSION_CATEGORIES[category as keyof typeof PERMISSION_CATEGORIES].map(p => p.key)
-    return categoryPermissions.every(key => selectedPermissions.includes(key))
+    const categoryPermissionStrings = categoryPermissions as string[]
+    return categoryPermissionStrings.every(key => selectedPermissions.includes(key))
   }
 
   const isCategoryPartiallySelected = (category: string) => {
     const categoryPermissions = PERMISSION_CATEGORIES[category as keyof typeof PERMISSION_CATEGORIES].map(p => p.key)
-    const selectedCount = categoryPermissions.filter(key => selectedPermissions.includes(key)).length
-    return selectedCount > 0 && selectedCount < categoryPermissions.length
+    const categoryPermissionStrings = categoryPermissions as string[]
+    const selectedCount = categoryPermissionStrings.filter(key => selectedPermissions.includes(key)).length
+    return selectedCount > 0 && selectedCount < categoryPermissionStrings.length
   }
 
   return (
-    <div className="space-y-6">
-      <Label>Permissions</Label>
-      <div className="border rounded-md p-4 max-h-[500px] overflow-y-auto space-y-6">
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-shrink-0 pb-2">
+        <Label>Permissions</Label>
+      </div>
+      <div className="flex-1 border rounded-md p-4 overflow-y-auto space-y-6">
         {Object.entries(PERMISSION_CATEGORIES).map(([category, permissions]) => (
           <div key={category} className="space-y-3">
             <div className="flex items-center justify-between">
@@ -132,7 +116,9 @@ export function PermissionSelector({ selectedPermissions, onChange }: Permission
           </div>
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">{selectedPermissions.length} permission(s) selected</p>
+      <div className="flex-shrink-0 pt-2">
+        <p className="text-xs text-muted-foreground">{selectedPermissions.length} permission(s) selected</p>
+      </div>
     </div>
   )
 }
