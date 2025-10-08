@@ -10,6 +10,10 @@ import { useAlert } from "@/hooks/useAlert"
 import { data } from "@/services/data.service"
 import { InlineSpinner } from "@/components/ui/loading-spinner"
 import { filterVisibleRoles } from "@/lib/role-utils"
+import { usePermission } from "@/hooks/usePermission"
+import { PERMISSIONS } from "@/lib/permissions"
+import { Checkbox } from "@/components/ui/checkbox"
+import { AlertCircle } from "lucide-react"
 
 interface AddUserModalProps {
   isOpen: boolean
@@ -21,12 +25,14 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) {
   const { showSuccess, showError } = useAlert()
+  const { hasPermission } = usePermission(PERMISSIONS.ADMIN_USERS_MANAGE_GLOBAL_ADMINS)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
     roleId: "",
+    isGlobal: false,
   })
   const [isEmailValid, setIsEmailValid] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -77,6 +83,7 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
         email: "",
         password: "",
         roleId: "",
+        isGlobal: false,
       })
       onClose()
     } catch (error) {
@@ -126,6 +133,28 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
               </SelectContent>
             </Select>
           </div>
+
+          {hasPermission && (
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox id="isGlobal_add" checked={formData.isGlobal} onCheckedChange={checked => handleInputChange("isGlobal", String(checked))} />
+                <div className="flex-1">
+                  <Label htmlFor="isGlobal_add" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Global Administrator
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">Allow this user to switch between and manage all companies</p>
+                </div>
+              </div>
+              {formData.isGlobal && (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-md">
+                  <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-amber-800 dark:text-amber-200">
+                    <strong>Warning:</strong> Global administrators have access to all companies and can perform administrative tasks across the entire system. Only grant this permission to trusted users.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>

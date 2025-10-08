@@ -15,6 +15,9 @@ import { useCompany } from "@/contexts/CompanyContext"
 import { useSignals } from "@preact/signals-react/runtime"
 import React from "react"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { PERMISSIONS, type PermissionKey } from "@/lib/permissions"
+import { data as globalData } from "@/services/data.service"
+import type { Role } from "@/types"
 
 function AppBreadcrumbs() {
   const pathname = usePathname()
@@ -63,16 +66,54 @@ interface AppLayoutProps {
   children: React.ReactNode
 }
 
-// Base navigation items
+// Base navigation items with permission requirements
 const baseNavigation = [
   { name: "Dashboard", href: "/", icon: Home },
-  { name: "Companies", href: "/admin/companies", icon: Building2 },
-  { name: "Products", href: "/admin/products", icon: Package, requiresMine: true },
-  { name: "Clients", href: "/admin/clients", icon: UserCog, requiresMine: true },
-  { name: "Sites", href: "/admin/sites", icon: MapPin, requiresMine: true },
-  { name: "Users", href: "/admin/users", icon: Users },
-  { name: "Roles", href: "/admin/roles", icon: Shield },
-  { name: "Notifications", href: "/admin/notifications", icon: Bell },
+  {
+    name: "Companies",
+    href: "/admin/companies",
+    icon: Building2,
+    requiredPermissions: [PERMISSIONS.ADMIN_COMPANIES_VIEW, PERMISSIONS.ADMIN_COMPANIES]
+  },
+  {
+    name: "Products",
+    href: "/admin/products",
+    icon: Package,
+    requiresMine: true,
+    requiredPermissions: [PERMISSIONS.ADMIN_PRODUCTS_VIEW, PERMISSIONS.ADMIN_PRODUCTS]
+  },
+  {
+    name: "Clients",
+    href: "/admin/clients",
+    icon: UserCog,
+    requiresMine: true,
+    requiredPermissions: [PERMISSIONS.ADMIN_CLIENTS_VIEW, PERMISSIONS.ADMIN_CLIENTS]
+  },
+  {
+    name: "Sites",
+    href: "/admin/sites",
+    icon: MapPin,
+    requiresMine: true,
+    requiredPermissions: [PERMISSIONS.ADMIN_SITES_VIEW, PERMISSIONS.ADMIN_SITES]
+  },
+  {
+    name: "Users",
+    href: "/admin/users",
+    icon: Users,
+    requiredPermissions: [PERMISSIONS.ADMIN_USERS_VIEW, PERMISSIONS.ADMIN_USERS]
+  },
+  {
+    name: "Roles",
+    href: "/admin/roles",
+    icon: Shield,
+    requiredPermissions: [PERMISSIONS.ADMIN_ROLES_VIEW, PERMISSIONS.ADMIN_ROLES]
+  },
+  {
+    name: "Notifications",
+    href: "/admin/notifications",
+    icon: Bell,
+    requiredPermissions: [PERMISSIONS.ADMIN_NOTIFICATIONS_VIEW, PERMISSIONS.ADMIN_NOTIFICATIONS]
+  },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 
@@ -81,6 +122,7 @@ interface NavigationItem {
   href: string
   icon: LucideIcon
   requiresMine?: boolean
+  requiredPermissions?: PermissionKey[]
 }
 
 function NavLink({ item, className, onClick }: { item: NavigationItem; className?: string; onClick?: () => void }) {
@@ -121,18 +163,54 @@ export default function AppLayout({ children }: AppLayoutProps) {
     [companies, user?.companyId]
   )
 
-  // Filter navigation based on company type
+  // Helper function to check if user has at least one of the required permissions
+  const hasAnyPermission = (permissions?: PermissionKey[]): boolean => {
+    if (!permissions || permissions.length === 0) return true
+    if (!user) return false
+
+    // Global users have all permissions
+    if (user.isGlobal) return true
+
+    // Get user's role from global data
+    const userRole = globalData.roles.value.find((r: Role) => r.id === user.roleId)
+
+    // Check if user has any of the required permissions
+    return permissions.some(permission => {
+      // 1. Check permission overrides first
+      if (user.permissionOverrides && permission in user.permissionOverrides) {
+        return user.permissionOverrides[permission]
+      }
+
+      // 2. Check role permissions
+      if (userRole) {
+        // Check for wildcard permission
+        if (userRole.permissionKeys.includes("*")) return true
+        // Check for specific permission
+        if (userRole.permissionKeys.includes(permission)) return true
+      }
+
+      return false
+    })
+  }
+
+  // Filter navigation based on company type AND user permissions
   const navigation = useMemo(() => {
-    if (!company) return baseNavigation
+    if (!company || !user) return []
 
-    // Only mine companies can access Products, Clients, and Sites
-    if (company.companyType === "mine") {
-      return baseNavigation
-    }
+    return baseNavigation.filter(item => {
+      // Filter out mine-only items for non-mine companies
+      if (item.requiresMine && company.companyType !== "mine") {
+        return false
+      }
 
-    // Filter out mine-only items for transporter and logistics coordinator companies
-    return baseNavigation.filter(item => !item.requiresMine)
-  }, [company])
+      // Filter based on permissions
+      if (!hasAnyPermission(item.requiredPermissions)) {
+        return false
+      }
+
+      return true
+    })
+  }, [company, user])
 
   if (loading) {
     return <LoadingSpinner fullScreen message="Loading..." />
@@ -180,8 +258,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <Menu className="h-4 w-4" />
             </Button>
 
-            {/* Company switcher */}
-            {canSwitchCompanies && (
+            {/* Company switcher or company name */}
+            {canSwitchCompanies ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="mr-4 ml-4">
@@ -197,6 +275,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : (
+              <div className="mr-4 ml-4 px-4 py-2 glass-surface glass-layer-gradient border border-[var(--glass-border-soft)] rounded-md">
+                <span className="text-sm font-medium">{activeCompanyName}</span>
+              </div>
             )}
 
             {/* User Info and Avatar - Right side */}
@@ -277,7 +359,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
           {/* Right Side: Company Switcher + User Menu */}
           <div className="flex items-center space-x-3">
-            {canSwitchCompanies && (
+            {canSwitchCompanies ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -293,6 +375,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : (
+              <div className="px-3 py-1.5 glass-surface glass-layer-gradient border border-[var(--glass-border-soft)] rounded-md">
+                <span className="text-xs font-medium">{activeCompanyName}</span>
+              </div>
             )}
 
             {/* Mobile Menu Button */}

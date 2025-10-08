@@ -27,7 +27,7 @@
 | lastName                | string               | yes      | Last name                                                 | Smith                                              |
 | phoneNumber             | string               | yes      | Contact number for notifications                          | +27821234567                                       |
 | roleId                  | string               | yes      | Role reference                                            | r_weighbridge_operator                             |
-| permissionOverrides     | map<string, boolean> | no       | Per-user permission adjustments (overrides role defaults) | { "assets.delete": false, "reports.export": true } |
+| permissionOverrides     | map<string, boolean> | no       | Per-user permission adjustments (overrides role defaults). For view-only access, set both `.view` and base permissions. Example: `{ "admin.users.view": true, "admin.users": false }` grants view-only access. | { "assets.delete": false, "admin.users.view": true, "admin.users": false } |
 | profilePicture          | string               | no       | Profile image URL                                         | `https://...`                                      |
 | notificationPreferences | map                  | yes      | Per-user notification settings                            | See below                                          |
 | preferredEmail          | string               | no       | Alternative email for notifications                       | `john.work@example.com`                            |

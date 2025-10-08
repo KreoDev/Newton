@@ -10,6 +10,10 @@ import type { User, Role } from "@/types"
 import { userOperations } from "@/lib/firebase-utils"
 import { useAlert } from "@/hooks/useAlert"
 import { filterVisibleRoles } from "@/lib/role-utils"
+import { usePermission } from "@/hooks/usePermission"
+import { PERMISSIONS } from "@/lib/permissions"
+import { Checkbox } from "@/components/ui/checkbox"
+import { AlertCircle } from "lucide-react"
 
 interface EditUserModalProps {
   user: User | null
@@ -22,11 +26,13 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function EditUserModal({ user, isOpen, onClose, roles }: EditUserModalProps) {
   const { showSuccess, showError } = useAlert()
+  const { hasPermission } = usePermission(PERMISSIONS.ADMIN_USERS_MANAGE_GLOBAL_ADMINS)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     roleId: "",
+    isGlobal: false,
   })
   const [isEmailValid, setIsEmailValid] = useState(true)
 
@@ -37,6 +43,7 @@ export function EditUserModal({ user, isOpen, onClose, roles }: EditUserModalPro
         lastName: user.lastName || "",
         email: user.email || "",
         roleId: user.roleId || "",
+        isGlobal: user.isGlobal || false,
       })
       setIsEmailValid(true)
     }
@@ -62,11 +69,12 @@ export function EditUserModal({ user, isOpen, onClose, roles }: EditUserModalPro
     }
 
     try {
-      // Update first name, last name, roleId in Firestore
+      // Update first name, last name, roleId, isGlobal in Firestore
       await userOperations.update(user.id, {
         firstName: formData.firstName,
         lastName: formData.lastName,
         roleId: formData.roleId,
+        isGlobal: formData.isGlobal,
       })
 
       // If email has changed, update it via API route
@@ -123,6 +131,28 @@ export function EditUserModal({ user, isOpen, onClose, roles }: EditUserModalPro
               </SelectContent>
             </Select>
           </div>
+
+          {hasPermission && (
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox id="isGlobal_edit" checked={formData.isGlobal} onCheckedChange={checked => handleInputChange("isGlobal", String(checked))} />
+                <div className="flex-1">
+                  <Label htmlFor="isGlobal_edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Global Administrator
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">Allow this user to switch between and manage all companies</p>
+                </div>
+              </div>
+              {formData.isGlobal && (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-md">
+                  <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-amber-800 dark:text-amber-200">
+                    <strong>Warning:</strong> Global administrators have access to all companies and can perform administrative tasks across the entire system. Only grant this permission to trusted users.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>

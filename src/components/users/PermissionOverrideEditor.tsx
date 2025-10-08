@@ -56,11 +56,31 @@ export function PermissionOverrideEditor({ open, onClose, onSuccess, user }: Per
   useEffect(() => {
     if (user && open) {
       // Initialize with user's current permission overrides
-      // Convert boolean overrides to string format for the UI
+      // Convert permission overrides to string format for the UI
       const initialOverrides: Record<string, string> = {}
       if (user.permissionOverrides) {
-        Object.entries(user.permissionOverrides).forEach(([key, value]) => {
-          initialOverrides[key] = value ? "full" : "none"
+        // For each permission in the categories, determine its state
+        Object.values(PERMISSION_CATEGORIES).forEach(permissions => {
+          permissions.forEach(permission => {
+            const baseKey = permission.key
+            const viewKey = `${baseKey}.view`
+
+            const hasManagePermission = user.permissionOverrides?.[baseKey]
+            const hasViewPermission = user.permissionOverrides?.[viewKey]
+
+            // Determine the current state based on what's set
+            if (hasManagePermission === true) {
+              // Has full manage permission
+              initialOverrides[baseKey] = "full"
+            } else if (hasViewPermission === true) {
+              // Has view-only permission
+              initialOverrides[baseKey] = "view"
+            } else if (hasManagePermission === false || hasViewPermission === false) {
+              // Explicitly denied
+              initialOverrides[baseKey] = "none"
+            }
+            // If neither is set, it will use role default (not added to overrides)
+          })
         })
       }
       setOverrides(initialOverrides)
@@ -92,10 +112,27 @@ export function PermissionOverrideEditor({ open, onClose, onSuccess, user }: Per
     try {
       setLoading(true)
 
-      // Convert string overrides back to boolean for storage
+      // Convert string overrides to the correct permission keys
       const booleanOverrides: Record<string, boolean> = {}
+
       Object.entries(overrides).forEach(([key, value]) => {
-        booleanOverrides[key] = value === "full" || value === "view"
+        const viewKey = `${key}.view`
+
+        if (value === "view") {
+          // View Only: Set view permission to true, manage permission to false
+          booleanOverrides[viewKey] = true
+          booleanOverrides[key] = false
+        } else if (value === "full") {
+          // Full Access: Set manage permission to true
+          booleanOverrides[key] = true
+          // Optionally also grant view permission explicitly
+          booleanOverrides[viewKey] = true
+        } else if (value === "none") {
+          // No Access: Set both to false
+          booleanOverrides[viewKey] = false
+          booleanOverrides[key] = false
+        }
+        // "default" is not in overrides, so nothing is added
       })
 
       const userData: any = {

@@ -64,10 +64,12 @@ All foundational systems are implemented and tested. The following components ar
 
 **Completed Features:**
 - Firebase Authentication integration
-- Role-based permission system
+- Role-based permission system with dual permissions (view + manage)
 - Global admin support (isGlobal users)
-- Permission overrides per user
+- Permission overrides per user with three states: View Only, Full Access, No Access
+- Permission-based navigation filtering (menu items hidden for unauthorized users)
 - Loading states for permission checks
+- Permission evaluation priority: Global users → Permission overrides → Role permissions → Wildcard
 
 ### 1.2 Company Management ✅
 **User Flows**: Flows 7, 8, 9 - Company Configuration (Mine, Transporter, Logistics Coordinator)
@@ -123,12 +125,18 @@ All foundational systems are implemented and tested. The following components ar
   - Global search across all columns
   - Filter by user type (Login/Contact) and role
 - Company-scoped user listing
-- Permission override UI (basic)
+- **Permission Override System**: Complete three-state permission override system
+  - View Only: Sets `.view` permission to true, manage permission to false
+  - Full Access: Sets manage permission to true (includes view access)
+  - No Access: Sets both permissions to false
+  - Use Role Default: Removes override (inherits from role)
+  - UI shows current overrides with badges
+  - Permissions organized by category (Asset Management, Order Management, Administrative)
 - Permission-based cross-company viewing (`admin.users.viewAllCompanies`)
 
 **Partial Implementation:**
 - Notification preferences UI needs full implementation (see Phase 2.6)
-- Granular permission editing UI needs enhancement
+- Global admin toggle UI needs implementation (currently requires database edit)
 
 ### 1.4 Centralized Data Management ✅
 **Technical Infrastructure**

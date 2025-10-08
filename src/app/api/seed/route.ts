@@ -105,6 +105,9 @@ const DEFAULT_COMPANY = {
 const DEFAULT_USER_EMAIL = "dev@newton.co.za"
 const DEFAULT_USER_PASSWORD = process.env.SEED_DEFAULT_USER_PASSWORD || "NewtonDev123!"
 
+const SECOND_USER_EMAIL = "admin@newton.co.za"
+const SECOND_USER_PASSWORD = "NewtonDev123!"
+
 const DEFAULT_USER_PROFILE = {
   email: DEFAULT_USER_EMAIL,
   firstName: "Dev",
@@ -114,6 +117,50 @@ const DEFAULT_USER_PROFILE = {
   roleId: "r_newton_admin",
   companyId: DEFAULT_COMPANY_ID,
   isGlobal: true,
+  notificationPreferences: {
+    "asset.added": true,
+    "asset.inactive": true,
+    "asset.edited": true,
+    "asset.deleted": true,
+    "order.created": true,
+    "order.allocated": true,
+    "order.cancelled": true,
+    "order.completed": true,
+    "order.expiring": true,
+    "weighbridge.overload": true,
+    "weighbridge.underweight": true,
+    "weighbridge.violations": true,
+    "weighbridge.manualOverride": true,
+    "preBooking.created": true,
+    "preBooking.lateArrival": true,
+    "security.invalidLicense": true,
+    "security.unbookedArrival": true,
+    "security.noActiveOrder": true,
+    "security.sealMismatch": true,
+    "security.incorrectSealsNo": true,
+    "security.unregisteredAsset": true,
+    "security.inactiveEntity": true,
+    "security.incompleteTruck": true,
+    "driver.licenseExpiring7": true,
+    "driver.licenseExpiring30": true,
+    "system.calibrationDue": true,
+  },
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+  dbCreatedAt: FieldValue.serverTimestamp(),
+  dbUpdatedAt: FieldValue.serverTimestamp(),
+  isActive: true,
+}
+
+const SECOND_USER_PROFILE = {
+  email: SECOND_USER_EMAIL,
+  firstName: "Admin",
+  lastName: "User",
+  displayName: "Admin User",
+  phoneNumber: "+27821234568",
+  roleId: "r_allocation_officer", // Allocation Officer role
+  companyId: DEFAULT_COMPANY_ID,
+  isGlobal: false, // Regular user, not global admin
   notificationPreferences: {
     "asset.added": true,
     "asset.inactive": true,
@@ -646,7 +693,7 @@ const DEFAULT_ROLES = [
   {
     id: "r_newton_admin",
     name: "Newton Administrator",
-    permissionKeys: ["*"],
+    permissionKeys: ["*"], // Wildcard includes admin.users.manageGlobalAdmins
     description: "Full system access and configuration",
   },
   {
@@ -666,6 +713,7 @@ const DEFAULT_ROLES = [
       "reports.daily",
       "reports.monthly",
       "reports.export",
+      "admin.sites.view",
       "admin.sites",
       "admin.weighbridge",
     ],
@@ -823,6 +871,33 @@ async function seedDefaultUser(sendProgress: (data: ProgressData) => void): Prom
   sendProgress({
     stage: "seeding_users",
     message: `Seeded default user (${DEFAULT_USER_EMAIL}) with uid ${createdUser.uid}`,
+    collection: "users",
+    count: 1,
+  })
+  return createdUser.uid
+}
+
+async function seedSecondUser(sendProgress: (data: ProgressData) => void): Promise<string> {
+  const createdUser = await adminAuth.createUser({
+    email: SECOND_USER_EMAIL,
+    password: SECOND_USER_PASSWORD,
+    displayName: "Admin User",
+    emailVerified: true,
+  })
+
+  await adminDb
+    .collection("users")
+    .doc(createdUser.uid)
+    .set({
+      ...SECOND_USER_PROFILE,
+      id: createdUser.uid,
+      authUid: createdUser.uid,
+      isGlobal: SECOND_USER_PROFILE.isGlobal,
+    })
+
+  sendProgress({
+    stage: "seeding_users",
+    message: `Seeded second user (${SECOND_USER_EMAIL}) with uid ${createdUser.uid}`,
     collection: "users",
     count: 1,
     completed: true,
@@ -1334,7 +1409,8 @@ export async function GET() {
         results.seeded.permissions = await seedPermissions(sendProgress)
         results.seeded.companies = await seedCompany(sendProgress)
         const userId = await seedDefaultUser(sendProgress)
-        results.seeded.users = 1
+        const secondUserId = await seedSecondUser(sendProgress)
+        results.seeded.users = 2 // Now we have 2 login users
 
         // Seed contact users and collect their IDs for site assignment
         const contactUserIds: string[] = []
