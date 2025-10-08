@@ -27,6 +27,7 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   defaultColumnOrder?: string[]
+  defaultPageSize?: number
   searchable?: boolean
   searchPlaceholder?: string
   toolbar?: React.ReactNode
@@ -42,6 +43,7 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   defaultColumnOrder,
+  defaultPageSize = 10,
   searchable = true,
   searchPlaceholder = "Search...",
   toolbar,
@@ -71,7 +73,7 @@ export function DataTable<TData, TValue>({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(savedConfig?.columnVisibility ?? {})
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(initialColumnOrder)
   const [globalFilter, setGlobalFilter] = useState("")
-  const [pagination, setPagination] = useState<PaginationState>(savedConfig?.pagination ?? { pageIndex: 0, pageSize: 10 })
+  const [pagination, setPagination] = useState<PaginationState>(savedConfig?.pagination ?? { pageIndex: 0, pageSize: defaultPageSize })
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(savedConfig?.columnSizing ?? {})
 

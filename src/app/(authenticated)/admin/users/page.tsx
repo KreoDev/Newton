@@ -32,6 +32,7 @@ export default function UsersPage() {
     PERMISSIONS.ADMIN_USERS
   )
   const { hasPermission: canViewAllCompanies, loading: viewAllLoading } = usePermission(PERMISSIONS.ADMIN_USERS_VIEW_ALL_COMPANIES)
+  const { hasPermission: canManagePermissions, loading: managePermLoading } = usePermission(PERMISSIONS.ADMIN_USERS_MANAGE_PERMISSIONS)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(user?.companyId || "")
 
   // Local state for when filtering by different company
@@ -86,7 +87,7 @@ export default function UsersPage() {
   const loading = viewingCurrentCompany ? globalData.loading.value : localLoading
 
 
-  if (permissionLoading || viewAllLoading) {
+  if (permissionLoading || viewAllLoading || managePermLoading) {
     return <LoadingSpinner fullScreen message="Checking permissions..." />
   }
 
@@ -149,6 +150,7 @@ export default function UsersPage() {
           users={users}
           canViewAllCompanies={canViewAllCompanies}
           canManage={canManage}
+          canManagePermissions={canManagePermissions}
           isViewOnly={isViewOnly}
           onEdit={(user) => setEditingUser(user)}
           onManageRoles={(user) => setRoleUser(user)}

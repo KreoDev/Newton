@@ -36,6 +36,7 @@ export type PermissionKey =
   | "admin.users"
   | "admin.users.viewAllCompanies"
   | "admin.users.manageGlobalAdmins"
+  | "admin.users.managePermissions"
   | "admin.roles"
   | "admin.products"
   | "admin.orderSettings"
@@ -97,6 +98,7 @@ export const PERMISSIONS: Record<string, PermissionKey> = {
   ADMIN_USERS: "admin.users",
   ADMIN_USERS_VIEW_ALL_COMPANIES: "admin.users.viewAllCompanies",
   ADMIN_USERS_MANAGE_GLOBAL_ADMINS: "admin.users.manageGlobalAdmins",
+  ADMIN_USERS_MANAGE_PERMISSIONS: "admin.users.managePermissions",
   ADMIN_ROLES: "admin.roles",
   ADMIN_PRODUCTS: "admin.products",
   ADMIN_ORDER_SETTINGS: "admin.orderSettings",
@@ -161,6 +163,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   "admin.users": "Manage users",
   "admin.users.viewAllCompanies": "View users from all companies",
   "admin.users.manageGlobalAdmins": "Promote users to global administrators",
+  "admin.users.managePermissions": "Manage permission overrides for users",
   "admin.roles": "Manage roles",
   "admin.products": "Manage products",
   "admin.orderSettings": "Configure order settings",

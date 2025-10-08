@@ -168,20 +168,21 @@ export default function AppLayout({ children }: AppLayoutProps) {
     if (!permissions || permissions.length === 0) return true
     if (!user) return false
 
-    // Global users have all permissions
-    if (user.isGlobal) return true
-
     // Get user's role from global data
     const userRole = globalData.roles.value.find((r: Role) => r.id === user.roleId)
 
     // Check if user has any of the required permissions
+    // Evaluation order: permissionOverrides → isGlobal → role.permissionKeys
     return permissions.some(permission => {
-      // 1. Check permission overrides first
+      // 1. Check permission overrides FIRST (allows revoking permissions from global users)
       if (user.permissionOverrides && permission in user.permissionOverrides) {
         return user.permissionOverrides[permission]
       }
 
-      // 2. Check role permissions
+      // 2. Global users have all permissions (unless overridden above)
+      if (user.isGlobal) return true
+
+      // 3. Check role permissions
       if (userRole) {
         // Check for wildcard permission
         if (userRole.permissionKeys.includes("*")) return true

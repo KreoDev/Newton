@@ -5,7 +5,7 @@ import type { User as UserType, Company, Role } from "@/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { KeyRound, UserCircle2, ToggleRight, ToggleLeft, MoreHorizontal, Edit, User, FileText, Shield, Lock } from "lucide-react"
+import { KeyRound, UserCircle2, ToggleRight, ToggleLeft, MoreHorizontal, Edit, User, FileText, Shield, Lock, Trash2 } from "lucide-react"
 import Image from "next/image"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DataTable } from "@/components/ui/data-table"
@@ -20,6 +20,7 @@ interface UsersTableProps {
   users: UserType[]
   canViewAllCompanies: boolean
   canManage: boolean
+  canManagePermissions?: boolean
   isViewOnly?: boolean
   onEdit?: (user: UserType) => void
   onManageRoles?: (user: UserType) => void
@@ -29,12 +30,18 @@ interface UsersTableProps {
   onMoveCompany?: (user: UserType) => void
 }
 
-export function UsersTable({ users, canViewAllCompanies, canManage, isViewOnly = false, onEdit, onManageRoles, onEditPermissions, onChangePassword, onChangeEmail, onMoveCompany }: UsersTableProps) {
+export function UsersTable({ users, canViewAllCompanies, canManage, canManagePermissions = false, isViewOnly = false, onEdit, onManageRoles, onEditPermissions, onChangePassword, onChangeEmail, onMoveCompany }: UsersTableProps) {
   useSignals()
   const { showSuccess, showError } = useAlert()
   const { user: currentUser } = useAuth()
 
   const toggleUserStatus = async (user: UserType) => {
+    // Prevent user from deactivating themselves
+    if (user.id === currentUser?.id && user.isActive) {
+      showError("Cannot Deactivate Yourself", "You cannot deactivate your own account.")
+      return
+    }
+
     try {
       await updateDoc(doc(db, "users", user.id), {
         isActive: !user.isActive,
@@ -44,6 +51,38 @@ export function UsersTable({ users, canViewAllCompanies, canManage, isViewOnly =
     } catch (error) {
       console.error("Error toggling user status:", error)
       showError("Failed to Update User", error instanceof Error ? error.message : "An unexpected error occurred.")
+    }
+  }
+
+  const deleteUser = async (user: UserType) => {
+    // Prevent user from deleting themselves
+    if (user.id === currentUser?.id) {
+      showError("Cannot Delete Yourself", "You cannot delete your own account.")
+      return
+    }
+
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to permanently delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch("/api/users/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete user")
+      }
+
+      showSuccess("User Deleted", `${user.firstName} ${user.lastName} has been permanently deleted.`)
+    } catch (error) {
+      console.error("Error deleting user:", error)
+      showError("Failed to Delete User", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
 
@@ -173,7 +212,16 @@ export function UsersTable({ users, canViewAllCompanies, canManage, isViewOnly =
                         <DropdownMenuItem onClick={() => onChangeEmail?.(user)}>Change Email</DropdownMenuItem>
                         {canViewAllCompanies && <DropdownMenuItem onClick={() => onMoveCompany?.(user)}>Move to Another Company</DropdownMenuItem>}
                         <DropdownMenuItem onClick={() => onManageRoles?.(user)}>Manage Roles</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onEditPermissions?.(user)}>Edit Permissions</DropdownMenuItem>
+                        {canManagePermissions && <DropdownMenuItem onClick={() => onEditPermissions?.(user)}>Edit Permissions</DropdownMenuItem>}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => deleteUser(user)}
+                          className="text-destructive focus:text-destructive"
+                          disabled={user.id === currentUser?.id}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete User
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <Checkbox checked={row.getIsSelected()} onCheckedChange={value => row.toggleSelected(!!value)} aria-label="Select row" />
@@ -226,6 +274,7 @@ export function UsersTable({ users, canViewAllCompanies, canManage, isViewOnly =
       columns={columns}
       data={users}
       defaultColumnOrder={["name", "email", "userType", "role", "company", "status", "actions"]}
+      defaultPageSize={20}
       searchPlaceholder="Search users by name, email, or role..."
       enablePagination={true}
       enableRowSelection={true}

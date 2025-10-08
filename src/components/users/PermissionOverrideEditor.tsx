@@ -8,6 +8,10 @@ import { Badge } from "@/components/ui/badge"
 import type { User } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
 import { updateDocument } from "@/lib/firebase-utils"
+import { usePermission } from "@/hooks/usePermission"
+import { PERMISSIONS } from "@/lib/permissions"
+import { AlertTriangle } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface PermissionOverrideEditorProps {
   open: boolean
@@ -35,6 +39,7 @@ const PERMISSION_CATEGORIES = {
   "Administrative": [
     { key: "admin.users", label: "User Management" },
     { key: "admin.users.manageGlobalAdmins", label: "Manage Global Admins" },
+    { key: "admin.users.managePermissions", label: "Manage Permissions" },
     { key: "admin.users.viewAllCompanies", label: "View All Companies (Users)" },
     { key: "admin.companies", label: "Company Management" },
     { key: "admin.roles", label: "Role Management" },
@@ -53,8 +58,25 @@ const ACCESS_LEVELS = [
 
 export function PermissionOverrideEditor({ open, onClose, onSuccess, user, viewOnly = false }: PermissionOverrideEditorProps) {
   const { showSuccess, showError } = useAlert()
+  const { user: currentUser } = useAuth()
+  const { hasPermission: canManagePermissions } = usePermission(PERMISSIONS.ADMIN_USERS_MANAGE_PERMISSIONS)
+  const { hasPermission: canManageGlobalAdmins } = usePermission(PERMISSIONS.ADMIN_USERS_MANAGE_GLOBAL_ADMINS)
   const [overrides, setOverrides] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
+
+  // Filter permissions based on current user's capabilities
+  const getFilteredPermissions = () => {
+    const filteredCategories = { ...PERMISSION_CATEGORIES }
+
+    // Only global admins with manageGlobalAdmins permission can see/assign that permission
+    if (!currentUser?.isGlobal || !canManageGlobalAdmins) {
+      filteredCategories.Administrative = filteredCategories.Administrative.filter(
+        p => p.key !== "admin.users.manageGlobalAdmins"
+      )
+    }
+
+    return filteredCategories
+  }
 
   useEffect(() => {
     if (user && open) {
@@ -168,7 +190,16 @@ export function PermissionOverrideEditor({ open, onClose, onSuccess, user, viewO
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <fieldset disabled={viewOnly} className="space-y-4">
+          <fieldset disabled={viewOnly || !canManagePermissions} className="space-y-4">
+          {!viewOnly && !canManagePermissions && (
+            <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-destructive">
+                <strong>Permission Denied:</strong> You don&apos;t have permission to manage permission overrides. Contact your administrator to grant you &quot;Manage Permissions&quot; access.
+              </p>
+            </div>
+          )}
+
           <div className="border rounded-md p-3 bg-muted/20">
             <p className="text-sm text-muted-foreground">
               These overrides will take precedence over permissions inherited from assigned roles.
@@ -181,7 +212,7 @@ export function PermissionOverrideEditor({ open, onClose, onSuccess, user, viewO
           </div>
 
           <div className="space-y-6">
-            {Object.entries(PERMISSION_CATEGORIES).map(([category, permissions]) => (
+            {Object.entries(getFilteredPermissions()).map(([category, permissions]) => (
               <div key={category} className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Label className="text-sm font-semibold">{category}</Label>

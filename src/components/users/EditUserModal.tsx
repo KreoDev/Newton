@@ -15,6 +15,8 @@ import { PERMISSIONS } from "@/lib/permissions"
 import { Checkbox } from "@/components/ui/checkbox"
 import { AlertCircle } from "lucide-react"
 import { ReauthenticateModal } from "./ReauthenticateModal"
+import { PasswordPromptModal } from "./PasswordPromptModal"
+import { ConvertToContactWarningDialog } from "./ConvertToContactWarningDialog"
 
 interface EditUserModalProps {
   user: User | null
@@ -40,6 +42,9 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
   const [isEmailValid, setIsEmailValid] = useState(true)
   const [showReauthModal, setShowReauthModal] = useState(false)
   const [pendingGlobalAdminAction, setPendingGlobalAdminAction] = useState(false)
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false)
+  const [showContactWarning, setShowContactWarning] = useState(false)
+  const [pendingPassword, setPendingPassword] = useState("")
 
   useEffect(() => {
     if (user) {
@@ -84,15 +89,81 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
       return
     }
 
+    // Check if role changed and determine if user type conversion is needed
+    const roleChanged = user.roleId !== formData.roleId
+    const oldRoleIsContact = user.roleId === "r_contact"
+    const newRoleIsContact = formData.roleId === "r_contact"
+    const userIsCurrentlyContact = user.canLogin === false
+    const userIsCurrentlyLogin = user.canLogin !== false
+
+    // Scenario 1: Contact → Login User (role changed from r_contact to any other role)
+    if (roleChanged && oldRoleIsContact && !newRoleIsContact && userIsCurrentlyContact) {
+      if (!pendingPassword) {
+        setShowPasswordPrompt(true)
+        return
+      }
+      // Password provided, proceed with conversion
+    }
+
+    // Scenario 2: Login User → Contact (role changed from any role to r_contact)
+    // We need a way to track if warning was shown - use pendingPassword as flag (empty string means warning not yet shown)
+    if (roleChanged && !oldRoleIsContact && newRoleIsContact && userIsCurrentlyLogin) {
+      if (pendingPassword !== "contact-conversion-confirmed") {
+        setShowContactWarning(true)
+        return
+      }
+      // Warning accepted, proceed with conversion
+    }
+
     try {
-      // Update first name, last name, phoneNumber, roleId, isGlobal in Firestore
-      await userOperations.update(user.id, {
+      // If converting contact → login, create auth account first
+      if (roleChanged && oldRoleIsContact && !newRoleIsContact && userIsCurrentlyContact && pendingPassword && pendingPassword !== "contact-conversion-confirmed") {
+        const response = await fetch("/api/users/convert-to-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.id,
+            email: formData.email,
+            password: pendingPassword
+          }),
+        })
+
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to convert user to login user")
+        }
+      }
+
+      // If converting login → contact, delete auth account
+      if (roleChanged && !oldRoleIsContact && newRoleIsContact && userIsCurrentlyLogin) {
+        const response = await fetch("/api/users/convert-to-contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id }),
+        })
+
+        const data = await response.json()
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to convert user to contact")
+        }
+      }
+
+      // Prepare update data
+      const updateData: any = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phoneNumber: formData.phoneNumber,
         roleId: formData.roleId,
         isGlobal: formData.isGlobal,
-      })
+      }
+
+      // If role changed, clear permission overrides to ensure clean inheritance from new role
+      if (roleChanged) {
+        updateData.permissionOverrides = {}
+      }
+
+      // Update user details in Firestore
+      await userOperations.update(user.id, updateData)
 
       // If email has changed, update it via API route
       if (formData.email !== user.email) {
@@ -106,6 +177,7 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
 
       showSuccess("User Updated", `${formData.firstName} ${formData.lastName} has been updated successfully.`)
       setPendingGlobalAdminAction(false)
+      setPendingPassword("")
       onClose()
     } catch (error) {
       console.error("Error updating user:", error)
@@ -125,6 +197,37 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
     // Revert the isGlobal checkbox to original state
     if (user) {
       setFormData({ ...formData, isGlobal: user.isGlobal })
+    }
+  }
+
+  const handlePasswordConfirm = (password: string) => {
+    setPendingPassword(password)
+    setShowPasswordPrompt(false)
+    // Trigger save again with password
+    setTimeout(() => handleSaveChanges(), 100)
+  }
+
+  const handlePasswordCancel = () => {
+    setShowPasswordPrompt(false)
+    setPendingPassword("")
+    // Revert role back to original
+    if (user) {
+      setFormData({ ...formData, roleId: user.roleId })
+    }
+  }
+
+  const handleContactWarningConfirm = () => {
+    setShowContactWarning(false)
+    setPendingPassword("contact-conversion-confirmed")
+    // Trigger save again
+    setTimeout(() => handleSaveChanges(), 100)
+  }
+
+  const handleContactWarningCancel = () => {
+    setShowContactWarning(false)
+    // Revert role back to original
+    if (user) {
+      setFormData({ ...formData, roleId: user.roleId })
     }
   }
 
@@ -215,6 +318,20 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
         onSuccess={handleReauthSuccess}
         title="Confirm Global Admin Elevation"
         description={`You are about to elevate ${user?.firstName} ${user?.lastName} to a global administrator. This will grant them access to all companies in the system. Please re-enter your password to confirm this sensitive action.`}
+      />
+
+      <PasswordPromptModal
+        isOpen={showPasswordPrompt}
+        onClose={handlePasswordCancel}
+        onConfirm={handlePasswordConfirm}
+        userName={`${user?.firstName} ${user?.lastName}`}
+      />
+
+      <ConvertToContactWarningDialog
+        isOpen={showContactWarning}
+        onClose={handleContactWarningCancel}
+        onConfirm={handleContactWarningConfirm}
+        userName={`${user?.firstName} ${user?.lastName}`}
       />
     </Dialog>
   )

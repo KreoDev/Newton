@@ -54,16 +54,28 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
   }
 
   const handleAddUser = async () => {
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.roleId) {
-      showError("Missing Information", "Please fill in all fields.")
+    const isContactRole = formData.roleId === "r_contact"
+
+    // Validate required fields (password not required for contact-only users)
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.roleId) {
+      showError("Missing Information", "Please fill in all required fields.")
       return
     }
+
+    // Password validation only for login users
+    if (!isContactRole) {
+      if (!formData.password) {
+        showError("Password Required", "Password is required for login users.")
+        return
+      }
+      if (formData.password.length < 6) {
+        showError("Weak Password", "Password must be at least 6 characters long.")
+        return
+      }
+    }
+
     if (!isEmailValid) {
       showError("Invalid Email", "Please enter a valid email address.")
-      return
-    }
-    if (formData.password.length < 6) {
-      showError("Weak Password", "Password must be at least 6 characters long.")
       return
     }
 
@@ -145,10 +157,6 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
             <Input id="phoneNumber_add" type="tel" value={formData.phoneNumber} onChange={e => handleInputChange("phoneNumber", e.target.value)} placeholder="Enter phone number (optional)" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password_add">Password</Label>
-            <Input id="password_add" type="password" value={formData.password} onChange={e => handleInputChange("password", e.target.value)} placeholder="Enter password (min. 6 characters)" />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="role_add">Role</Label>
             <Select value={formData.roleId} onValueChange={value => handleInputChange("roleId", value)}>
               <SelectTrigger>
@@ -163,6 +171,22 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
               </SelectContent>
             </Select>
           </div>
+
+          {formData.roleId === "r_contact" && (
+            <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-md">
+              <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-500 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                <strong>Contact-Only User:</strong> This user will not have login credentials and cannot access the system. They will be stored as a contact for reference purposes only.
+              </p>
+            </div>
+          )}
+
+          {formData.roleId !== "r_contact" && (
+            <div className="space-y-2">
+              <Label htmlFor="password_add">Password</Label>
+              <Input id="password_add" type="password" value={formData.password} onChange={e => handleInputChange("password", e.target.value)} placeholder="Enter password (min. 6 characters)" />
+            </div>
+          )}
 
           {hasPermission && (
             <div className="space-y-3 border-t pt-4">

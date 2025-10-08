@@ -45,6 +45,10 @@ export default function LoginPage() {
           title = "Weak Password"
           description = "The password is too weak. Please choose a stronger password (at least 6 characters)."
           break
+        case "auth/account-deactivated":
+          title = "Account Deactivated"
+          description = "Your account is currently inactive. Please contact your system administrator to reactivate your account."
+          break
       }
     }
     setAlertInfo({ isOpen: true, title, description })

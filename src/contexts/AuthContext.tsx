@@ -30,6 +30,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userDoc = await getDoc(doc(db, "users", currentFirebaseUser.uid))
           if (userDoc.exists()) {
             const userData = userDoc.data() as User
+
+            // Check if user is inactive
+            if (!userData.isActive) {
+              // Sign out inactive user
+              await signOut(auth)
+              setUser(null)
+              setFirebaseUser(null)
+              return
+            }
+
             setUser({
               ...userData,
               id: currentFirebaseUser.uid,
@@ -52,7 +62,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password)
+    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+
+    // Check if user is inactive after signing in
+    const userDoc = await getDoc(doc(db, "users", userCredential.user.uid))
+    if (userDoc.exists()) {
+      const userData = userDoc.data() as User
+      if (!userData.isActive) {
+        // Sign out if user is inactive
+        await signOut(auth)
+        const error: any = new Error("Your account has been deactivated. Please contact your administrator.")
+        error.code = "auth/account-deactivated"
+        throw error
+      }
+    }
   }
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string, companyId: string, roleId: string) => {

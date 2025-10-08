@@ -117,6 +117,12 @@ const DEFAULT_USER_PROFILE = {
   roleId: "r_newton_admin",
   companyId: DEFAULT_COMPANY_ID,
   isGlobal: true,
+  permissionOverrides: {
+    // Grant explicit permissions for managing the system
+    "admin.users.manageGlobalAdmins": true,
+    "admin.users.managePermissions": true,
+    "admin.users.viewAllCompanies": true,
+  },
   notificationPreferences: {
     "asset.added": true,
     "asset.inactive": true,

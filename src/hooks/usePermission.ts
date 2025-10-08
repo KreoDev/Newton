@@ -24,19 +24,20 @@ export function usePermission(permission: PermissionKey): { hasPermission: boole
       }
 
       try {
-        // Evaluation order: isGlobal → permissionOverrides → role.permissionKeys
+        // Evaluation order: permissionOverrides → isGlobal → role.permissionKeys
+        // Overrides are checked FIRST to allow revoking permissions from global users
 
-        // 1. Global users have all permissions
-        if (user.isGlobal) {
-          setHasPermission(true)
+        // 1. Check permission overrides (per-user permission adjustments)
+        if (user.permissionOverrides && permission in user.permissionOverrides) {
+          const override = user.permissionOverrides[permission]
+          setHasPermission(override)
           setLoading(false)
           return
         }
 
-        // 2. Check permission overrides (per-user permission adjustments)
-        if (user.permissionOverrides && permission in user.permissionOverrides) {
-          const override = user.permissionOverrides[permission]
-          setHasPermission(override)
+        // 2. Global users have all permissions (unless overridden above)
+        if (user.isGlobal) {
+          setHasPermission(true)
           setLoading(false)
           return
         }
