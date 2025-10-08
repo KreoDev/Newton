@@ -14,6 +14,7 @@ import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Checkbox } from "@/components/ui/checkbox"
 import { AlertCircle } from "lucide-react"
+import { ReauthenticateModal } from "./ReauthenticateModal"
 
 interface EditUserModalProps {
   user: User | null
@@ -37,6 +38,8 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
     isGlobal: false,
   })
   const [isEmailValid, setIsEmailValid] = useState(true)
+  const [showReauthModal, setShowReauthModal] = useState(false)
+  const [pendingGlobalAdminAction, setPendingGlobalAdminAction] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -71,6 +74,16 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
       return
     }
 
+    // Check if user is being elevated to global admin (wasn't global before, now is)
+    const isElevatingToGlobalAdmin = !user.isGlobal && formData.isGlobal
+
+    // If elevating to global admin and not yet authenticated, require re-authentication
+    if (isElevatingToGlobalAdmin && !pendingGlobalAdminAction) {
+      setPendingGlobalAdminAction(true)
+      setShowReauthModal(true)
+      return
+    }
+
     try {
       // Update first name, last name, phoneNumber, roleId, isGlobal in Firestore
       await userOperations.update(user.id, {
@@ -92,10 +105,26 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
       }
 
       showSuccess("User Updated", `${formData.firstName} ${formData.lastName} has been updated successfully.`)
+      setPendingGlobalAdminAction(false)
       onClose()
     } catch (error) {
       console.error("Error updating user:", error)
       showError("Failed to Update User", error instanceof Error ? error.message : "An unexpected error occurred.")
+    }
+  }
+
+  const handleReauthSuccess = () => {
+    setShowReauthModal(false)
+    // After successful re-auth, proceed with update
+    handleSaveChanges()
+  }
+
+  const handleReauthCancel = () => {
+    setShowReauthModal(false)
+    setPendingGlobalAdminAction(false)
+    // Revert the isGlobal checkbox to original state
+    if (user) {
+      setFormData({ ...formData, isGlobal: user.isGlobal })
     }
   }
 
@@ -179,6 +208,14 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
           )}
         </DialogFooter>
       </DialogContent>
+
+      <ReauthenticateModal
+        isOpen={showReauthModal}
+        onClose={handleReauthCancel}
+        onSuccess={handleReauthSuccess}
+        title="Confirm Global Admin Elevation"
+        description={`You are about to elevate ${user?.firstName} ${user?.lastName} to a global administrator. This will grant them access to all companies in the system. Please re-enter your password to confirm this sensitive action.`}
+      />
     </Dialog>
   )
 }

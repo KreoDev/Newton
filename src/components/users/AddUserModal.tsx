@@ -14,6 +14,7 @@ import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Checkbox } from "@/components/ui/checkbox"
 import { AlertCircle } from "lucide-react"
+import { ReauthenticateModal } from "./ReauthenticateModal"
 
 interface AddUserModalProps {
   isOpen: boolean
@@ -37,6 +38,8 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
   })
   const [isEmailValid, setIsEmailValid] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showReauthModal, setShowReauthModal] = useState(false)
+  const [pendingGlobalAdminAction, setPendingGlobalAdminAction] = useState(false)
 
   useEffect(() => {
     if (formData.email === "") {
@@ -64,6 +67,13 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
       return
     }
 
+    // If making user a global admin, require re-authentication
+    if (formData.isGlobal && !pendingGlobalAdminAction) {
+      setPendingGlobalAdminAction(true)
+      setShowReauthModal(true)
+      return
+    }
+
     try {
       setIsSubmitting(true)
       const response = await fetch("/api/users/create", {
@@ -87,6 +97,7 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
         roleId: "",
         isGlobal: false,
       })
+      setPendingGlobalAdminAction(false)
       onClose()
     } catch (error) {
       console.error("Error adding user:", error)
@@ -94,6 +105,19 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleReauthSuccess = () => {
+    setShowReauthModal(false)
+    // After successful re-auth, proceed with user creation
+    handleAddUser()
+  }
+
+  const handleReauthCancel = () => {
+    setShowReauthModal(false)
+    setPendingGlobalAdminAction(false)
+    // Uncheck the global admin checkbox
+    setFormData({ ...formData, isGlobal: false })
   }
 
   return (
@@ -178,6 +202,14 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <ReauthenticateModal
+        isOpen={showReauthModal}
+        onClose={handleReauthCancel}
+        onSuccess={handleReauthSuccess}
+        title="Confirm Global Admin Assignment"
+        description="You are about to grant global administrator privileges to this user. This will allow them to access and manage all companies in the system. Please re-enter your password to confirm this sensitive action."
+      />
     </Dialog>
   )
 }
