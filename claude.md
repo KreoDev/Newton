@@ -11,6 +11,7 @@
 - **Security Checkpoints**: Entry/exit verification with QR/barcode scanning
 - **Weighbridge Operations**: Tare/gross weight capture, seal verification, ticket generation
 - **Multi-Tenancy**: Company-scoped data with role-based permissions
+- **Organizational Groups**: Hierarchical group structure for mine companies (unlimited nesting)
 
 ---
 
@@ -175,29 +176,71 @@ await adminAuth.createUser({ email, password })
 ```
 Are you in an API route (src/app/api/)?
 ├─ YES → Use firebase-admin.ts (adminDb, adminAuth)
-└─ NO → Do you need companies, users, or roles data?
-    ├─ YES → Use data.service.ts (globalData.companies.value, etc.)
+└─ NO → Do you need centralized data (companies, users, roles, products, groups, sites, clients)?
+    ├─ YES → Use data.service.ts (globalData.companies.value, etc.) - ALWAYS use this
     └─ NO → Are you doing simple CRUD (create/update/delete)?
         ├─ YES → Use firebase-utils.ts (createDocument, updateDocument, etc.)
         └─ NO → Use firebase.ts (db) for complex queries
 ```
 
-**Important Notes:**
-- **ALWAYS use `data.service.ts`** for companies, users, and roles - don't create duplicate queries
-- **Companies list**: `globalData.companies.value` (includes inactive for admin)
-- **Users list**: `globalData.users.value` (company-scoped, real-time)
-- **Roles list**: `globalData.roles.value` (global, shared across all companies, real-time)
-- Remember to call `useSignals()` in components that access these signals
+**CRITICAL: Centralized Data Service**
+**ALWAYS use `data.service.ts` for these collections - DO NOT create duplicate queries or listeners:**
+
+- **Companies**: `globalData.companies.value` (all companies including inactive, real-time)
+- **Users**: `globalData.users.value` (company-scoped, real-time)
+- **Roles**: `globalData.roles.value` (global - shared across all companies, real-time)
+- **Products**: `globalData.products.value` (company-scoped, real-time)
+- **Groups**: `globalData.groups.value` (company-scoped, real-time)
+- **Sites**: `globalData.sites.value` (company-scoped, real-time)
+- **Clients**: `globalData.clients.value` (company-scoped, real-time)
+
+**Why use data.service.ts?**
+- ✅ Single source of truth - all components share the same data
+- ✅ Real-time updates automatically propagate to all components
+- ✅ Company-scoped filtering handled automatically
+- ✅ Smart loading state tracking
+- ✅ Automatic cleanup on company switch
+
+**Usage Pattern:**
+```typescript
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
+
+export default function MyComponent() {
+  useSignals() // Required for reactivity
+
+  const products = globalData.products.value
+  const sites = globalData.sites.value
+  const groups = globalData.groups.value
+
+  // Component auto re-renders when data changes
+}
+```
+
+**For CRUD operations**, still use firebase-utils:
+```typescript
+import { createDocument, updateDocument, deleteDoc } from "@/lib/firebase-utils"
+
+await createDocument("products", productData, "Product created")
+await updateDocument("sites", siteId, updates, "Site updated")
+```
 
 ### Type Definitions (`src/types/index.ts`)
 
 All domain types are defined here:
 - **Core Types:** `User`, `Company`, `Role`, `Asset`, `Order`, `PreBooking`
 - **Operational:** `WeighingRecord`, `Weighbridge`, `SecurityCheck`, `Seal`
-- **Supporting:** `Product`, `Site`, `Client`, `NotificationTemplate`, `AuditLog`
+- **Supporting:** `Product`, `Site`, `Client`, `Group`, `NotificationTemplate`, `AuditLog`
 - **Base Interfaces:** `Timestamped`, `CompanyScoped`
 
 Every entity includes timestamps and most are company-scoped.
+
+**Group Interface:**
+The `Group` type supports unlimited hierarchical nesting for organizational structure (mine companies only):
+- `parentGroupId?: string` - Reference to parent group (undefined for root groups)
+- `level: number` - Depth in hierarchy (0 for root)
+- `path: string[]` - Array of ancestor IDs for easy querying and breadcrumbs
+- Sites can be assigned to groups via `groupId` field
 
 ### Context Providers
 
@@ -405,6 +448,95 @@ import { PermissionGate } from "@/components/auth/PermissionGate"
 <PermissionGate permission={PERMISSIONS.ADMIN_COMPANIES}>
   <AdminPanel />
 </PermissionGate>
+```
+
+### Company Type-Based Access Control
+
+Newton implements feature-level access control based on company type. Navigation and features are dynamically filtered:
+
+#### Access Matrix by Company Type
+
+**Mine Companies** (Full Access):
+- ✅ Dashboard
+- ✅ Companies
+- ✅ Products
+- ✅ Clients
+- ✅ Sites (with Group assignment)
+- ✅ Organizational Groups (via Company settings)
+- ✅ Users
+- ✅ Roles
+- ✅ Notifications
+- ✅ Settings
+
+**Transporter Companies** (Limited Access):
+- ✅ Dashboard
+- ✅ Companies (view own)
+- ❌ Products (hidden)
+- ❌ Clients (hidden)
+- ❌ Sites (hidden)
+- ❌ Organizational Groups (hidden)
+- ✅ Users
+- ✅ Roles
+- ✅ Notifications
+- ✅ Settings
+
+**Logistics Coordinator Companies** (Limited Access):
+- ✅ Dashboard
+- ✅ Companies (view own)
+- ❌ Products (hidden)
+- ❌ Clients (hidden)
+- ❌ Sites (hidden)
+- ❌ Organizational Groups (hidden)
+- ✅ Users
+- ✅ Roles
+- ✅ Notifications
+- ✅ Settings
+
+#### Implementation Details
+
+Navigation filtering is automatic based on `company.companyType`:
+```typescript
+// Navigation items marked with requiresMine: true are filtered out
+// for transporter and logistics coordinator companies
+const navigation = useMemo(() => {
+  if (!company) return baseNavigation
+  if (company.companyType === "mine") return baseNavigation
+  return baseNavigation.filter(item => !item.requiresMine)
+}, [company])
+```
+
+### Organizational Groups (Mine Companies Only)
+
+Mine companies can create unlimited hierarchical organizational groups for better structure:
+
+**Features:**
+- Unlimited nesting (groups → subgroups → sub-subgroups → etc.)
+- Tree UI with expand/collapse
+- Inline add/edit/delete functionality
+- Sites can be assigned to groups
+- Accessed via Company Settings → Groups tab
+
+**Usage:**
+```typescript
+// Group data structure
+interface Group {
+  id: string
+  name: string
+  description?: string
+  parentGroupId?: string  // Link to parent
+  level: number           // Depth in hierarchy
+  path: string[]          // Array of ancestor IDs
+  isActive: boolean
+  companyId: string
+}
+```
+
+**Component:**
+```typescript
+import { GroupsTreeManager } from "@/components/groups/GroupsTreeManager"
+
+// In CompanyFormModal, Groups tab (mine companies only)
+<GroupsTreeManager companyId={company.id} />
 ```
 
 ### Error Handling Pattern

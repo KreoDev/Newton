@@ -24,7 +24,7 @@ function AppBreadcrumbs() {
     return null
   }
 
-  if (segments.length === 1 && navigation.some(item => item.href === `/${segments[0]}`)) {
+  if (segments.length === 1 && baseNavigation.some(item => item.href === `/${segments[0]}`)) {
     return null
   }
 
@@ -34,7 +34,7 @@ function AppBreadcrumbs() {
 
   segments.forEach((segment, index) => {
     cumulativePath += `/${segment}`
-    const navMatch = navigation.find(item => item.href === cumulativePath)
+    const navMatch = baseNavigation.find(item => item.href === cumulativePath)
     const label = navMatch?.name ?? segment.replace(/-/g, " ").replace(/\b\w/g, char => char.toUpperCase())
     const isLast = index === segments.length - 1
 
@@ -63,12 +63,13 @@ interface AppLayoutProps {
   children: React.ReactNode
 }
 
-const navigation = [
+// Base navigation items
+const baseNavigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Companies", href: "/admin/companies", icon: Building2 },
-  { name: "Products", href: "/admin/products", icon: Package },
-  { name: "Clients", href: "/admin/clients", icon: UserCog },
-  { name: "Sites", href: "/admin/sites", icon: MapPin },
+  { name: "Products", href: "/admin/products", icon: Package, requiresMine: true },
+  { name: "Clients", href: "/admin/clients", icon: UserCog, requiresMine: true },
+  { name: "Sites", href: "/admin/sites", icon: MapPin, requiresMine: true },
   { name: "Users", href: "/admin/users", icon: Users },
   { name: "Roles", href: "/admin/roles", icon: Shield },
   { name: "Notifications", href: "/admin/notifications", icon: Bell },
@@ -79,6 +80,7 @@ interface NavigationItem {
   name: string
   href: string
   icon: LucideIcon
+  requiresMine?: boolean
 }
 
 function NavLink({ item, className, onClick }: { item: NavigationItem; className?: string; onClick?: () => void }) {
@@ -118,6 +120,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
     () => companies.filter(c => c.id !== user?.companyId),
     [companies, user?.companyId]
   )
+
+  // Filter navigation based on company type
+  const navigation = useMemo(() => {
+    if (!company) return baseNavigation
+
+    // Only mine companies can access Products, Clients, and Sites
+    if (company.companyType === "mine") {
+      return baseNavigation
+    }
+
+    // Filter out mine-only items for transporter and logistics coordinator companies
+    return baseNavigation.filter(item => !item.requiresMine)
+  }, [company])
 
   if (loading) {
     return <LoadingSpinner fullScreen message="Loading..." />

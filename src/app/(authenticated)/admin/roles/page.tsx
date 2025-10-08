@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
@@ -16,39 +16,23 @@ import { RoleFormModal } from "@/components/roles/RoleFormModal"
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, getDocs } from "firebase/firestore"
+import { collection, query, where, updateDoc, doc, deleteDoc, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
 
 export default function RolesPage() {
+  useSignals() // Required for reactivity
   const { user } = useAuth()
   const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_ROLES)
   const { showSuccess, showError, showConfirm } = useAlert()
-  const [roles, setRoles] = useState<Role[]>([])
-  const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingRole, setEditingRole] = useState<Role | undefined>(undefined)
   const [filterStatus, setFilterStatus] = useState<string>("all")
 
-  useEffect(() => {
-    if (!user) return
-
-    // NOTE: Roles are GLOBAL - not filtered by companyId
-    const q = query(
-      collection(db, "roles"),
-      orderBy("name", "asc")
-    )
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const rolesList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Role[]
-      setRoles(rolesList)
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
-  }, [user])
+  // Get roles from centralized data service (roles are GLOBAL - not company-scoped)
+  const roles = globalData.roles.value
+  const loading = globalData.loading.value
 
   const { searchTerm, setSearchTerm, filteredItems: searchedRoles, isSearching } = useOptimizedSearch(roles, SEARCH_CONFIGS.roles)
 
@@ -109,9 +93,10 @@ export default function RolesPage() {
       const usersSnapshot = await getDocs(usersQuery)
 
       if (!usersSnapshot.empty) {
+        const userCount = usersSnapshot.size
         showError(
           "Cannot Delete Role",
-          `This role is assigned to ${usersSnapshot.size} user(s). Please reassign these users to different roles before deleting this role.`
+          `This role cannot be deleted because it is assigned to ${userCount} user${userCount > 1 ? 's' : ''}. You can deactivate the role instead to prevent it from being assigned to new users.`
         )
         return
       }

@@ -89,7 +89,7 @@ export default function CompaniesPage() {
         const detailsText = usage.details.map(detail => `• ${detail}`).join('\n')
         showError(
           "Cannot Delete Company",
-          `This company has:\n\n${detailsText}\n\nPlease remove or reassign these items before deleting the company.`
+          `This company cannot be deleted because it has:\n\n${detailsText}\n\nYou can deactivate the company instead to prevent it from being used.`
         )
         return
       }

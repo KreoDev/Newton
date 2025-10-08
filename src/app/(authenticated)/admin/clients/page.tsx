@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
@@ -16,39 +16,23 @@ import { ClientFormModal } from "@/components/clients/ClientFormModal"
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, getDocs } from "firebase/firestore"
+import { collection, query, where, updateDoc, doc, deleteDoc, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
 
 export default function ClientsPage() {
+  useSignals() // Required for reactivity
   const { user } = useAuth()
   const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_CLIENTS)
   const { showSuccess, showError, showConfirm } = useAlert()
-  const [clients, setClients] = useState<Client[]>([])
-  const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | undefined>(undefined)
   const [filterStatus, setFilterStatus] = useState<string>("all")
 
-  useEffect(() => {
-    if (!user?.companyId) return
-
-    const q = query(
-      collection(db, "clients"),
-      where("companyId", "==", user.companyId),
-      orderBy("name", "asc")
-    )
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const clientsList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Client[]
-      setClients(clientsList)
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
-  }, [user?.companyId])
+  // Get clients from centralized data service
+  const clients = globalData.clients.value
+  const loading = globalData.loading.value
 
   const { searchTerm, setSearchTerm, filteredItems: searchedClients, isSearching } = useOptimizedSearch(clients, SEARCH_CONFIGS.clients)
 
@@ -75,18 +59,20 @@ export default function ClientsPage() {
 
   const handleDeleteClick = async (client: Client) => {
     try {
-      // Check if client is used in any orders
+      // Check if client has been used in any orders (past or present)
       const ordersQuery = query(collection(db, "orders"), where("clientCompanyId", "==", client.id))
       const ordersSnapshot = await getDocs(ordersQuery)
 
       if (!ordersSnapshot.empty) {
+        const orderCount = ordersSnapshot.size
         showError(
           "Cannot Delete Client",
-          `This client has existing orders. Please remove or complete these orders before deleting the client.`
+          `This client cannot be deleted because it has ${orderCount} order${orderCount > 1 ? 's' : ''} associated with it. You can deactivate the client instead to prevent it from being used in new orders.`
         )
         return
       }
 
+      // Only allow deletion if client has never been used
       showConfirm(
         "Delete Client",
         `Are you sure you want to delete "${client.name}"? This action cannot be undone.`,

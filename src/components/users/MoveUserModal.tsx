@@ -39,7 +39,7 @@ export function MoveUserModal({ open, onClose, onSuccess, user }: MoveUserModalP
     e.preventDefault()
 
     if (!newCompanyId) {
-      showError("Validation Error", "Please select a company.")
+      showError("Error", "Please select a company.")
       return
     }
 

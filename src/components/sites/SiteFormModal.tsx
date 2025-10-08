@@ -1,19 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import type { Site, User } from "@/types"
+import type { Site } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
 import { useAuth } from "@/contexts/AuthContext"
 import { createDocument, updateDocument } from "@/lib/firebase-utils"
-import { collection, query, where, getDocs } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import { OperatingHoursEditor, type OperatingHours } from "./OperatingHoursEditor"
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
 
 interface SiteFormModalProps {
   open: boolean
@@ -33,6 +33,7 @@ const DEFAULT_OPERATING_HOURS: OperatingHours = {
 }
 
 export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalProps) {
+  useSignals() // Required for reactivity
   const { user } = useAuth()
   const { showSuccess, showError } = useAlert()
   const isEditing = Boolean(site)
@@ -41,39 +42,34 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
   const [siteType, setSiteType] = useState<"collection" | "destination">("collection")
   const [physicalAddress, setPhysicalAddress] = useState("")
   const [contactUserId, setContactUserId] = useState<string>("")
+  const [groupId, setGroupId] = useState<string>("")
   const [operatingHours, setOperatingHours] = useState<OperatingHours>(DEFAULT_OPERATING_HOURS)
   const [isActive, setIsActive] = useState(true)
   const [loading, setLoading] = useState(false)
 
-  const [users, setUsers] = useState<User[]>([])
-  const [loadingUsers, setLoadingUsers] = useState(true)
+  // Get data from centralized service
+  const allUsers = globalData.users.value
+  const allGroups = globalData.groups.value
+  const allCompanies = globalData.companies.value
+  const dataLoading = globalData.loading.value
 
-  useEffect(() => {
-    if (!user?.companyId || !open) return
+  // Filter users with phone numbers
+  const users = useMemo(() => {
+    return allUsers.filter(u => u.isActive && u.phoneNumber && u.phoneNumber.trim() !== "")
+  }, [allUsers])
 
-    const fetchUsers = async () => {
-      try {
-        const q = query(
-          collection(db, "users"),
-          where("companyId", "==", user.companyId),
-          where("isActive", "==", true)
-        )
-        const snapshot = await getDocs(q)
-        const usersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as User[]
+  // Filter active groups
+  const groups = useMemo(() => {
+    return allGroups.filter(g => g.isActive)
+  }, [allGroups])
 
-        // Filter users with phone numbers
-        const usersWithPhone = usersList.filter(u => u.phoneNumber && u.phoneNumber.trim() !== "")
-        setUsers(usersWithPhone)
-      } catch (error) {
-        console.error("Error fetching users:", error)
-        showError("Error", "Failed to load users")
-      } finally {
-        setLoadingUsers(false)
-      }
-    }
+  // Get current company
+  const company = useMemo(() => {
+    return allCompanies.find(c => c.id === user?.companyId) || null
+  }, [allCompanies, user?.companyId])
 
-    fetchUsers()
-  }, [user?.companyId, open])
+  const loadingUsers = dataLoading
+  const loadingGroups = dataLoading
 
   useEffect(() => {
     if (site && open) {
@@ -81,6 +77,7 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
       setSiteType(site.siteType)
       setPhysicalAddress(site.physicalAddress)
       setContactUserId(site.contactUserId || "")
+      setGroupId(site.groupId || "")
       setOperatingHours((site.operatingHours as unknown as OperatingHours) || DEFAULT_OPERATING_HOURS)
       setIsActive(site.isActive)
     } else if (!site && open) {
@@ -93,6 +90,7 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
     setSiteType("collection")
     setPhysicalAddress("")
     setContactUserId("")
+    setGroupId("")
     setOperatingHours(DEFAULT_OPERATING_HOURS)
     setIsActive(true)
   }
@@ -101,12 +99,12 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
     e.preventDefault()
 
     if (!name.trim()) {
-      showError("Validation Error", "Site name is required")
+      showError("Error", "Site name is required")
       return
     }
 
     if (!physicalAddress.trim()) {
-      showError("Validation Error", "Physical address is required")
+      showError("Error", "Physical address is required")
       return
     }
 
@@ -114,7 +112,7 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
     if (contactUserId) {
       const selectedUser = users.find(u => u.id === contactUserId)
       if (!selectedUser || !selectedUser.phoneNumber || selectedUser.phoneNumber.trim() === "") {
-        showError("Validation Error", "Selected contact person must have a phone number")
+        showError("Error", "Selected contact person must have a phone number")
         return
       }
     }
@@ -132,6 +130,7 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
         siteType,
         physicalAddress: physicalAddress.trim(),
         contactUserId: contactUserId || null,
+        groupId: groupId || null,
         operatingHours,
         isActive,
         companyId: user.companyId,
@@ -227,6 +226,34 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
             )}
             <p className="text-xs text-muted-foreground">Only users with phone numbers are shown</p>
           </div>
+
+          {/* Group selector - only for mine companies */}
+          {company?.companyType === "mine" && (
+            <div className="space-y-2">
+              <Label htmlFor="groupId">Organizational Group (Optional)</Label>
+              {loadingGroups ? (
+                <p className="text-sm text-muted-foreground">Loading groups...</p>
+              ) : groups.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No groups available. Create groups in company settings.</p>
+              ) : (
+                <select
+                  id="groupId"
+                  value={groupId}
+                  onChange={e => setGroupId(e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 bg-background"
+                >
+                  <option value="">-- No Group --</option>
+                  {groups.map(g => (
+                    <option key={g.id} value={g.id}>
+                      {g.path.length > 0 ? '\u00A0\u00A0'.repeat(g.level) : ''}{g.name}
+                      {g.description ? ` - ${g.description}` : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <p className="text-xs text-muted-foreground">Assign this site to an organizational group</p>
+            </div>
+          )}
 
           <OperatingHoursEditor value={operatingHours} onChange={setOperatingHours} />
 

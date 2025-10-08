@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
@@ -15,39 +15,23 @@ import { SiteFormModal } from "@/components/sites/SiteFormModal"
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, getDocs } from "firebase/firestore"
+import { collection, query, where, updateDoc, doc, deleteDoc, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
 
 export default function SitesPage() {
+  useSignals() // Required for reactivity
   const { user } = useAuth()
   const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_SITES)
   const { showSuccess, showError, showConfirm } = useAlert()
-  const [sites, setSites] = useState<Site[]>([])
-  const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingSite, setEditingSite] = useState<Site | undefined>(undefined)
   const [filterType, setFilterType] = useState<string>("all")
 
-  useEffect(() => {
-    if (!user?.companyId) return
-
-    const q = query(
-      collection(db, "sites"),
-      where("companyId", "==", user.companyId),
-      orderBy("name", "asc")
-    )
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const sitesList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Site[]
-      setSites(sitesList)
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
-  }, [user?.companyId])
+  // Get sites from centralized data service
+  const sites = globalData.sites.value
+  const loading = globalData.loading.value
 
   const { searchTerm, setSearchTerm, filteredItems: searchedSites, isSearching } = useOptimizedSearch(sites, SEARCH_CONFIGS.sites)
 
@@ -84,11 +68,12 @@ export default function SitesPage() {
       ])
 
       const hasOrders = !ordersSnapshot1.empty || !ordersSnapshot2.empty
+      const orderCount = ordersSnapshot1.size + ordersSnapshot2.size
 
       if (hasOrders) {
         showError(
           "Cannot Delete Site",
-          `This site is assigned to existing orders. Please remove or complete these orders before deleting the site.`
+          `This site cannot be deleted because it has ${orderCount} order${orderCount > 1 ? 's' : ''} associated with it. You can deactivate the site instead to prevent it from being used in new orders.`
         )
         return
       }

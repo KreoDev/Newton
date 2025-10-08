@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
@@ -15,39 +15,23 @@ import { ProductFormModal } from "@/components/products/ProductFormModal"
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc, getDocs } from "firebase/firestore"
+import { collection, query, where, updateDoc, doc, deleteDoc, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
 
 export default function ProductsPage() {
+  useSignals() // Required for reactivity
   const { user } = useAuth()
   const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_PRODUCTS)
   const { showSuccess, showError, showConfirm } = useAlert()
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined)
   const [filterStatus, setFilterStatus] = useState<string>("all")
 
-  useEffect(() => {
-    if (!user?.companyId) return
-
-    const q = query(
-      collection(db, "products"),
-      where("companyId", "==", user.companyId),
-      orderBy("name", "asc")
-    )
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const productsList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Product[]
-      setProducts(productsList)
-      setLoading(false)
-    })
-
-    return () => unsubscribe()
-  }, [user?.companyId])
+  // Get products from centralized data service
+  const products = globalData.products.value
+  const loading = globalData.loading.value
 
   const { searchTerm, setSearchTerm, filteredItems: searchedProducts, isSearching } = useOptimizedSearch(products, SEARCH_CONFIGS.products)
 

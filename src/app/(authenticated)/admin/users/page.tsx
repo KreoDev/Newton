@@ -27,9 +27,11 @@ export default function UsersPage() {
   const { user } = useAuth()
   const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_USERS)
   const { hasPermission: canViewAllCompanies, loading: viewAllLoading } = usePermission(PERMISSIONS.ADMIN_USERS_VIEW_ALL_COMPANIES)
-  const [users, setUsers] = useState<UserType[]>([])
-  const [loading, setLoading] = useState(true)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(user?.companyId || "")
+
+  // Local state for when filtering by different company
+  const [localUsers, setLocalUsers] = useState<UserType[]>([])
+  const [localLoading, setLocalLoading] = useState(false)
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false)
@@ -40,14 +42,19 @@ export default function UsersPage() {
   const [permissionUser, setPermissionUser] = useState<UserType | null>(null)
   const [roleUser, setRoleUser] = useState<UserType | null>(null)
 
-  useEffect(() => {
-    if (!user) return
+  // Determine if we're viewing current company (can use centralized data)
+  const viewingCurrentCompany = selectedCompanyId === user?.companyId
 
-    // For users with viewAllCompanies permission, allow filtering by company
-    // For regular users, only show users from their company
+  // Use centralized data when viewing current company, otherwise create local listener
+  useEffect(() => {
+    if (!user || viewingCurrentCompany) return
+
+    // Only create listener when filtering by different company or "all"
     const companyId = canViewAllCompanies && selectedCompanyId ? selectedCompanyId : user.companyId
 
     if (!companyId) return
+
+    setLocalLoading(true)
 
     const q = canViewAllCompanies && selectedCompanyId === "all"
       ? query(collection(db, "users"), orderBy("firstName", "asc"))
@@ -62,12 +69,16 @@ export default function UsersPage() {
         id: doc.id,
         ...doc.data(),
       })) as UserType[]
-      setUsers(usersList)
-      setLoading(false)
+      setLocalUsers(usersList)
+      setLocalLoading(false)
     })
 
     return () => unsubscribe()
-  }, [user, selectedCompanyId, canViewAllCompanies])
+  }, [user, selectedCompanyId, canViewAllCompanies, viewingCurrentCompany])
+
+  // Select data source: centralized for current company, local for others
+  const users = viewingCurrentCompany ? globalData.users.value : localUsers
+  const loading = viewingCurrentCompany ? globalData.loading.value : localLoading
 
 
   if (permissionLoading || viewAllLoading) {
@@ -151,14 +162,11 @@ export default function UsersPage() {
       <ChangePasswordModal
         isOpen={!!passwordUser}
         onClose={() => setPasswordUser(null)}
-        userId={passwordUser?.id || ""}
       />
 
       <ChangeEmailModal
         isOpen={!!emailUser}
         onClose={() => setEmailUser(null)}
-        userId={emailUser?.id || ""}
-        currentEmail={emailUser?.email || ""}
       />
 
       {moveUser && (

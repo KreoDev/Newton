@@ -21,6 +21,7 @@ interface ProgressData {
       products: number
       clients: number
       sites: number
+      groups: number
     }
     seeded: {
       permissions: number
@@ -33,6 +34,7 @@ interface ProgressData {
       products: number
       clients: number
       sites: number
+      groups: number
     }
   }
 }
@@ -193,6 +195,7 @@ const DEFAULT_SITES = [
     siteType: "collection",
     physicalAddress: "789 Collection St, Rustenburg, 0299",
     contactUserId: "", // Will be set to one of the contact users
+    groupId: "group_north_sector", // Assigned to North Sector group
     operatingHours: {
       monday: { open: "06:00", close: "18:00" },
       tuesday: { open: "06:00", close: "18:00" },
@@ -209,6 +212,7 @@ const DEFAULT_SITES = [
     siteType: "collection",
     physicalAddress: "321 Mining Rd, Polokwane, 0699",
     contactUserId: "", // Will be set to one of the contact users
+    groupId: "group_south_sector", // Assigned to South Sector group
     operatingHours: {
       monday: { open: "07:00", close: "17:00" },
       tuesday: { open: "07:00", close: "17:00" },
@@ -225,6 +229,7 @@ const DEFAULT_SITES = [
     siteType: "destination",
     physicalAddress: "999 Processing Ave, Johannesburg, 2001",
     contactUserId: "", // Will be set to one of the contact users
+    groupId: "group_primary_processing", // Assigned to Primary Processing group
     operatingHours: {
       monday: { open: "00:00", close: "23:59" }, // 24 hours
       tuesday: { open: "00:00", close: "23:59" },
@@ -241,6 +246,7 @@ const DEFAULT_SITES = [
     siteType: "destination",
     physicalAddress: "555 Industry Blvd, Pretoria, 0002",
     contactUserId: "", // Will be set to one of the contact users
+    groupId: "group_secondary_processing", // Assigned to Secondary Processing group
     operatingHours: {
       monday: { open: "06:00", close: "22:00" },
       tuesday: { open: "06:00", close: "22:00" },
@@ -250,6 +256,55 @@ const DEFAULT_SITES = [
       saturday: { open: "08:00", close: "16:00" },
       sunday: { open: "closed", close: "closed" },
     },
+  },
+]
+
+const DEFAULT_GROUPS = [
+  {
+    id: "group_mining_ops",
+    name: "Mining Operations",
+    description: "Main mining operations division",
+    level: 0,
+    path: [],
+  },
+  {
+    id: "group_north_sector",
+    name: "North Sector",
+    description: "Northern mining region",
+    parentGroupId: "group_mining_ops",
+    level: 1,
+    path: ["group_mining_ops"],
+  },
+  {
+    id: "group_south_sector",
+    name: "South Sector",
+    description: "Southern mining region",
+    parentGroupId: "group_mining_ops",
+    level: 1,
+    path: ["group_mining_ops"],
+  },
+  {
+    id: "group_processing",
+    name: "Processing Division",
+    description: "Ore processing and refinement",
+    level: 0,
+    path: [],
+  },
+  {
+    id: "group_primary_processing",
+    name: "Primary Processing",
+    description: "Initial ore processing",
+    parentGroupId: "group_processing",
+    level: 1,
+    path: ["group_processing"],
+  },
+  {
+    id: "group_secondary_processing",
+    name: "Secondary Processing",
+    description: "Final ore refinement",
+    parentGroupId: "group_processing",
+    level: 1,
+    path: ["group_processing"],
   },
 ]
 
@@ -1207,6 +1262,45 @@ async function seedSites(sendProgress: (data: ProgressData) => void, contactUser
   return count
 }
 
+async function seedGroups(sendProgress: (data: ProgressData) => void) {
+  let count = 0
+  for (const group of DEFAULT_GROUPS) {
+    await adminDb
+      .collection("groups")
+      .doc(group.id)
+      .set({
+        name: group.name,
+        level: group.level,
+        path: group.path,
+        companyId: DEFAULT_COMPANY_ID,
+        ...(group.description && { description: group.description }),
+        ...(group.parentGroupId && { parentGroupId: group.parentGroupId }),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        dbCreatedAt: FieldValue.serverTimestamp(),
+        dbUpdatedAt: FieldValue.serverTimestamp(),
+        isActive: true,
+      })
+    count += 1
+    sendProgress({
+      stage: "seeding_groups",
+      message: `Seeded group ${group.name}`,
+      collection: "groups",
+      progress: { current: count, total: DEFAULT_GROUPS.length },
+    })
+  }
+
+  sendProgress({
+    stage: "seeding_groups",
+    message: `Completed seeding ${count} groups`,
+    collection: "groups",
+    count,
+    completed: true,
+  })
+
+  return count
+}
+
 export async function GET() {
   const encoder = new TextEncoder()
 
@@ -1217,8 +1311,8 @@ export async function GET() {
       }
 
       const results = {
-        cleared: { companies: 0, users: 0, transporters: 0, assets: 0, templates: 0, roles: 0, products: 0, clients: 0, sites: 0 },
-        seeded: { permissions: 0, companies: 0, users: 0, transporters: 0, assets: 0, templates: 0, roles: 0, products: 0, clients: 0, sites: 0 },
+        cleared: { companies: 0, users: 0, transporters: 0, assets: 0, templates: 0, roles: 0, products: 0, clients: 0, sites: 0, groups: 0 },
+        seeded: { permissions: 0, companies: 0, users: 0, transporters: 0, assets: 0, templates: 0, roles: 0, products: 0, clients: 0, sites: 0, groups: 0 },
       }
 
       try {
@@ -1234,6 +1328,7 @@ export async function GET() {
         results.cleared.products = await clearCollection("products", sendProgress)
         results.cleared.clients = await clearCollection("clients", sendProgress)
         results.cleared.sites = await clearCollection("sites", sendProgress)
+        results.cleared.groups = await clearCollection("groups", sendProgress)
 
         // Seed base data
         results.seeded.permissions = await seedPermissions(sendProgress)
@@ -1268,6 +1363,7 @@ export async function GET() {
         // Seed Phase 2 master data
         results.seeded.products = await seedProducts(sendProgress)
         results.seeded.clients = await seedClients(sendProgress)
+        results.seeded.groups = await seedGroups(sendProgress)
         results.seeded.sites = await seedSites(sendProgress, contactUserIds)
 
         // Seed operational data
@@ -1284,7 +1380,7 @@ export async function GET() {
         })
         sendProgress({
           stage: "summary",
-          message: `Seed summary -> Companies: ${results.seeded.companies}, Users: ${results.seeded.users}, Products: ${results.seeded.products}, Clients: ${results.seeded.clients}, Sites: ${results.seeded.sites}, Roles: ${results.seeded.roles}, Templates: ${results.seeded.templates}`,
+          message: `Seed summary -> Companies: ${results.seeded.companies}, Users: ${results.seeded.users}, Products: ${results.seeded.products}, Clients: ${results.seeded.clients}, Groups: ${results.seeded.groups}, Sites: ${results.seeded.sites}, Roles: ${results.seeded.roles}, Templates: ${results.seeded.templates}`,
         })
       } catch (error) {
         console.error("Error seeding database:", error)

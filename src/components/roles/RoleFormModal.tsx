@@ -53,12 +53,12 @@ export function RoleFormModal({ open, onClose, onSuccess, role }: RoleFormModalP
     e.preventDefault()
 
     if (!name.trim()) {
-      showError("Validation Error", "Role name is required")
+      showError("Error", "Role name is required")
       return
     }
 
     if (permissionKeys.length === 0) {
-      showError("Validation Error", "At least one permission must be selected")
+      showError("Error", "At least one permission must be selected")
       return
     }
 

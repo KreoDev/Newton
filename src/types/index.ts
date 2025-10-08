@@ -164,7 +164,7 @@ export interface Company extends Timestamped {
 export interface Client extends Timestamped, CompanyScoped {
   id: string
   name: string
-  registrationNumber: string
+  registrationNumber?: string
   vatNumber?: string
   physicalAddress: string
   contactName: string
@@ -238,12 +238,23 @@ export interface Product extends Timestamped, CompanyScoped {
   isActive: boolean
 }
 
+export interface Group extends Timestamped, CompanyScoped {
+  id: string
+  name: string
+  description?: string
+  parentGroupId?: string // null/undefined for top-level groups
+  level: number // 0 for root, 1 for first sublevel, etc.
+  path: string[] // Array of ancestor IDs for easy querying and breadcrumbs
+  isActive: boolean
+}
+
 export interface Site extends Timestamped, CompanyScoped {
   id: string
   name: string
   siteType: "collection" | "destination"
   physicalAddress: string
   contactUserId: string
+  groupId?: string // Assignment to organizational group (only for mine companies)
   operatingHours: Record<string, { open: string; close: string }>
   isActive: boolean
 }

@@ -52,12 +52,12 @@ export function ProductFormModal({ open, onClose, onSuccess, product }: ProductF
     e.preventDefault()
 
     if (!name.trim()) {
-      showError("Validation Error", "Product name is required")
+      showError("Error", "Product name is required")
       return
     }
 
     if (!code.trim()) {
-      showError("Validation Error", "Product code is required")
+      showError("Error", "Product code is required")
       return
     }
 

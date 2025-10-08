@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,9 +11,9 @@ import type { Client, Site } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
 import { useAuth } from "@/contexts/AuthContext"
 import { createDocument, updateDocument } from "@/lib/firebase-utils"
-import { collection, query, where, getDocs } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import { X } from "lucide-react"
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
 
 interface ClientFormModalProps {
   open: boolean
@@ -23,6 +23,7 @@ interface ClientFormModalProps {
 }
 
 export function ClientFormModal({ open, onClose, onSuccess, client }: ClientFormModalProps) {
+  useSignals() // Required for reactivity
   const { user } = useAuth()
   const { showSuccess, showError } = useAlert()
   const isEditing = Boolean(client)
@@ -38,33 +39,21 @@ export function ClientFormModal({ open, onClose, onSuccess, client }: ClientForm
   const [isActive, setIsActive] = useState(true)
   const [loading, setLoading] = useState(false)
 
-  const [sites, setSites] = useState<Site[]>([])
-  const [loadingSites, setLoadingSites] = useState(true)
+  // Get sites from centralized data service
+  const allSites = globalData.sites.value
+  const dataLoading = globalData.loading.value
 
-  useEffect(() => {
-    if (!user?.companyId || !open) return
+  // Filter active sites only
+  const sites = useMemo(() => {
+    return allSites.filter(s => s.isActive)
+  }, [allSites])
 
-    const fetchSites = async () => {
-      try {
-        const q = query(collection(db, "sites"), where("companyId", "==", user.companyId), where("isActive", "==", true))
-        const snapshot = await getDocs(q)
-        const sitesList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Site[]
-        setSites(sitesList)
-      } catch (error) {
-        console.error("Error fetching sites:", error)
-        showError("Error", "Failed to load sites")
-      } finally {
-        setLoadingSites(false)
-      }
-    }
-
-    fetchSites()
-  }, [user?.companyId, open])
+  const loadingSites = dataLoading
 
   useEffect(() => {
     if (client && open) {
       setName(client.name)
-      setRegistrationNumber(client.registrationNumber)
+      setRegistrationNumber(client.registrationNumber || "")
       setVatNumber(client.vatNumber || "")
       setPhysicalAddress(client.physicalAddress)
       setContactName(client.contactName)
@@ -101,39 +90,34 @@ export function ClientFormModal({ open, onClose, onSuccess, client }: ClientForm
     e.preventDefault()
 
     if (!name.trim()) {
-      showError("Validation Error", "Client name is required")
-      return
-    }
-
-    if (!registrationNumber.trim()) {
-      showError("Validation Error", "Registration number is required")
+      showError("Error", "Client name is required")
       return
     }
 
     if (!physicalAddress.trim()) {
-      showError("Validation Error", "Physical address is required")
+      showError("Error", "Physical address is required")
       return
     }
 
     if (!contactName.trim()) {
-      showError("Validation Error", "Contact person name is required")
+      showError("Error", "Contact person name is required")
       return
     }
 
     if (!contactEmail.trim()) {
-      showError("Validation Error", "Contact email is required")
+      showError("Error", "Contact email is required")
       return
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(contactEmail.trim())) {
-      showError("Validation Error", "Please enter a valid email address")
+      showError("Error", "Please enter a valid email address")
       return
     }
 
     if (!contactPhone.trim()) {
-      showError("Validation Error", "Contact phone is required")
+      showError("Error", "Contact phone is required")
       return
     }
 
@@ -147,7 +131,7 @@ export function ClientFormModal({ open, onClose, onSuccess, client }: ClientForm
 
       const clientData: any = {
         name: name.trim(),
-        registrationNumber: registrationNumber.trim(),
+        registrationNumber: registrationNumber.trim() || null,
         vatNumber: vatNumber.trim() || null,
         physicalAddress: physicalAddress.trim(),
         contactName: contactName.trim(),
@@ -198,14 +182,13 @@ export function ClientFormModal({ open, onClose, onSuccess, client }: ClientForm
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="registrationNumber">
-                Registration Number <span className="text-destructive">*</span>
+                Registration Number
               </Label>
               <Input
                 id="registrationNumber"
                 value={registrationNumber}
                 onChange={e => setRegistrationNumber(e.target.value)}
                 placeholder="e.g., 2019/111111/07"
-                required
               />
             </div>
 

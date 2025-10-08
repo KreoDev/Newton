@@ -10,9 +10,14 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { CompanyService } from "@/services/company.service"
 import type { Company, User } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
+import { useAuth } from "@/contexts/AuthContext"
 import { X } from "lucide-react"
 import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { GroupsTreeManager } from "@/components/groups/GroupsTreeManager"
+import { LocalGroupsManager, type PendingGroup } from "@/components/groups/LocalGroupsManager"
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
 
 interface CompanyFormModalProps {
   open: boolean
@@ -22,6 +27,8 @@ interface CompanyFormModalProps {
 }
 
 export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyFormModalProps) {
+  useSignals() // Required for reactivity
+  const { user } = useAuth()
   const { showSuccess, showError } = useAlert()
   const isEditing = Boolean(company)
 
@@ -65,38 +72,51 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
   const [loading, setLoading] = useState(false)
   const [selectedSecondaryContact, setSelectedSecondaryContact] = useState("")
 
-  const [users, setUsers] = useState<User[]>([])
-  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [localUsers, setLocalUsers] = useState<User[]>([])
+  const [loadingLocalUsers, setLoadingLocalUsers] = useState(false)
+
+  // Pending groups (saved when company form is submitted)
+  const [pendingGroups, setPendingGroups] = useState<PendingGroup[]>([])
 
   const hasMainContact = mainContactId && mainContactId.trim() !== ""
 
+  // Determine if editing current user's company (can use centralized data)
+  const editingCurrentCompany = company?.id === user?.companyId
+
+  // Use centralized data when editing current company, otherwise fetch locally
   useEffect(() => {
-    if (!open || !isEditing || !company) {
-      setUsers([])
+    if (!open || !isEditing || !company || editingCurrentCompany) {
+      setLocalUsers([])
       return
     }
 
+    // Only fetch when editing a different company
     const fetchUsersForCompany = async () => {
       try {
-        setLoadingUsers(true)
+        setLoadingLocalUsers(true)
         const q = query(collection(db, "users"), where("companyId", "==", company.id))
         const snapshot = await getDocs(q)
         const usersList = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         })) as User[]
-        setUsers(usersList)
+        setLocalUsers(usersList)
       } catch (error) {
         console.error("Error fetching users for company:", error)
         showError("Error", "Failed to load users for this company")
-        setUsers([])
+        setLocalUsers([])
       } finally{
-        setLoadingUsers(false)
+        setLoadingLocalUsers(false)
       }
     }
 
     fetchUsersForCompany()
-  }, [open, isEditing, company])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isEditing, company?.id, editingCurrentCompany])
+
+  // Select data source: centralized for current company, local for others
+  const users = editingCurrentCompany ? globalData.users.value : localUsers
+  const loadingUsers = editingCurrentCompany ? globalData.loading.value : loadingLocalUsers
 
   useEffect(() => {
     if (company && open) {
@@ -146,6 +166,26 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
     }
   }, [company, open])
 
+  // Load existing groups when editing a company
+  useEffect(() => {
+    if (!open || !company?.id) {
+      setPendingGroups([])
+      return
+    }
+
+    // Convert existing groups to pending groups
+    const existingGroups = globalData.groups.value.filter(g => g.companyId === company.id)
+    const pending: PendingGroup[] = existingGroups.map(g => ({
+      tempId: g.id, // Use existing ID as tempId
+      name: g.name,
+      description: g.description,
+      parentTempId: g.parentGroupId,
+      level: g.level,
+      path: g.path,
+    }))
+    setPendingGroups(pending)
+  }, [open, company?.id])
+
   const resetForm = () => {
     setName("")
     setCompanyType("mine")
@@ -176,25 +216,93 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
     setPrimaryContactId("")
     setEscalationMinutes(15)
     setRequiredResponseMinutes(30)
+    setPendingGroups([])
+  }
+
+  const saveGroups = async (companyId: string) => {
+    const { createDocument, updateDocument } = await import("@/lib/firebase-utils")
+    const { doc, deleteDoc } = await import("firebase/firestore")
+    const { db } = await import("@/lib/firebase")
+
+    try {
+      // Get existing groups for this company
+      const existingGroups = globalData.groups.value.filter(g => g.companyId === companyId)
+      const existingIds = new Set(existingGroups.map(g => g.id))
+      const pendingIds = new Set(pendingGroups.map(g => g.tempId))
+
+      // Delete groups that were removed
+      const toDelete = existingGroups.filter(g => !pendingIds.has(g.id))
+      for (const group of toDelete) {
+        await deleteDoc(doc(db, "groups", group.id))
+      }
+
+      // Create a map from tempId to real ID for new groups
+      const tempIdToRealId = new Map<string, string>()
+
+      // First, update existing groups and create new ones (in order of level to maintain hierarchy)
+      const sortedPending = [...pendingGroups].sort((a, b) => a.level - b.level)
+
+      for (const pending of sortedPending) {
+        const isExisting = existingIds.has(pending.tempId)
+
+        // Map parent tempId to real ID if needed
+        const parentGroupId = pending.parentTempId
+          ? tempIdToRealId.get(pending.parentTempId) || pending.parentTempId
+          : undefined
+
+        const groupData: any = {
+          name: pending.name,
+          level: pending.level,
+          path: pending.path.map(tempId => tempIdToRealId.get(tempId) || tempId),
+          isActive: true,
+          companyId,
+          createdAt: isExisting ? existingGroups.find(g => g.id === pending.tempId)?.createdAt || Date.now() : Date.now(),
+          updatedAt: Date.now(),
+          dbCreatedAt: null as any,
+          dbUpdatedAt: null as any,
+        }
+
+        if (pending.description) {
+          groupData.description = pending.description
+        }
+        if (parentGroupId) {
+          groupData.parentGroupId = parentGroupId
+        }
+
+        if (isExisting) {
+          // Update existing group
+          await updateDocument("groups", pending.tempId, groupData)
+          tempIdToRealId.set(pending.tempId, pending.tempId)
+        } else {
+          // Create new group
+          const newId = await createDocument("groups", groupData)
+          tempIdToRealId.set(pending.tempId, newId)
+        }
+      }
+    } catch (error) {
+      console.error("Error saving groups:", error)
+      showError("Failed to Save Groups", error instanceof Error ? error.message : "An unexpected error occurred.")
+      throw error
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!name) {
-      showError("Validation Error", "Company name is required")
+      showError("Error", "Company name is required")
       return
     }
 
     if (!physicalAddress) {
-      showError("Validation Error", "Physical address is required")
+      showError("Error", "Physical address is required")
       return
     }
 
     // Validate transporter group options if enabled (only for transporters or dual-role LC)
     const shouldHaveFleetSettings = companyType === "transporter" || (companyType === "logistics_coordinator" && isAlsoTransporter)
     if (shouldHaveFleetSettings && transporterGroupEnabled && groupOptions.length === 0) {
-      showError("Validation Error", "At least one group option is required when transporter group is enabled.")
+      showError("Error", "At least one group option is required when transporter group is enabled.")
       return
     }
 
@@ -264,12 +372,20 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
         requiredResponseMinutes,
       }
 
+      let companyId: string
+
       if (isEditing && company) {
         await CompanyService.update(company.id, companyData)
+        companyId = company.id
         showSuccess("Company Updated", `${name} has been successfully updated!`)
       } else {
-        await CompanyService.create(companyData)
+        companyId = await CompanyService.create(companyData)
         showSuccess("Company Created", `${name} has been successfully created!`)
+      }
+
+      // Save groups if this is a mine company
+      if (companyType === "mine" && pendingGroups.length > 0) {
+        await saveGroups(companyId)
       }
 
       onSuccess()
@@ -285,22 +401,22 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
 
   const addSecondaryContact = () => {
     if (!mainContactId || mainContactId.trim() === "") {
-      showError("Validation Error", "Please select a main contact first")
+      showError("Error", "Please select a main contact first")
       return
     }
 
     if (!selectedSecondaryContact) {
-      showError("Validation Error", "Please select a contact to add")
+      showError("Error", "Please select a contact to add")
       return
     }
 
     if (secondaryContactIds.includes(selectedSecondaryContact)) {
-      showError("Validation Error", "Contact already added")
+      showError("Error", "Contact already added")
       return
     }
 
     if (selectedSecondaryContact === mainContactId) {
-      showError("Validation Error", "Cannot add main contact as secondary contact")
+      showError("Error", "Cannot add main contact as secondary contact")
       return
     }
 
@@ -321,12 +437,12 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
     const trimmedOption = newGroupOption.trim()
 
     if (!trimmedOption) {
-      showError("Validation Error", "Please enter a group name")
+      showError("Error", "Please enter a group name")
       return
     }
 
     if (groupOptions.includes(trimmedOption)) {
-      showError("Validation Error", "This group option already exists")
+      showError("Error", "This group option already exists")
       return
     }
 
@@ -341,6 +457,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
   // Determine which tabs to show
   const showOrderConfig = companyType === "mine"
   const showFleet = companyType === "transporter" || (companyType === "logistics_coordinator" && isAlsoTransporter)
+  const showGroups = companyType === "mine" // Show groups tab for all mine companies (with appropriate message for new companies)
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -354,10 +471,11 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${2 + (showOrderConfig ? 1 : 0) + (showFleet ? 1 : 0)}, 1fr)` }}>
+            <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${2 + (showOrderConfig ? 1 : 0) + (showFleet ? 1 : 0) + (showGroups ? 1 : 0)}, 1fr)` }}>
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
               {showOrderConfig && <TabsTrigger value="order">Order Config</TabsTrigger>}
               {showFleet && <TabsTrigger value="fleet">Fleet</TabsTrigger>}
+              {showGroups && <TabsTrigger value="groups">Groups</TabsTrigger>}
               <TabsTrigger value="escalation">Escalation</TabsTrigger>
             </TabsList>
 
@@ -719,6 +837,22 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
                     </>
                   )}
                 </div>
+              </TabsContent>
+            )}
+
+            {/* Groups Tab (Mine only) */}
+            {showGroups && (
+              <TabsContent value="groups" className="space-y-4">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">Organizational Groups</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Create and manage hierarchical groups for your organization. Groups can be assigned to sites for better organization.
+                  </p>
+                  <p className="text-xs text-muted-foreground italic">
+                    Note: Groups will be saved when you submit the company form.
+                  </p>
+                </div>
+                <LocalGroupsManager groups={pendingGroups} onChange={setPendingGroups} />
               </TabsContent>
             )}
 

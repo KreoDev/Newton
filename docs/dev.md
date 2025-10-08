@@ -463,7 +463,97 @@ Reference `docs/data-model.md` → `sites` collection
 
 ---
 
-### 2.4 Comprehensive User Management ✅
+### 2.4 Organizational Groups ✅
+**User Flow**: Internal organizational structure for mine companies
+
+**Goal**: Create hierarchical organizational groups with unlimited nesting for better site organization. Only available for mine companies.
+
+**Files Created:**
+- `src/components/groups/GroupsTreeManager.tsx` - Tree-based group management UI
+
+**Files Modified:**
+- `src/types/index.ts` - Added `Group` interface
+- `src/components/companies/CompanyFormModal.tsx` - Added Groups tab (mine companies only)
+- `src/components/sites/SiteFormModal.tsx` - Added group assignment dropdown (mine companies only)
+- `src/components/layout/AppLayout.tsx` - Navigation filtering based on company type
+
+**Implementation Pattern:**
+- Groups stored in root-level `groups` collection (company-scoped via `companyId`)
+- Use `createDocument()`, `updateDocument()`, `deleteDoc()` from firebase/firestore
+- Real-time Firebase listeners with `onSnapshot`
+- Hierarchical structure using `parentGroupId`, `level`, and `path` fields
+
+**UI Requirements:**
+
+**Groups Tab (in Company Edit Modal):**
+- Visible only for mine companies when editing
+- Tree-based UI with unlimited nesting levels
+- Visual hierarchy diagram showing current structure
+- Inline add/edit/delete operations
+- Features:
+  - **Add Main Group** button (creates root-level group)
+  - **Add Subgroup** button per group (creates child group)
+  - **Edit** inline form per group
+  - **Delete** with validation (prevents deletion if has children)
+  - Expand/collapse tree nodes
+  - Real-time updates via Firebase listeners
+
+**Groups Form Fields:**
+- Group name* (string, required)
+- Description (optional textarea)
+
+**Hierarchy Diagram:**
+- ASCII tree visualization (├─, └─, │)
+- Shows group names and descriptions
+- Monospace font for alignment
+- Displayed above interactive tree view
+
+**Site Assignment:**
+- Group dropdown in SiteFormModal
+- Shows hierarchical structure with indentation
+- Only visible for mine companies
+- Optional field (sites can exist without group assignment)
+
+**Data Model:**
+```typescript
+interface Group extends Timestamped, CompanyScoped {
+  id: string
+  name: string
+  description?: string
+  parentGroupId?: string // undefined for root groups
+  level: number // 0 for root, increments for each level
+  path: string[] // Array of ancestor IDs for querying
+  isActive: boolean
+}
+```
+
+**Validation Rules:**
+- Group name required (friendly error: "Please enter a group name")
+- Cannot delete group with children (must delete/reassign children first)
+- Cannot set `undefined` values in Firestore (omit optional fields if empty)
+
+**Company Type-Based Access Control:**
+- **Mine companies**: Full access to Products, Clients, Sites, Groups
+- **Transporter companies**: No access to Products, Clients, Sites, Groups
+- **Logistics Coordinator companies**: No access to Products, Clients, Sites, Groups
+- Navigation items (Products, Clients, Sites) hidden for non-mine companies
+- Groups tab only visible for mine companies
+
+**Acceptance Criteria:**
+- ✅ Groups can be created with unlimited nesting
+- ✅ Groups display in tree structure with expand/collapse
+- ✅ Visual hierarchy diagram shows current structure
+- ✅ Inline editing works for all groups
+- ✅ Cannot delete groups with children
+- ✅ Sites can be assigned to groups (mine companies only)
+- ✅ Groups tab only visible for mine companies
+- ✅ Navigation filtered based on company type
+- ✅ Validation messages are user-friendly
+- ✅ No Firestore undefined value errors
+
+---
+
+### 2.5 Comprehensive User Management ✅
 **User Flow**: Flow 10 - User Management Configuration (expanded)
 
 **Goal**: Complete user administration including company transfers, role management, and permission overrides.
@@ -608,7 +698,7 @@ Reference `docs/data-model.md` → `users` collection:
 
 ---
 
-### 2.5 Role Management ✅
+### 2.6 Role Management ✅
 **User Flow**: Administrative configuration for role-based access control
 
 **Goal**: Create, edit, and manage global roles with permission assignments. Roles are shared across all companies with company-specific visibility control.
@@ -766,7 +856,7 @@ Stored in `settings/permissions` document (global):
 
 ---
 
-### 2.6 Notification Templates ✅
+### 2.7 Notification Templates ✅
 **User Flow**: Flow 15 - Notification System Infrastructure
 
 **Goal**: Configure email templates for all system notifications.
@@ -830,7 +920,7 @@ Reference `docs/data-model.md` → `notification_templates` collection
 
 ---
 
-### 2.7 User Notification Preferences ✅
+### 2.8 User Notification Preferences ✅
 **User Flow**: Flow 10 - User Management Configuration (Notification Settings)
 
 **Goal**: Allow users to opt-in/opt-out of notification types.
@@ -904,7 +994,7 @@ Reference `docs/data-model.md` → `users.notificationPreferences`
 
 ---
 
-### 2.8 System-Wide Settings ✅
+### 2.9 System-Wide Settings ✅
 **User Flow**: Flow 16 - System-Wide Settings Configuration
 
 **Goal**: Configure global UI/feature toggles that affect all users.

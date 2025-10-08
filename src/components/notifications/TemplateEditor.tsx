@@ -161,17 +161,17 @@ export function TemplateEditor({ open, onClose, onSuccess, template }: TemplateE
     e.preventDefault()
 
     if (!name.trim()) {
-      showError("Validation Error", "Template name is required.")
+      showError("Error", "Template name is required.")
       return
     }
 
     if (!subject.trim()) {
-      showError("Validation Error", "Email subject is required.")
+      showError("Error", "Email subject is required.")
       return
     }
 
     if (!body.trim()) {
-      showError("Validation Error", "Email body is required.")
+      showError("Error", "Email body is required.")
       return
     }
 
