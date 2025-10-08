@@ -17,9 +17,10 @@ interface ProductFormModalProps {
   onClose: () => void
   onSuccess: () => void
   product?: Product // For editing existing product
+  viewOnly?: boolean // For read-only viewing
 }
 
-export function ProductFormModal({ open, onClose, onSuccess, product }: ProductFormModalProps) {
+export function ProductFormModal({ open, onClose, onSuccess, product, viewOnly = false }: ProductFormModalProps) {
   const { user } = useAuth()
   const { showSuccess, showError } = useAlert()
   const isEditing = Boolean(product)
@@ -100,13 +101,14 @@ export function ProductFormModal({ open, onClose, onSuccess, product }: ProductF
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Product" : "Create New Product"}</DialogTitle>
+          <DialogTitle>{viewOnly ? "View Product" : isEditing ? "Edit Product" : "Create New Product"}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Update product information" : "Add a new product to your catalog"}
+            {viewOnly ? "View product information" : isEditing ? "Update product information" : "Add a new product to your catalog"}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <fieldset disabled={viewOnly}>
           <div className="space-y-2">
             <Label htmlFor="name">
               Product Name <span className="text-destructive">*</span>
@@ -138,15 +140,24 @@ export function ProductFormModal({ open, onClose, onSuccess, product }: ProductF
               Active
             </Label>
           </div>
+          </fieldset>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : isEditing ? "Update Product" : "Create Product"}
-            </Button>
-          </div>
+          {viewOnly ? (
+            <div className="flex justify-end pt-4 border-t">
+              <Button type="button" onClick={onClose}>
+                Close
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving..." : isEditing ? "Update Product" : "Create Product"}
+              </Button>
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
-import { Plus, Search, Shield, Edit, ToggleLeft, ToggleRight, Trash2, Eye, EyeOff, ChevronDown } from "lucide-react"
+import { Plus, Search, Shield, Edit, ToggleLeft, ToggleRight, Trash2, Eye, EyeOff, ChevronDown, FileText } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { Role } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
@@ -212,7 +212,7 @@ export default function RolesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {canManage && (
+                    {canManage ? (
                       <>
                         <Button variant="ghost" size="sm" onClick={() => toggleRoleStatus(role)} title={role.isActive ? "Deactivate role globally" : "Activate role globally"}>
                           {role.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
@@ -236,7 +236,11 @@ export default function RolesPage() {
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </>
-                    )}
+                    ) : isViewOnly ? (
+                      <Button variant="ghost" size="sm" onClick={() => setEditingRole(role)} title="View role details">
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    ) : null}
                     <Badge variant={role.isActive ? "success" : "secondary"}>{role.isActive ? "Active" : "Inactive"}</Badge>
                   </div>
                 </div>
@@ -254,6 +258,7 @@ export default function RolesPage() {
           onClose={() => setEditingRole(undefined)}
           onSuccess={() => setEditingRole(undefined)}
           role={editingRole}
+          viewOnly={isViewOnly}
         />
       )}
     </div>

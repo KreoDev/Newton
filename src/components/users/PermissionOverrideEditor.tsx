@@ -14,6 +14,7 @@ interface PermissionOverrideEditorProps {
   onClose: () => void
   onSuccess: () => void
   user: User
+  viewOnly?: boolean
 }
 
 // Simplified permission categories
@@ -48,7 +49,7 @@ const ACCESS_LEVELS = [
   { value: "full", label: "Full Access" },
 ]
 
-export function PermissionOverrideEditor({ open, onClose, onSuccess, user }: PermissionOverrideEditorProps) {
+export function PermissionOverrideEditor({ open, onClose, onSuccess, user, viewOnly = false }: PermissionOverrideEditorProps) {
   const { showSuccess, showError } = useAlert()
   const [overrides, setOverrides] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -158,13 +159,14 @@ export function PermissionOverrideEditor({ open, onClose, onSuccess, user }: Per
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Permission Overrides</DialogTitle>
+          <DialogTitle>{viewOnly ? "View Permission Overrides" : "Edit Permission Overrides"}</DialogTitle>
           <DialogDescription>
-            Customize permissions for {user.firstName} {user.lastName}
+            {viewOnly ? `View permissions for ${user.firstName} ${user.lastName}` : `Customize permissions for ${user.firstName} ${user.lastName}`}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <fieldset disabled={viewOnly} className="space-y-4">
           <div className="border rounded-md p-3 bg-muted/20">
             <p className="text-sm text-muted-foreground">
               These overrides will take precedence over permissions inherited from assigned roles.
@@ -211,20 +213,29 @@ export function PermissionOverrideEditor({ open, onClose, onSuccess, user }: Per
               </div>
             ))}
           </div>
+          </fieldset>
 
-          <div className="flex justify-between items-center gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={handleReset} disabled={!hasOverrides || loading}>
-              Reset to Defaults
-            </Button>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : "Save Permissions"}
+          {viewOnly ? (
+            <div className="flex justify-end pt-4 border-t">
+              <Button type="button" onClick={onClose}>
+                Close
               </Button>
             </div>
-          </div>
+          ) : (
+            <div className="flex justify-between items-center gap-3 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={handleReset} disabled={!hasOverrides || loading}>
+                Reset to Defaults
+              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Saving..." : "Save Permissions"}
+                </Button>
+              </div>
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

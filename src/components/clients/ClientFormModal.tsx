@@ -20,9 +20,10 @@ interface ClientFormModalProps {
   onClose: () => void
   onSuccess: () => void
   client?: Client // For editing existing client
+  viewOnly?: boolean // For read-only viewing
 }
 
-export function ClientFormModal({ open, onClose, onSuccess, client }: ClientFormModalProps) {
+export function ClientFormModal({ open, onClose, onSuccess, client, viewOnly = false }: ClientFormModalProps) {
   useSignals() // Required for reactivity
   const { user } = useAuth()
   const { showSuccess, showError } = useAlert()
@@ -165,13 +166,14 @@ export function ClientFormModal({ open, onClose, onSuccess, client }: ClientForm
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Client" : "Create New Client"}</DialogTitle>
+          <DialogTitle>{viewOnly ? "View Client" : isEditing ? "Edit Client" : "Create New Client"}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Update client information and contacts" : "Add a new client company"}
+            {viewOnly ? "View client information and contacts" : isEditing ? "Update client information and contacts" : "Add a new client company"}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <fieldset disabled={viewOnly} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">
               Client Name <span className="text-destructive">*</span>
@@ -255,15 +257,24 @@ export function ClientFormModal({ open, onClose, onSuccess, client }: ClientForm
               Active
             </Label>
           </div>
+          </fieldset>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : isEditing ? "Update Client" : "Create Client"}
-            </Button>
-          </div>
+          {viewOnly ? (
+            <div className="flex justify-end pt-4 border-t">
+              <Button type="button" onClick={onClose}>
+                Close
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving..." : isEditing ? "Update Client" : "Create Client"}
+              </Button>
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

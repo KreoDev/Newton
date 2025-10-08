@@ -20,11 +20,12 @@ interface EditUserModalProps {
   isOpen: boolean
   onClose: () => void
   roles: Role[]
+  viewOnly?: boolean
 }
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function EditUserModal({ user, isOpen, onClose, roles }: EditUserModalProps) {
+export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }: EditUserModalProps) {
   const { showSuccess, showError } = useAlert()
   const { hasPermission } = usePermission(PERMISSIONS.ADMIN_USERS_MANAGE_GLOBAL_ADMINS)
   const [formData, setFormData] = useState({
@@ -101,9 +102,10 @@ export function EditUserModal({ user, isOpen, onClose, roles }: EditUserModalPro
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit User</DialogTitle>
+          <DialogTitle>{viewOnly ? "View User" : "Edit User"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          <fieldset disabled={viewOnly} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="firstName">First Name</Label>
             <Input id="firstName" value={formData.firstName} onChange={e => handleInputChange("firstName", e.target.value)} placeholder="Enter first name" />
@@ -153,14 +155,21 @@ export function EditUserModal({ user, isOpen, onClose, roles }: EditUserModalPro
               )}
             </div>
           )}
+          </fieldset>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSaveChanges} disabled={!isEmailValid}>
-            Save Changes
-          </Button>
+          {viewOnly ? (
+            <Button onClick={onClose}>Close</Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveChanges} disabled={!isEmailValid}>
+                Save Changes
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

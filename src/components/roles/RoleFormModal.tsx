@@ -18,9 +18,10 @@ interface RoleFormModalProps {
   onClose: () => void
   onSuccess: () => void
   role?: Role // For editing existing role
+  viewOnly?: boolean // For read-only viewing
 }
 
-export function RoleFormModal({ open, onClose, onSuccess, role }: RoleFormModalProps) {
+export function RoleFormModal({ open, onClose, onSuccess, role, viewOnly = false }: RoleFormModalProps) {
   const { user } = useAuth()
   const { showSuccess, showError } = useAlert()
   const isEditing = Boolean(role)
@@ -96,13 +97,14 @@ export function RoleFormModal({ open, onClose, onSuccess, role }: RoleFormModalP
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Role" : "Create New Role"}</DialogTitle>
+          <DialogTitle>{viewOnly ? "View Role" : isEditing ? "Edit Role" : "Create New Role"}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Update role information and permissions" : "Add a new role with custom permissions"}
+            {viewOnly ? "View role information and permissions" : isEditing ? "Update role information and permissions" : "Add a new role with custom permissions"}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <fieldset disabled={viewOnly} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">
               Role Name <span className="text-destructive">*</span>
@@ -129,15 +131,24 @@ export function RoleFormModal({ open, onClose, onSuccess, role }: RoleFormModalP
               Active
             </Label>
           </div>
+          </fieldset>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : isEditing ? "Update Role" : "Create Role"}
-            </Button>
-          </div>
+          {viewOnly ? (
+            <div className="flex justify-end pt-4 border-t">
+              <Button type="button" onClick={onClose}>
+                Close
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving..." : isEditing ? "Update Role" : "Create Role"}
+              </Button>
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

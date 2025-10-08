@@ -24,9 +24,10 @@ interface CompanyFormModalProps {
   onClose: () => void
   onSuccess: () => void
   company?: Company // For editing existing company
+  viewOnly?: boolean // For read-only viewing
 }
 
-export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyFormModalProps) {
+export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly = false }: CompanyFormModalProps) {
   useSignals() // Required for reactivity
   const { user } = useAuth()
   const { showSuccess, showError } = useAlert()
@@ -512,9 +513,9 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="!max-w-6xl w-[98vw] sm:!max-w-6xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Company" : "Create New Company"}</DialogTitle>
+          <DialogTitle>{viewOnly ? "View Company" : isEditing ? "Edit Company" : "Create New Company"}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Update company information and settings" : "Create a new company with initial configuration"}
+            {viewOnly ? "View company information and settings" : isEditing ? "Update company information and settings" : "Create a new company with initial configuration"}
           </DialogDescription>
         </DialogHeader>
 
@@ -530,6 +531,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
 
             {/* Basic Info Tab */}
             <TabsContent value="basic" className="space-y-4">
+              <fieldset disabled={viewOnly} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">
@@ -674,11 +676,13 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
                   </>
                 )}
               </div>
+              </fieldset>
             </TabsContent>
 
             {/* Order Config Tab (Mine only) */}
             {showOrderConfig && (
               <TabsContent value="order" className="space-y-4">
+                <fieldset disabled={viewOnly} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="orderNumberMode">Order Number Mode</Label>
@@ -795,12 +799,14 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
                     Seals Required by Default
                   </Label>
                 </div>
+                </fieldset>
               </TabsContent>
             )}
 
             {/* Fleet Tab (Transporter or dual-role LC) */}
             {showFleet && (
               <TabsContent value="fleet" className="space-y-4">
+                <fieldset disabled={viewOnly} className="space-y-4">
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox id="fleetNumberEnabled" checked={fleetNumberEnabled} onCheckedChange={checked => setFleetNumberEnabled(checked as boolean)} />
@@ -886,12 +892,14 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
                     </>
                   )}
                 </div>
+                </fieldset>
               </TabsContent>
             )}
 
             {/* Groups Tab (Mine only) */}
             {showGroups && (
               <TabsContent value="groups" className="space-y-4">
+                <fieldset disabled={viewOnly} className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">Organizational Groups</h3>
                   <p className="text-sm text-muted-foreground">
@@ -907,11 +915,13 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
                   companyId={company?.id}
                   existingGroupIdMap={existingGroupIdMap}
                 />
+                </fieldset>
               </TabsContent>
             )}
 
             {/* Escalation Tab */}
             <TabsContent value="escalation" className="space-y-4">
+              <fieldset disabled={viewOnly} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="primaryContactId">Primary Contact</Label>
                 {!isEditing ? (
@@ -959,17 +969,26 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
                   />
                 </div>
               </div>
+              </fieldset>
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : isEditing ? "Update Company" : "Create Company"}
-            </Button>
-          </div>
+          {viewOnly ? (
+            <div className="flex justify-end pt-4 border-t">
+              <Button type="button" onClick={onClose}>
+                Close
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving..." : isEditing ? "Update Company" : "Create Company"}
+              </Button>
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

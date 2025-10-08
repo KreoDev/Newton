@@ -5,7 +5,7 @@ import type { User as UserType, Company, Role } from "@/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { KeyRound, UserCircle2, ToggleRight, ToggleLeft, MoreHorizontal, Edit, User } from "lucide-react"
+import { KeyRound, UserCircle2, ToggleRight, ToggleLeft, MoreHorizontal, Edit, User, FileText, Shield, Lock } from "lucide-react"
 import Image from "next/image"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DataTable } from "@/components/ui/data-table"
@@ -20,6 +20,7 @@ interface UsersTableProps {
   users: UserType[]
   canViewAllCompanies: boolean
   canManage: boolean
+  isViewOnly?: boolean
   onEdit?: (user: UserType) => void
   onManageRoles?: (user: UserType) => void
   onEditPermissions?: (user: UserType) => void
@@ -28,7 +29,7 @@ interface UsersTableProps {
   onMoveCompany?: (user: UserType) => void
 }
 
-export function UsersTable({ users, canViewAllCompanies, canManage, onEdit, onManageRoles, onEditPermissions, onChangePassword, onChangeEmail, onMoveCompany }: UsersTableProps) {
+export function UsersTable({ users, canViewAllCompanies, canManage, isViewOnly = false, onEdit, onManageRoles, onEditPermissions, onChangePassword, onChangeEmail, onMoveCompany }: UsersTableProps) {
   useSignals()
   const { showSuccess, showError } = useAlert()
   const { user: currentUser } = useAuth()
@@ -141,41 +142,76 @@ export function UsersTable({ users, canViewAllCompanies, canManage, onEdit, onMa
         return <Badge variant={user.isActive ? "success" : "secondary"}>{user.isActive ? "Active" : "Inactive"}</Badge>
       },
     },
-    ...(canManage
+    ...(canManage || isViewOnly
       ? [
           {
             id: "actions",
             header: "Actions",
             cell: ({ row }: { row: any }) => {
               const user = row.original
-              return (
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => toggleUserStatus(user)} title={user.isActive ? "Deactivate user" : "Activate user"}>
-                    {user.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => onEdit?.(user)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit User
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onChangePassword?.(user)}>Change Password</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onChangeEmail?.(user)}>Change Email</DropdownMenuItem>
-                      {canViewAllCompanies && <DropdownMenuItem onClick={() => onMoveCompany?.(user)}>Move to Another Company</DropdownMenuItem>}
-                      <DropdownMenuItem onClick={() => onManageRoles?.(user)}>Manage Roles</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEditPermissions?.(user)}>Edit Permissions</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Checkbox checked={row.getIsSelected()} onCheckedChange={value => row.toggleSelected(!!value)} aria-label="Select row" />
-                </div>
-              )
+
+              if (canManage) {
+                return (
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => toggleUserStatus(user)} title={user.isActive ? "Deactivate user" : "Activate user"}>
+                      {user.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => onEdit?.(user)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit User
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onChangePassword?.(user)}>Change Password</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onChangeEmail?.(user)}>Change Email</DropdownMenuItem>
+                        {canViewAllCompanies && <DropdownMenuItem onClick={() => onMoveCompany?.(user)}>Move to Another Company</DropdownMenuItem>}
+                        <DropdownMenuItem onClick={() => onManageRoles?.(user)}>Manage Roles</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEditPermissions?.(user)}>Edit Permissions</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Checkbox checked={row.getIsSelected()} onCheckedChange={value => row.toggleSelected(!!value)} aria-label="Select row" />
+                  </div>
+                )
+              }
+
+              if (isViewOnly) {
+                return (
+                  <div className="flex items-center gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" title="View user details">
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>View</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => onEdit?.(user)}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onManageRoles?.(user)}>
+                          <Shield className="mr-2 h-4 w-4" />
+                          View Roles
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEditPermissions?.(user)}>
+                          <Lock className="mr-2 h-4 w-4" />
+                          View Permissions
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )
+              }
+
+              return null
             },
             enableSorting: false,
             enableHiding: false,

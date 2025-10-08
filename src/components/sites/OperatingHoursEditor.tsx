@@ -17,6 +17,7 @@ export interface OperatingHours {
 interface OperatingHoursEditorProps {
   value: OperatingHours
   onChange: (hours: OperatingHours) => void
+  disabled?: boolean
 }
 
 const DAYS: Array<keyof OperatingHours> = [
@@ -39,7 +40,7 @@ const DAY_LABELS: Record<keyof OperatingHours, string> = {
   sunday: "Sunday",
 }
 
-export function OperatingHoursEditor({ value, onChange }: OperatingHoursEditorProps) {
+export function OperatingHoursEditor({ value, onChange, disabled = false }: OperatingHoursEditorProps) {
   const updateDay = (day: keyof OperatingHours, field: "open" | "close", newValue: string) => {
     onChange({
       ...value,
@@ -86,7 +87,7 @@ export function OperatingHoursEditor({ value, onChange }: OperatingHoursEditorPr
                 type="time"
                 value={isClosed(day) ? "" : value[day].open}
                 onChange={(e) => updateDay(day, "open", e.target.value)}
-                disabled={isClosed(day)}
+                disabled={disabled || isClosed(day)}
                 className="h-8 text-sm"
               />
             </div>
@@ -95,7 +96,7 @@ export function OperatingHoursEditor({ value, onChange }: OperatingHoursEditorPr
                 type="time"
                 value={isClosed(day) ? "" : value[day].close}
                 onChange={(e) => updateDay(day, "close", e.target.value)}
-                disabled={isClosed(day)}
+                disabled={disabled || isClosed(day)}
                 className="h-8 text-sm"
               />
             </div>
@@ -104,6 +105,7 @@ export function OperatingHoursEditor({ value, onChange }: OperatingHoursEditorPr
                 <Checkbox
                   id={`${day}-closed`}
                   checked={isClosed(day)}
+                  disabled={disabled}
                   onCheckedChange={(checked) => {
                     if (checked) {
                       setClosed(day)
@@ -124,7 +126,7 @@ export function OperatingHoursEditor({ value, onChange }: OperatingHoursEditorPr
                 <Checkbox
                   id={`${day}-24h`}
                   checked={is24Hours(day)}
-                  disabled={isClosed(day)}
+                  disabled={disabled || isClosed(day)}
                   onCheckedChange={(checked) => {
                     if (checked) {
                       set24Hours(day)

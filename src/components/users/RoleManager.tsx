@@ -18,9 +18,10 @@ interface RoleManagerProps {
   onClose: () => void
   onSuccess: () => void
   user: User
+  viewOnly?: boolean
 }
 
-export function RoleManager({ open, onClose, onSuccess, user }: RoleManagerProps) {
+export function RoleManager({ open, onClose, onSuccess, user, viewOnly = false }: RoleManagerProps) {
   useSignals()
   const { showSuccess, showError } = useAlert()
   const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([])
@@ -77,13 +78,14 @@ export function RoleManager({ open, onClose, onSuccess, user }: RoleManagerProps
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Manage Role</DialogTitle>
+          <DialogTitle>{viewOnly ? "View Roles" : "Manage Role"}</DialogTitle>
           <DialogDescription>
-            Assign a role to {user.firstName} {user.lastName}
+            {viewOnly ? `View roles assigned to ${user.firstName} ${user.lastName}` : `Assign a role to ${user.firstName} ${user.lastName}`}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <fieldset disabled={viewOnly} className="space-y-4">
           {/* Current Roles Section */}
           <div className="space-y-2">
             <Label>Current Roles</Label>
@@ -154,15 +156,24 @@ export function RoleManager({ open, onClose, onSuccess, user }: RoleManagerProps
               )}
             </div>
           </div>
+          </fieldset>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Save Roles"}
-            </Button>
-          </div>
+          {viewOnly ? (
+            <div className="flex justify-end pt-4 border-t">
+              <Button type="button" onClick={onClose}>
+                Close
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving..." : "Save Roles"}
+              </Button>
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

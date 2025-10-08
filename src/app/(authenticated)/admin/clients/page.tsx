@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
-import { Plus, Search, Building, Edit, ToggleLeft, ToggleRight, Trash2, ChevronDown } from "lucide-react"
+import { Plus, Search, Building, Edit, ToggleLeft, ToggleRight, Trash2, ChevronDown, FileText } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { Client } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
@@ -180,7 +180,7 @@ export default function ClientsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {canManage && (
+                    {canManage ? (
                       <>
                         <Button variant="ghost" size="sm" onClick={() => toggleClientStatus(client)} title={client.isActive ? "Deactivate client" : "Activate client"}>
                           {client.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
@@ -192,7 +192,11 @@ export default function ClientsPage() {
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </>
-                    )}
+                    ) : isViewOnly ? (
+                      <Button variant="ghost" size="sm" onClick={() => setEditingClient(client)} title="View client details">
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    ) : null}
                     <Badge variant={client.isActive ? "success" : "secondary"}>{client.isActive ? "Active" : "Inactive"}</Badge>
                   </div>
                 </div>
@@ -210,6 +214,7 @@ export default function ClientsPage() {
           onClose={() => setEditingClient(undefined)}
           onSuccess={() => setEditingClient(undefined)}
           client={editingClient}
+          viewOnly={isViewOnly}
         />
       )}
     </div>

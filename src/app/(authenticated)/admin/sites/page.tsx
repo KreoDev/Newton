@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
-import { Plus, Search, MapPin, Edit, ToggleLeft, ToggleRight, Trash2 } from "lucide-react"
+import { Plus, Search, MapPin, Edit, ToggleLeft, ToggleRight, Trash2, FileText } from "lucide-react"
 import type { Site } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
 import { SiteFormModal } from "@/components/sites/SiteFormModal"
@@ -179,7 +179,7 @@ export default function SitesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {canManage && (
+                    {canManage ? (
                       <>
                         <Button variant="ghost" size="sm" onClick={() => toggleSiteStatus(site)} title={site.isActive ? "Deactivate site" : "Activate site"}>
                           {site.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
@@ -191,7 +191,11 @@ export default function SitesPage() {
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </>
-                    )}
+                    ) : isViewOnly ? (
+                      <Button variant="ghost" size="sm" onClick={() => setEditingSite(site)} title="View site details">
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    ) : null}
                     <Badge variant={site.isActive ? "success" : "secondary"}>{site.isActive ? "Active" : "Inactive"}</Badge>
                   </div>
                 </div>
@@ -209,6 +213,7 @@ export default function SitesPage() {
           onClose={() => setEditingSite(undefined)}
           onSuccess={() => setEditingSite(undefined)}
           site={editingSite}
+          viewOnly={isViewOnly}
         />
       )}
     </div>

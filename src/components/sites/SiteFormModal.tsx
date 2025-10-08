@@ -20,6 +20,7 @@ interface SiteFormModalProps {
   onClose: () => void
   onSuccess: () => void
   site?: Site // For editing existing site
+  viewOnly?: boolean // For read-only viewing
 }
 
 const DEFAULT_OPERATING_HOURS: OperatingHours = {
@@ -32,7 +33,7 @@ const DEFAULT_OPERATING_HOURS: OperatingHours = {
   sunday: { open: "closed", close: "closed" },
 }
 
-export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalProps) {
+export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false }: SiteFormModalProps) {
   useSignals() // Required for reactivity
   const { user } = useAuth()
   const { showSuccess, showError } = useAlert()
@@ -159,9 +160,9 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Site" : "Create New Site"}</DialogTitle>
+          <DialogTitle>{viewOnly ? "View Site" : isEditing ? "Edit Site" : "Create New Site"}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Update site information and operating hours" : "Add a new collection or destination site"}
+            {viewOnly ? "View site information and operating hours" : isEditing ? "Update site information and operating hours" : "Add a new collection or destination site"}
           </DialogDescription>
         </DialogHeader>
 
@@ -170,7 +171,7 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
             <Label htmlFor="name">
               Site Name <span className="text-destructive">*</span>
             </Label>
-            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Main Warehouse" required />
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g., Main Warehouse" required disabled={viewOnly} />
           </div>
 
           <div className="space-y-2">
@@ -183,6 +184,7 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
               onChange={e => setSiteType(e.target.value as "collection" | "destination")}
               className="w-full border rounded-md px-3 py-2 bg-background"
               required
+              disabled={viewOnly}
             >
               <option value="collection">Collection</option>
               <option value="destination">Destination</option>
@@ -200,6 +202,7 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
               placeholder="Enter full address"
               rows={2}
               required
+              disabled={viewOnly}
             />
           </div>
 
@@ -215,6 +218,7 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
                 value={contactUserId}
                 onChange={e => setContactUserId(e.target.value)}
                 className="w-full border rounded-md px-3 py-2 bg-background"
+                disabled={viewOnly}
               >
                 <option value="">-- No Contact Person --</option>
                 {users.map(u => (
@@ -241,6 +245,7 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
                   value={groupId}
                   onChange={e => setGroupId(e.target.value)}
                   className="w-full border rounded-md px-3 py-2 bg-background"
+                  disabled={viewOnly}
                 >
                   <option value="">-- No Group --</option>
                   {groups.map(g => (
@@ -255,23 +260,31 @@ export function SiteFormModal({ open, onClose, onSuccess, site }: SiteFormModalP
             </div>
           )}
 
-          <OperatingHoursEditor value={operatingHours} onChange={setOperatingHours} />
+          <OperatingHoursEditor value={operatingHours} onChange={setOperatingHours} disabled={viewOnly} />
 
           <div className="flex items-center space-x-2">
-            <Checkbox id="isActive" checked={isActive} onCheckedChange={checked => setIsActive(checked as boolean)} />
+            <Checkbox id="isActive" checked={isActive} onCheckedChange={checked => setIsActive(checked as boolean)} disabled={viewOnly} />
             <Label htmlFor="isActive" className="cursor-pointer">
               Active
             </Label>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Saving..." : isEditing ? "Update Site" : "Create Site"}
-            </Button>
-          </div>
+          {viewOnly ? (
+            <div className="flex justify-end pt-4 border-t">
+              <Button type="button" onClick={onClose}>
+                Close
+              </Button>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving..." : isEditing ? "Update Site" : "Create Site"}
+              </Button>
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

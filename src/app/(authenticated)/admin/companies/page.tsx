@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
-import { Plus, Search, Building2, Edit, ToggleLeft, ToggleRight, Mountain, Truck, PackageSearch, Trash2, ChevronDown } from "lucide-react"
+import { Plus, Search, Building2, Edit, ToggleLeft, ToggleRight, Mountain, Truck, PackageSearch, Trash2, ChevronDown, FileText } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CompanyService } from "@/services/company.service"
 import type { Company } from "@/types"
@@ -215,7 +215,7 @@ export default function CompaniesPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {canManage && (
+                      {canManage ? (
                         <>
                           <Button variant="ghost" size="sm" onClick={() => toggleCompanyStatus(company)} title={company.isActive ? "Deactivate company" : "Activate company"}>
                             {company.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
@@ -227,7 +227,11 @@ export default function CompaniesPage() {
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </>
-                      )}
+                      ) : isViewOnly ? (
+                        <Button variant="ghost" size="sm" onClick={() => setEditingCompany(company)} title="View company details">
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      ) : null}
                       <Badge variant={company.isActive ? "success" : "secondary"}>{company.isActive ? "Active" : "Inactive"}</Badge>
                     </div>
                   </div>
@@ -246,6 +250,7 @@ export default function CompaniesPage() {
           onClose={() => setEditingCompany(undefined)}
           onSuccess={() => setEditingCompany(undefined)}
           company={editingCompany}
+          viewOnly={isViewOnly}
         />
       )}
     </div>

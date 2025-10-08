@@ -149,6 +149,7 @@ export default function UsersPage() {
           users={users}
           canViewAllCompanies={canViewAllCompanies}
           canManage={canManage}
+          isViewOnly={isViewOnly}
           onEdit={(user) => setEditingUser(user)}
           onManageRoles={(user) => setRoleUser(user)}
           onEditPermissions={(user) => setPermissionUser(user)}
@@ -170,6 +171,7 @@ export default function UsersPage() {
         isOpen={!!editingUser}
         onClose={() => setEditingUser(null)}
         roles={globalData.roles.value}
+        viewOnly={isViewOnly}
       />
 
       <ChangePasswordModal
@@ -203,6 +205,7 @@ export default function UsersPage() {
             // Data will refresh automatically via real-time listener
           }}
           user={permissionUser}
+          viewOnly={isViewOnly}
         />
       )}
 
@@ -215,6 +218,7 @@ export default function UsersPage() {
             // Data will refresh automatically via real-time listener
           }}
           user={roleUser}
+          viewOnly={isViewOnly}
         />
       )}
     </div>
