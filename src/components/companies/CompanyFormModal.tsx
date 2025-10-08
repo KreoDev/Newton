@@ -75,10 +75,24 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
   const [localUsers, setLocalUsers] = useState<User[]>([])
   const [loadingLocalUsers, setLoadingLocalUsers] = useState(false)
 
+  const [localGroups, setLocalGroups] = useState<Group[]>([])
+  const [loadingLocalGroups, setLoadingLocalGroups] = useState(false)
+
   // Pending groups (saved when company form is submitted)
   const [pendingGroups, setPendingGroups] = useState<PendingGroup[]>([])
 
   const hasMainContact = mainContactId && mainContactId.trim() !== ""
+
+  // Create a map from tempId to actual group ID (for checking site usage)
+  const existingGroupIdMap = useMemo(() => {
+    if (!isEditing || !company?.id) return undefined
+    const map = new Map<string, string>()
+    // When editing, tempId IS the actual group ID
+    pendingGroups.forEach(g => {
+      map.set(g.tempId, g.tempId)
+    })
+    return map
+  }, [isEditing, company?.id, pendingGroups])
 
   // Determine if editing current user's company (can use centralized data)
   const editingCurrentCompany = company?.id === user?.companyId
@@ -111,6 +125,37 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
     }
 
     fetchUsersForCompany()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isEditing, company?.id, editingCurrentCompany])
+
+  // Fetch groups when editing a different company
+  useEffect(() => {
+    if (!open || !isEditing || !company || editingCurrentCompany) {
+      setLocalGroups([])
+      return
+    }
+
+    // Only fetch when editing a different company
+    const fetchGroupsForCompany = async () => {
+      try {
+        setLoadingLocalGroups(true)
+        const q = query(collection(db, "groups"), where("companyId", "==", company.id))
+        const snapshot = await getDocs(q)
+        const groupsList = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Group[]
+        setLocalGroups(groupsList)
+      } catch (error) {
+        console.error("Error fetching groups for company:", error)
+        showError("Error", "Failed to load groups for this company")
+        setLocalGroups([])
+      } finally {
+        setLoadingLocalGroups(false)
+      }
+    }
+
+    fetchGroupsForCompany()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isEditing, company?.id, editingCurrentCompany])
 
@@ -173,8 +218,12 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
       return
     }
 
+    // Use appropriate data source based on which company is being edited
+    const existingGroups = editingCurrentCompany
+      ? globalData.groups.value.filter(g => g.companyId === company.id)
+      : localGroups
+
     // Convert existing groups to pending groups
-    const existingGroups = globalData.groups.value.filter(g => g.companyId === company.id)
     const pending: PendingGroup[] = existingGroups.map(g => ({
       tempId: g.id, // Use existing ID as tempId
       name: g.name,
@@ -184,7 +233,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
       path: g.path,
     }))
     setPendingGroups(pending)
-  }, [open, company?.id])
+  }, [open, company?.id, editingCurrentCompany, localGroups])
 
   const resetForm = () => {
     setName("")
@@ -852,7 +901,12 @@ export function CompanyFormModal({ open, onClose, onSuccess, company }: CompanyF
                     Note: Groups will be saved when you submit the company form.
                   </p>
                 </div>
-                <LocalGroupsManager groups={pendingGroups} onChange={setPendingGroups} />
+                <LocalGroupsManager
+                  groups={pendingGroups}
+                  onChange={setPendingGroups}
+                  companyId={company?.id}
+                  existingGroupIdMap={existingGroupIdMap}
+                />
               </TabsContent>
             )}
 

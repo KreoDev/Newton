@@ -241,6 +241,8 @@ All foundational systems are implemented and tested. The following components ar
 **Completed Components:**
 - `src/hooks/useAlert.tsx` - Zustand-based alert state management hook
 - `src/components/ui/alert-provider.tsx` - Global alert dialog component
+- `src/components/ui/dialog.tsx` - Base Dialog component with outside click prevention
+- `src/components/ui/alert-dialog.tsx` - Base AlertDialog component with outside click prevention
 - Updated `src/app/layout.tsx` - Added AlertProvider to root layout
 - Updated `src/lib/firebase-utils.ts` - Removed automatic toasts (components handle alerts)
 
@@ -253,6 +255,14 @@ All foundational systems are implemented and tested. The following components ar
 - Automatic loading state during async operations
 - Accessible (keyboard navigation, ARIA labels, focus management)
 - Responsive mobile-friendly design
+- **Outside click prevention**: All modals (Dialog and AlertDialog) prevent closing when clicking outside to avoid accidental data loss
+
+**Modal Close Behavior:**
+All modals require explicit user action to close:
+- Click the close button (X icon)
+- Click the Cancel button
+- Click any action button that closes the modal
+- **Clicking outside the modal does NOT close it** (prevents accidental data loss)
 
 **Usage Pattern:**
 ```typescript

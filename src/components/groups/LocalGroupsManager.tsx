@@ -9,6 +9,12 @@ import { Plus, ChevronRight, ChevronDown, Edit, Trash2, Save, X, Network } from 
 import { useAlert } from "@/hooks/useAlert"
 import { cn } from "@/lib/utils"
 import { v4 as uuidv4 } from "uuid"
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
+import { collection, query, where, getDocs } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import type { Site } from "@/types"
+import { useAuth } from "@/contexts/AuthContext"
 
 export interface PendingGroup {
   tempId: string
@@ -27,9 +33,13 @@ interface TreeNode extends PendingGroup {
 interface LocalGroupsManagerProps {
   groups: PendingGroup[]
   onChange: (groups: PendingGroup[]) => void
+  companyId?: string // Optional: for checking if sites are using groups when editing existing company
+  existingGroupIdMap?: Map<string, string> // Map from tempId to actual group ID in database
 }
 
-export function LocalGroupsManager({ groups, onChange }: LocalGroupsManagerProps) {
+export function LocalGroupsManager({ groups, onChange, companyId, existingGroupIdMap }: LocalGroupsManagerProps) {
+  useSignals() // Required for reactivity
+  const { user } = useAuth()
   const { showError, showConfirm } = useAlert()
   const [treeData, setTreeData] = useState<TreeNode[]>([])
 
@@ -128,7 +138,7 @@ export function LocalGroupsManager({ groups, onChange }: LocalGroupsManagerProps
     cancelForm()
   }
 
-  const handleDelete = (group: PendingGroup) => {
+  const handleDelete = async (group: PendingGroup) => {
     // Check if group has subgroups
     const hasChildren = groups.some(g => g.parentTempId === group.tempId)
 
@@ -136,6 +146,46 @@ export function LocalGroupsManager({ groups, onChange }: LocalGroupsManagerProps
       const childCount = groups.filter(g => g.parentTempId === group.tempId).length
       showError("Cannot Delete Group", `This group has ${childCount} subgroup(s). Please delete or reassign the subgroups first.`)
       return
+    }
+
+    // If this is an existing group (being edited) and we have companyId, check if sites are using it
+    if (companyId && existingGroupIdMap) {
+      const actualGroupId = existingGroupIdMap.get(group.tempId)
+
+      if (actualGroupId) {
+        const editingCurrentCompany = companyId === user?.companyId
+        let sitesUsingGroup: Site[] = []
+
+        if (editingCurrentCompany) {
+          // Use already-loaded sites from global data
+          const allSites = globalData.sites.value
+          const companySites = allSites.filter(s => s.companyId === companyId)
+          sitesUsingGroup = companySites.filter(s => s.groupId === actualGroupId)
+        } else {
+          // Query Firestore directly for sites using this specific group
+          try {
+            const sitesQuery = query(
+              collection(db, "sites"),
+              where("groupId", "==", actualGroupId)
+            )
+            const sitesSnapshot = await getDocs(sitesQuery)
+            sitesUsingGroup = sitesSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            })) as Site[]
+          } catch (error) {
+            console.error("Error querying sites:", error)
+            showError("Error", "Failed to check if sites are using this group. Please try again.")
+            return
+          }
+        }
+
+        if (sitesUsingGroup.length > 0) {
+          const siteNames = sitesUsingGroup.map(s => s.name).join(", ")
+          showError("Cannot Delete Group", `This group is assigned to ${sitesUsingGroup.length} site(s): ${siteNames}. Please reassign or remove these sites first.`)
+          return
+        }
+      }
     }
 
     showConfirm(

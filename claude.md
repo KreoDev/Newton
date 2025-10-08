@@ -341,7 +341,12 @@ export default function MyComponent() {
 1. Run `bun run build` to verify the code compiles
 2. Fix any TypeScript errors that appear
 3. Ensure the build completes successfully
-4. Only then declare the task as completed
+4. **Stop and restart the dev server** after running the build
+   - Kill the current dev server process
+   - Run `bun dev --turbopack` to start a fresh server
+   - This ensures all code changes are properly loaded
+   - Failure to restart can cause 500 Internal Server Errors
+5. Only then declare the task as completed
 
 This is non-negotiable and must be followed for every feature implementation, no matter how small.
 
@@ -650,6 +655,34 @@ export function MyForm() {
     </form>
   )
 }
+```
+
+#### Modal/Dialog Behavior
+
+**IMPORTANT: Modal Close Behavior**
+All modals (Dialog and AlertDialog) in Newton are configured to **prevent closing when clicking outside**. Users must explicitly:
+- Click the close button (X icon)
+- Click the Cancel button
+- Click any action button that closes the modal
+
+This prevents accidental data loss when users click outside the modal while filling forms.
+
+**Implementation:**
+- **Dialog component**: Includes `onEscapeKeyDown={(e) => e.preventDefault()}` and `onPointerDownOutside={(e) => e.preventDefault()}` to prevent ESC key and outside clicks from closing the modal.
+- **AlertDialog component**: Already prevents outside clicks by design (Radix UI default behavior for critical alerts).
+
+This is already built into the base components - no additional configuration needed when using them.
+
+```typescript
+// Dialog and AlertDialog automatically prevent outside clicks
+<Dialog open={isOpen} onOpenChange={setIsOpen}>
+  <DialogContent>
+    {/* Modal content */}
+  </DialogContent>
+</Dialog>
+
+// Users must use explicit close actions
+<Button onClick={() => setIsOpen(false)}>Cancel</Button>
 ```
 
 ---

@@ -148,9 +148,10 @@ export function GroupsTreeManager({ companyId }: GroupsTreeManagerProps) {
       return
     }
 
-    // Check if group is assigned to any sites
-    const sites = globalData.sites.value
-    const sitesUsingGroup = sites.filter(s => s.groupId === group.id)
+    // Check if group is assigned to any sites - MUST filter by the company being edited
+    const allSites = globalData.sites.value
+    const companySites = allSites.filter(s => s.companyId === companyId)
+    const sitesUsingGroup = companySites.filter(s => s.groupId === group.id)
 
     if (sitesUsingGroup.length > 0) {
       const siteNames = sitesUsingGroup.map(s => s.name).join(", ")
