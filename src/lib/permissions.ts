@@ -23,7 +23,15 @@ export type PermissionKey =
   | "weighbridge.gross"
   | "weighbridge.calibrate"
   | "weighbridge.override"
-  // Administrative
+  // Administrative - View Only
+  | "admin.companies.view"
+  | "admin.users.view"
+  | "admin.roles.view"
+  | "admin.products.view"
+  | "admin.clients.view"
+  | "admin.sites.view"
+  | "admin.notifications.view"
+  // Administrative - Full Manage
   | "admin.companies"
   | "admin.users"
   | "admin.users.viewAllCompanies"
@@ -74,7 +82,16 @@ export const PERMISSIONS: Record<string, PermissionKey> = {
   WEIGHBRIDGE_CALIBRATE: "weighbridge.calibrate",
   WEIGHBRIDGE_OVERRIDE: "weighbridge.override",
 
-  // Administrative
+  // Administrative - View Only
+  ADMIN_COMPANIES_VIEW: "admin.companies.view",
+  ADMIN_USERS_VIEW: "admin.users.view",
+  ADMIN_ROLES_VIEW: "admin.roles.view",
+  ADMIN_PRODUCTS_VIEW: "admin.products.view",
+  ADMIN_CLIENTS_VIEW: "admin.clients.view",
+  ADMIN_SITES_VIEW: "admin.sites.view",
+  ADMIN_NOTIFICATIONS_VIEW: "admin.notifications.view",
+
+  // Administrative - Full Manage
   ADMIN_COMPANIES: "admin.companies",
   ADMIN_USERS: "admin.users",
   ADMIN_USERS_VIEW_ALL_COMPANIES: "admin.users.viewAllCompanies",
@@ -128,7 +145,16 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   "weighbridge.calibrate": "Perform weighbridge calibration",
   "weighbridge.override": "Manual weight override",
 
-  // Administrative
+  // Administrative - View Only
+  "admin.companies.view": "View companies (read-only)",
+  "admin.users.view": "View users (read-only)",
+  "admin.roles.view": "View roles (read-only)",
+  "admin.products.view": "View products (read-only)",
+  "admin.clients.view": "View clients (read-only)",
+  "admin.sites.view": "View sites (read-only)",
+  "admin.notifications.view": "View notifications (read-only)",
+
+  // Administrative - Full Manage
   "admin.companies": "Manage companies",
   "admin.users": "Manage users",
   "admin.users.viewAllCompanies": "View users from all companies",

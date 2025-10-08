@@ -2,12 +2,13 @@
 
 import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { usePermission } from "@/hooks/usePermission"
+import { useViewPermission } from "@/hooks/useViewPermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
 import { Plus, Search, Package, Edit, ToggleLeft, ToggleRight, Trash2 } from "lucide-react"
 import type { Product } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
@@ -23,7 +24,10 @@ import { useSignals } from "@preact/signals-react/runtime"
 export default function ProductsPage() {
   useSignals() // Required for reactivity
   const { user } = useAuth()
-  const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_PRODUCTS)
+  const { canView, canManage, isViewOnly, loading: permissionLoading } = useViewPermission(
+    PERMISSIONS.ADMIN_PRODUCTS_VIEW,
+    PERMISSIONS.ADMIN_PRODUCTS
+  )
   const { showSuccess, showError, showConfirm } = useAlert()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined)
@@ -96,10 +100,10 @@ export default function ProductsPage() {
     return <LoadingSpinner fullScreen message="Checking permissions..." />
   }
 
-  if (!canManage) {
+  if (!canView) {
     return (
       <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">You don&apos;t have permission to manage products.</p>
+        <p className="text-muted-foreground">You don&apos;t have permission to view products.</p>
       </div>
     )
   }
@@ -107,14 +111,21 @@ export default function ProductsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-          <p className="text-muted-foreground">Manage product catalog and specifications</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Products</h1>
+            <p className="text-muted-foreground">
+              {isViewOnly ? "View product catalog and specifications" : "Manage product catalog and specifications"}
+            </p>
+          </div>
+          {isViewOnly && <ViewOnlyBadge />}
         </div>
-        <Button variant="outline" onClick={() => setShowCreateModal(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Product
-        </Button>
+        {canManage && (
+          <Button variant="outline" onClick={() => setShowCreateModal(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Product
+          </Button>
+        )}
       </div>
 
       <Card className="glass-surface">
@@ -155,15 +166,19 @@ export default function ProductsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => toggleProductStatus(product)} title={product.isActive ? "Deactivate product" : "Activate product"}>
-                      {product.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingProduct(product)} title="Edit product">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(product)} title="Delete product">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {canManage && (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => toggleProductStatus(product)} title={product.isActive ? "Deactivate product" : "Activate product"}>
+                          {product.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingProduct(product)} title="Edit product">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(product)} title="Delete product">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
+                    )}
                     <Badge variant={product.isActive ? "success" : "secondary"}>{product.isActive ? "Active" : "Inactive"}</Badge>
                   </div>
                 </div>

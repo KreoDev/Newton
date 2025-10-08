@@ -2,12 +2,13 @@
 
 import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { usePermission } from "@/hooks/usePermission"
+import { useViewPermission } from "@/hooks/useViewPermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
 import { Plus, Search, Shield, Edit, ToggleLeft, ToggleRight, Trash2, Eye, EyeOff, ChevronDown } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { Role } from "@/types"
@@ -24,7 +25,10 @@ import { useSignals } from "@preact/signals-react/runtime"
 export default function RolesPage() {
   useSignals() // Required for reactivity
   const { user } = useAuth()
-  const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_ROLES)
+  const { canView, canManage, isViewOnly, loading: permissionLoading } = useViewPermission(
+    PERMISSIONS.ADMIN_ROLES_VIEW,
+    PERMISSIONS.ADMIN_ROLES
+  )
   const { showSuccess, showError, showConfirm } = useAlert()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingRole, setEditingRole] = useState<Role | undefined>(undefined)
@@ -134,10 +138,10 @@ export default function RolesPage() {
     return <LoadingSpinner fullScreen message="Checking permissions..." />
   }
 
-  if (!canManage) {
+  if (!canView) {
     return (
       <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">You don&apos;t have permission to manage roles.</p>
+        <p className="text-muted-foreground">You don&apos;t have permission to view roles.</p>
       </div>
     )
   }
@@ -145,14 +149,21 @@ export default function RolesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Roles</h1>
-          <p className="text-muted-foreground">Manage user roles and permissions</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Roles</h1>
+            <p className="text-muted-foreground">
+              {isViewOnly ? "View user roles and permissions" : "Manage user roles and permissions"}
+            </p>
+          </div>
+          {isViewOnly && <ViewOnlyBadge />}
         </div>
-        <Button variant="outline" onClick={() => setShowCreateModal(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Role
-        </Button>
+        {canManage && (
+          <Button variant="outline" onClick={() => setShowCreateModal(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Role
+          </Button>
+        )}
       </div>
 
       <Card className="glass-surface">
@@ -201,27 +212,31 @@ export default function RolesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => toggleRoleStatus(role)} title={role.isActive ? "Deactivate role globally" : "Activate role globally"}>
-                      {role.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleCompanyVisibility(role)}
-                      title={role.hiddenForCompanies?.includes(user?.companyId || "") ? "Show role for your company" : "Hide role for your company"}
-                    >
-                      {role.hiddenForCompanies?.includes(user?.companyId || "") ? (
-                        <EyeOff className="h-4 w-4 text-orange-500" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-blue-500" />
-                      )}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingRole(role)} title="Edit role">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(role)} title="Delete role">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {canManage && (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => toggleRoleStatus(role)} title={role.isActive ? "Deactivate role globally" : "Activate role globally"}>
+                          {role.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleCompanyVisibility(role)}
+                          title={role.hiddenForCompanies?.includes(user?.companyId || "") ? "Show role for your company" : "Hide role for your company"}
+                        >
+                          {role.hiddenForCompanies?.includes(user?.companyId || "") ? (
+                            <EyeOff className="h-4 w-4 text-orange-500" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-blue-500" />
+                          )}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingRole(role)} title="Edit role">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(role)} title="Delete role">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
+                    )}
                     <Badge variant={role.isActive ? "success" : "secondary"}>{role.isActive ? "Active" : "Inactive"}</Badge>
                   </div>
                 </div>

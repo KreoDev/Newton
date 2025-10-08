@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { usePermission } from "@/hooks/usePermission"
+import { useViewPermission } from "@/hooks/useViewPermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
 import { Plus, Search, Bell, Edit } from "lucide-react"
 import { toast } from "sonner"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
@@ -39,7 +40,10 @@ const CATEGORIES = [
 
 export default function NotificationsPage() {
   const { user } = useAuth()
-  const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_NOTIFICATIONS)
+  const { canView, canManage, isViewOnly, loading: permissionLoading } = useViewPermission(
+    PERMISSIONS.ADMIN_NOTIFICATIONS_VIEW,
+    PERMISSIONS.ADMIN_NOTIFICATIONS
+  )
   const [templates, setTemplates] = useState<NotificationTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -79,10 +83,10 @@ export default function NotificationsPage() {
     return <LoadingSpinner fullScreen message="Checking permissions..." />
   }
 
-  if (!canManage) {
+  if (!canView) {
     return (
       <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">You don&apos;t have permission to manage notification templates.</p>
+        <p className="text-muted-foreground">You don&apos;t have permission to view notification templates.</p>
       </div>
     )
   }
@@ -90,14 +94,21 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Notification Templates</h1>
-          <p className="text-muted-foreground">Manage email templates for system notifications</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Notification Templates</h1>
+            <p className="text-muted-foreground">
+              {isViewOnly ? "View email templates for system notifications" : "Manage email templates for system notifications"}
+            </p>
+          </div>
+          {isViewOnly && <ViewOnlyBadge />}
         </div>
-        <Button variant="outline" onClick={() => setShowEditor(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Template
-        </Button>
+        {canManage && (
+          <Button variant="outline" onClick={() => setShowEditor(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Template
+          </Button>
+        )}
       </div>
 
       {/* Category Tabs */}
@@ -153,17 +164,19 @@ export default function NotificationsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditingTemplate(template)
-                        setShowEditor(true)
-                      }}
-                      title="Edit template"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    {canManage && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditingTemplate(template)
+                          setShowEditor(true)
+                        }}
+                        title="Edit template"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Badge variant={template.isActive ? "success" : "secondary"}>
                       {template.isActive ? "Active" : "Inactive"}
                     </Badge>

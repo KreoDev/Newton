@@ -2,12 +2,13 @@
 
 import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { usePermission } from "@/hooks/usePermission"
+import { useViewPermission } from "@/hooks/useViewPermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
 import { Plus, Search, MapPin, Edit, ToggleLeft, ToggleRight, Trash2 } from "lucide-react"
 import type { Site } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
@@ -23,7 +24,10 @@ import { useSignals } from "@preact/signals-react/runtime"
 export default function SitesPage() {
   useSignals() // Required for reactivity
   const { user } = useAuth()
-  const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_SITES)
+  const { canView, canManage, isViewOnly, loading: permissionLoading } = useViewPermission(
+    PERMISSIONS.ADMIN_SITES_VIEW,
+    PERMISSIONS.ADMIN_SITES
+  )
   const { showSuccess, showError, showConfirm } = useAlert()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingSite, setEditingSite] = useState<Site | undefined>(undefined)
@@ -104,10 +108,10 @@ export default function SitesPage() {
     return <LoadingSpinner fullScreen message="Checking permissions..." />
   }
 
-  if (!canManage) {
+  if (!canView) {
     return (
       <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">You don&apos;t have permission to manage sites.</p>
+        <p className="text-muted-foreground">You don&apos;t have permission to view sites.</p>
       </div>
     )
   }
@@ -115,14 +119,21 @@ export default function SitesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Sites</h1>
-          <p className="text-muted-foreground">Manage collection and destination sites</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Sites</h1>
+            <p className="text-muted-foreground">
+              {isViewOnly ? "View collection and destination sites" : "Manage collection and destination sites"}
+            </p>
+          </div>
+          {isViewOnly && <ViewOnlyBadge />}
         </div>
-        <Button variant="outline" onClick={() => setShowCreateModal(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Site
-        </Button>
+        {canManage && (
+          <Button variant="outline" onClick={() => setShowCreateModal(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Site
+          </Button>
+        )}
       </div>
 
       <Card className="glass-surface">
@@ -168,15 +179,19 @@ export default function SitesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => toggleSiteStatus(site)} title={site.isActive ? "Deactivate site" : "Activate site"}>
-                      {site.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingSite(site)} title="Edit site">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(site)} title="Delete site">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {canManage && (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => toggleSiteStatus(site)} title={site.isActive ? "Deactivate site" : "Activate site"}>
+                          {site.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingSite(site)} title="Edit site">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(site)} title="Delete site">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
+                    )}
                     <Badge variant={site.isActive ? "success" : "secondary"}>{site.isActive ? "Active" : "Inactive"}</Badge>
                   </div>
                 </div>

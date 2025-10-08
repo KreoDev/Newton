@@ -19,6 +19,7 @@ import { useSignals } from "@preact/signals-react/runtime"
 interface UsersTableProps {
   users: UserType[]
   canViewAllCompanies: boolean
+  canManage: boolean
   onEdit?: (user: UserType) => void
   onManageRoles?: (user: UserType) => void
   onEditPermissions?: (user: UserType) => void
@@ -27,7 +28,7 @@ interface UsersTableProps {
   onMoveCompany?: (user: UserType) => void
 }
 
-export function UsersTable({ users, canViewAllCompanies, onEdit, onManageRoles, onEditPermissions, onChangePassword, onChangeEmail, onMoveCompany }: UsersTableProps) {
+export function UsersTable({ users, canViewAllCompanies, canManage, onEdit, onManageRoles, onEditPermissions, onChangePassword, onChangeEmail, onMoveCompany }: UsersTableProps) {
   useSignals()
   const { showSuccess, showError } = useAlert()
   const { user: currentUser } = useAuth()
@@ -140,43 +141,47 @@ export function UsersTable({ users, canViewAllCompanies, onEdit, onManageRoles, 
         return <Badge variant={user.isActive ? "success" : "secondary"}>{user.isActive ? "Active" : "Inactive"}</Badge>
       },
     },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => {
-        const user = row.original
-        return (
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => toggleUserStatus(user)} title={user.isActive ? "Deactivate user" : "Activate user"}>
-              {user.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onEdit?.(user)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit User
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onChangePassword?.(user)}>Change Password</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onChangeEmail?.(user)}>Change Email</DropdownMenuItem>
-                {canViewAllCompanies && <DropdownMenuItem onClick={() => onMoveCompany?.(user)}>Move to Another Company</DropdownMenuItem>}
-                <DropdownMenuItem onClick={() => onManageRoles?.(user)}>Manage Roles</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onEditPermissions?.(user)}>Edit Permissions</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Checkbox checked={row.getIsSelected()} onCheckedChange={value => row.toggleSelected(!!value)} aria-label="Select row" />
-          </div>
-        )
-      },
-      enableSorting: false,
-      enableHiding: false,
-    },
+    ...(canManage
+      ? [
+          {
+            id: "actions",
+            header: "Actions",
+            cell: ({ row }: { row: any }) => {
+              const user = row.original
+              return (
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => toggleUserStatus(user)} title={user.isActive ? "Deactivate user" : "Activate user"}>
+                    {user.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onEdit?.(user)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit User
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onChangePassword?.(user)}>Change Password</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onChangeEmail?.(user)}>Change Email</DropdownMenuItem>
+                      {canViewAllCompanies && <DropdownMenuItem onClick={() => onMoveCompany?.(user)}>Move to Another Company</DropdownMenuItem>}
+                      <DropdownMenuItem onClick={() => onManageRoles?.(user)}>Manage Roles</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEditPermissions?.(user)}>Edit Permissions</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Checkbox checked={row.getIsSelected()} onCheckedChange={value => row.toggleSelected(!!value)} aria-label="Select row" />
+                </div>
+              )
+            },
+            enableSorting: false,
+            enableHiding: false,
+          },
+        ]
+      : []),
   ]
 
   return (

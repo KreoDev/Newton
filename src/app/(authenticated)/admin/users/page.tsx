@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
+import { useViewPermission } from "@/hooks/useViewPermission"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Plus, ChevronDown } from "lucide-react"
 import type { User as UserType, Company } from "@/types"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
 import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { data as globalData } from "@/services/data.service"
@@ -25,7 +27,10 @@ import { RoleManager } from "@/components/users/RoleManager"
 export default function UsersPage() {
   useSignals()
   const { user } = useAuth()
-  const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_USERS)
+  const { canView, canManage, isViewOnly, loading: permissionLoading } = useViewPermission(
+    PERMISSIONS.ADMIN_USERS_VIEW,
+    PERMISSIONS.ADMIN_USERS
+  )
   const { hasPermission: canViewAllCompanies, loading: viewAllLoading } = usePermission(PERMISSIONS.ADMIN_USERS_VIEW_ALL_COMPANIES)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(user?.companyId || "")
 
@@ -85,10 +90,10 @@ export default function UsersPage() {
     return <LoadingSpinner fullScreen message="Checking permissions..." />
   }
 
-  if (!canManage) {
+  if (!canView) {
     return (
       <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">You don&apos;t have permission to manage users.</p>
+        <p className="text-muted-foreground">You don&apos;t have permission to view users.</p>
       </div>
     )
   }
@@ -96,9 +101,14 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-          <p className="text-muted-foreground">Manage user accounts and permissions</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+            <p className="text-muted-foreground">
+              {isViewOnly ? "View user accounts and permissions" : "Manage user accounts and permissions"}
+            </p>
+          </div>
+          {isViewOnly && <ViewOnlyBadge />}
         </div>
         <div className="flex items-center gap-4">
           {canViewAllCompanies && (
@@ -121,10 +131,12 @@ export default function UsersPage() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          <Button variant="outline" onClick={() => setShowAddModal(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add User
-          </Button>
+          {canManage && (
+            <Button variant="outline" onClick={() => setShowAddModal(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add User
+            </Button>
+          )}
         </div>
       </div>
 
@@ -136,6 +148,7 @@ export default function UsersPage() {
         <UsersTable
           users={users}
           canViewAllCompanies={canViewAllCompanies}
+          canManage={canManage}
           onEdit={(user) => setEditingUser(user)}
           onManageRoles={(user) => setRoleUser(user)}
           onEditPermissions={(user) => setPermissionUser(user)}

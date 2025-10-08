@@ -2,12 +2,13 @@
 
 import { useState, useMemo } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { usePermission } from "@/hooks/usePermission"
+import { useViewPermission } from "@/hooks/useViewPermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
 import { Plus, Search, Building2, Edit, ToggleLeft, ToggleRight, Mountain, Truck, PackageSearch, Trash2, ChevronDown } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CompanyService } from "@/services/company.service"
@@ -24,7 +25,10 @@ export default function CompaniesPage() {
   useSignals()
 
   const { user } = useAuth()
-  const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_COMPANIES)
+  const { canView, canManage, isViewOnly, loading: permissionLoading } = useViewPermission(
+    PERMISSIONS.ADMIN_COMPANIES_VIEW,
+    PERMISSIONS.ADMIN_COMPANIES
+  )
   const { showSuccess, showError, showConfirm } = useAlert()
   const [filterType, setFilterType] = useState<string>("all")
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -135,10 +139,10 @@ export default function CompaniesPage() {
     return <LoadingSpinner fullScreen message="Checking permissions..." />
   }
 
-  if (!canManage) {
+  if (!canView) {
     return (
       <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">You don&apos;t have permission to manage companies.</p>
+        <p className="text-muted-foreground">You don&apos;t have permission to view companies.</p>
       </div>
     )
   }
@@ -146,14 +150,21 @@ export default function CompaniesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
-          <p className="text-muted-foreground">Manage company profiles and configurations</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Companies</h1>
+            <p className="text-muted-foreground">
+              {isViewOnly ? "View company profiles and configurations" : "Manage company profiles and configurations"}
+            </p>
+          </div>
+          {isViewOnly && <ViewOnlyBadge />}
         </div>
-        <Button variant="outline" onClick={() => setShowCreateModal(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Company
-        </Button>
+        {canManage && (
+          <Button variant="outline" onClick={() => setShowCreateModal(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Company
+          </Button>
+        )}
       </div>
 
       <Card className="glass-surface">
@@ -204,15 +215,19 @@ export default function CompaniesPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => toggleCompanyStatus(company)} title={company.isActive ? "Deactivate company" : "Activate company"}>
-                        {company.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setEditingCompany(company)} title="Edit company">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(company)} title="Delete company">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {canManage && (
+                        <>
+                          <Button variant="ghost" size="sm" onClick={() => toggleCompanyStatus(company)} title={company.isActive ? "Deactivate company" : "Activate company"}>
+                            {company.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setEditingCompany(company)} title="Edit company">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(company)} title="Delete company">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
                       <Badge variant={company.isActive ? "success" : "secondary"}>{company.isActive ? "Active" : "Inactive"}</Badge>
                     </div>
                   </div>

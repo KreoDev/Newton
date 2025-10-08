@@ -2,12 +2,13 @@
 
 import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { usePermission } from "@/hooks/usePermission"
+import { useViewPermission } from "@/hooks/useViewPermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
 import { Plus, Search, Building, Edit, ToggleLeft, ToggleRight, Trash2, ChevronDown } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { Client } from "@/types"
@@ -24,7 +25,10 @@ import { useSignals } from "@preact/signals-react/runtime"
 export default function ClientsPage() {
   useSignals() // Required for reactivity
   const { user } = useAuth()
-  const { hasPermission: canManage, loading: permissionLoading } = usePermission(PERMISSIONS.ADMIN_CLIENTS)
+  const { canView, canManage, isViewOnly, loading: permissionLoading } = useViewPermission(
+    PERMISSIONS.ADMIN_CLIENTS_VIEW,
+    PERMISSIONS.ADMIN_CLIENTS
+  )
   const { showSuccess, showError, showConfirm } = useAlert()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | undefined>(undefined)
@@ -99,10 +103,10 @@ export default function ClientsPage() {
     return <LoadingSpinner fullScreen message="Checking permissions..." />
   }
 
-  if (!canManage) {
+  if (!canView) {
     return (
       <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">You don&apos;t have permission to manage clients.</p>
+        <p className="text-muted-foreground">You don&apos;t have permission to view clients.</p>
       </div>
     )
   }
@@ -110,14 +114,21 @@ export default function ClientsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-          <p className="text-muted-foreground">Manage client companies and contacts</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
+            <p className="text-muted-foreground">
+              {isViewOnly ? "View client companies and contacts" : "Manage client companies and contacts"}
+            </p>
+          </div>
+          {isViewOnly && <ViewOnlyBadge />}
         </div>
-        <Button variant="outline" onClick={() => setShowCreateModal(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Client
-        </Button>
+        {canManage && (
+          <Button variant="outline" onClick={() => setShowCreateModal(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Client
+          </Button>
+        )}
       </div>
 
       <Card className="glass-surface">
@@ -169,15 +180,19 @@ export default function ClientsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => toggleClientStatus(client)} title={client.isActive ? "Deactivate client" : "Activate client"}>
-                      {client.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingClient(client)} title="Edit client">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(client)} title="Delete client">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {canManage && (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => toggleClientStatus(client)} title={client.isActive ? "Deactivate client" : "Activate client"}>
+                          {client.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingClient(client)} title="Edit client">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(client)} title="Delete client">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
+                    )}
                     <Badge variant={client.isActive ? "success" : "secondary"}>{client.isActive ? "Active" : "Inactive"}</Badge>
                   </div>
                 </div>
