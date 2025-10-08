@@ -34,6 +34,8 @@ const PERMISSION_CATEGORIES = {
   ],
   "Administrative": [
     { key: "admin.users", label: "User Management" },
+    { key: "admin.users.manageGlobalAdmins", label: "Manage Global Admins" },
+    { key: "admin.users.viewAllCompanies", label: "View All Companies (Users)" },
     { key: "admin.companies", label: "Company Management" },
     { key: "admin.roles", label: "Role Management" },
     { key: "admin.products", label: "Product Management" },

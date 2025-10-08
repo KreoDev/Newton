@@ -32,6 +32,7 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
     firstName: "",
     lastName: "",
     email: "",
+    phoneNumber: "",
     roleId: "",
     isGlobal: false,
   })
@@ -43,6 +44,7 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         email: user.email || "",
+        phoneNumber: user.phoneNumber || "",
         roleId: user.roleId || "",
         isGlobal: user.isGlobal || false,
       })
@@ -70,10 +72,11 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
     }
 
     try {
-      // Update first name, last name, roleId, isGlobal in Firestore
+      // Update first name, last name, phoneNumber, roleId, isGlobal in Firestore
       await userOperations.update(user.id, {
         firstName: formData.firstName,
         lastName: formData.lastName,
+        phoneNumber: formData.phoneNumber,
         roleId: formData.roleId,
         isGlobal: formData.isGlobal,
       })
@@ -117,6 +120,10 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" value={formData.email} onChange={e => handleInputChange("email", e.target.value)} placeholder="Enter email address" className={!isEmailValid ? "border-red-500" : ""} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumber">Phone Number</Label>
+            <Input id="phoneNumber" type="tel" value={formData.phoneNumber} onChange={e => handleInputChange("phoneNumber", e.target.value)} placeholder="Enter phone number (optional)" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>

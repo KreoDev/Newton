@@ -65,7 +65,7 @@ export interface User extends Timestamped, CompanyScoped {
   firstName: string
   lastName: string
   displayName: string // Required per data-model.md:24
-  phoneNumber: string // Required per data-model.md:27
+  phoneNumber?: string // Optional phone number for contact purposes (data-model.md:27)
   roleId: string
   permissionOverrides?: Record<string, boolean> // Per-user permission adjustments (data-model.md:29)
   profilePicture?: string // Optional profile image URL (data-model.md:30)

@@ -29,6 +29,7 @@ export default function SettingsPage() {
     firstName: "",
     lastName: "",
     email: "",
+    phoneNumber: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false)
@@ -45,6 +46,7 @@ export default function SettingsPage() {
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         email: user.email || "",
+        phoneNumber: user.phoneNumber || "",
       })
     }
   }, [user])
@@ -63,6 +65,7 @@ export default function SettingsPage() {
       const updatedData = {
         firstName: profile.firstName,
         lastName: profile.lastName,
+        phoneNumber: profile.phoneNumber,
       }
       await userOperations.update(user.id, updatedData)
       await refreshUser() // Refresh user data in context
@@ -203,6 +206,10 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" type="email" value={profile.email} disabled />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneNumber">Phone Number</Label>
+                    <Input id="phoneNumber" type="tel" value={profile.phoneNumber} onChange={e => setProfile({ ...profile, phoneNumber: e.target.value })} placeholder="Enter phone number (optional)" />
                   </div>
                   <Button onClick={handleSaveProfile} disabled={isSubmitting}>
                     <Save className="mr-2 h-4 w-4" />

@@ -30,6 +30,7 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
     firstName: "",
     lastName: "",
     email: "",
+    phoneNumber: "",
     password: "",
     roleId: "",
     isGlobal: false,
@@ -81,6 +82,7 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
         firstName: "",
         lastName: "",
         email: "",
+        phoneNumber: "",
         password: "",
         roleId: "",
         isGlobal: false,
@@ -113,6 +115,10 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
           <div className="space-y-2">
             <Label htmlFor="email_add">Email</Label>
             <Input id="email_add" type="email" value={formData.email} onChange={e => handleInputChange("email", e.target.value)} placeholder="Enter email address" className={!isEmailValid ? "border-red-500" : ""} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumber_add">Phone Number</Label>
+            <Input id="phoneNumber_add" type="tel" value={formData.phoneNumber} onChange={e => handleInputChange("phoneNumber", e.target.value)} placeholder="Enter phone number (optional)" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password_add">Password</Label>
