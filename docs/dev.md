@@ -330,6 +330,46 @@ export default function MyComponent() {
 
 **Important:** Roles are seeded as **global** resources (no `companyId` field). They are shared across all companies.
 
+### 1.10 Admin Dashboard ✅
+**Navigation & UX**
+
+**Completed Components:**
+- `src/app/(authenticated)/admin/page.tsx` - Admin dashboard landing page
+- Updated `src/components/layout/AppLayout.tsx` - Added Admin menu item with exact path matching
+
+**Completed Features:**
+- **Card-based overview** of all admin sections:
+  - Companies (Building2 icon, blue theme)
+  - Users (Users icon, green theme)
+  - Roles (Shield icon, purple theme)
+  - Products (Package icon, orange theme) - Mine companies only
+  - Sites (MapPin icon, red theme) - Mine companies only
+  - Clients (UserCog icon, cyan theme) - Mine companies only
+  - Notifications (Bell icon, yellow theme)
+- Each card shows:
+  - Color-coded icon with matching background
+  - Section title and description
+  - Count of items
+  - Hover effects with shadow and border animation
+  - Click anywhere on card to navigate
+- **Quick stats overview** showing active counts for all sections
+- **Permission-based filtering**: Only shows sections user can access
+- **Company type filtering**: Mine-specific sections hidden for transporter/LC companies
+- **Access warning** for non-global users explaining limited access
+- **Admin menu item** in main navigation:
+  - Icon: LayoutDashboard
+  - Shows for users with ANY admin permission
+  - Exact path matching prevents highlighting when on admin sub-routes
+
+**Acceptance Criteria:**
+- ✅ Dashboard shows all accessible admin sections as cards
+- ✅ Permission-based filtering works (sections hidden without access)
+- ✅ Company type filtering works (mine-only sections conditional)
+- ✅ Card counts accurate and real-time
+- ✅ Navigation to sub-pages works from cards
+- ✅ Admin menu item shows in sidebar
+- ✅ Exact path matching prevents double-highlight
+
 ---
 
 ## Phase 2: Administrative Configuration ✅ COMPLETED
@@ -1312,64 +1352,88 @@ Reference `docs/data-model.md` → `assets` collection
 
 ---
 
-### 3.4 Asset Details & Edit
+### 3.4 Asset Details & Edit ✅
+
 **User Flow**: Implicit (view/edit existing asset)
 
 **Goal**: View full asset details and edit non-barcode fields.
 
-**Files to Create/Modify:**
-- `src/app/(authenticated)/assets/[id]/page.tsx`
-- `src/components/assets/AssetDetailsCard.tsx`
-- `src/components/assets/AssetEditModal.tsx`
-- `src/components/assets/AssetHistoryTimeline.tsx` (optional)
+**Implemented Files:**
+- `src/app/(authenticated)/assets/[id]/page.tsx` - Comprehensive asset details page
 
-**Methods/Functions:**
-- `AssetService.getById(id: string)` - Fetch single asset
-- `AssetService.update(id: string, data: Partial<Asset>)` - Update asset
-- `AssetService.getHistory(id: string)` - Audit log (future)
+**Implemented Methods:**
+- `AssetService.getById(id)` - Fetch single asset
+- `AssetService.update(id, data)` - Update asset
+- `AssetService.reactivate(id)` - Reactivate inactive assets
 
-**UI Requirements:**
-- Asset details card:
-  - Large icon for type
-  - All fields (read-only barcode fields, editable optional fields)
-  - Expiry status prominent
-  - QR codes displayed
+**Implemented Features:**
+- **Asset Header:**
+  - Asset type with large icon/emoji
+  - Status badges (Active/Inactive/Expired)
+  - Action buttons (Edit, Inactivate, Delete)
+
+- **Basic Information Card:**
+  - Newton QR Code (ntCode)
   - Company name
+  - Fleet number (if assigned)
+  - Group (if assigned)
   - Created/updated timestamps
-- Edit button (opens modal)
-- Edit modal:
-  - Fleet Number (editable)
-  - Group (editable dropdown)
-  - Cannot edit: registration, license, QR, barcode data
-  - Note: "Barcode fields cannot be edited. Delete and re-induct to change."
-- History timeline (optional):
-  - Created date
-  - Edited dates
-  - Inactivated date (if applicable)
+
+- **Vehicle Details Card** (for trucks/trailers):
+  - Registration number
+  - Make & Model
+  - Vehicle Type (vehicleDescription)
+  - Description
+  - Colour
+  - License Disk Number
+  - Expiry Date with color-coded badge
+  - Engine Number
+  - VIN
+
+- **Driver Personal Information Card** (for drivers):
+  - Driver photo (if available)
+  - ID Number
+  - Full Name (initials/name + surname)
+  - Gender, Date of Birth, Age
+  - Country, Place Issued, ID Type
+
+- **Driver License Information Card** (for drivers):
+  - License Number, Type
+  - Expiry Date with color-coded badge
+  - Issue Date, License Issue Number
+  - Vehicle Codes, Vehicle Class Codes
+  - PrDP Code, Category, Valid Until
+  - Endorsement
+  - Driver/Vehicle/General Restrictions
+  - Status badge (Expired/Valid)
 
 **Acceptance Criteria:**
-- ☐ Asset details display correctly
-- ☐ Barcode fields are read-only (QR code, registration, license number, etc)
-- ☐ Optional fields are editable (fleet number, group)
-- ☐ Updates trigger "asset.edited" notification
-- ☐ Edit modal validates inputs
+- ✅ Asset details display correctly based on asset type (truck/trailer/driver)
+- ✅ All vehicle fields shown for trucks/trailers
+- ✅ All driver personal info and license details shown for drivers
+- ✅ Driver photos displayed in personal information section
+- ✅ Expiry dates shown with color-coded badges
+- ✅ Action buttons for edit, inactivate, delete
+- 🔄 Edit modal implementation pending user testing
+- 🔄 Notification triggers pending (Phase 2.6)
 
 ---
 
-### 3.5 Asset Deletion & Inactivation
+### 3.5 Asset Deletion & Inactivation ✅
+
 **User Flow**: Flow 3 - Asset Deletion (Induction Error Correction)
 
 **Goal**: Delete assets with no transactions, or inactivate if transactions exist.
 
-**Files to Create/Modify:**
-- `src/components/assets/DeleteAssetModal.tsx`
-- `src/components/assets/InactivateAssetModal.tsx`
-- Modify `AssetService` with deletion methods
+**Implemented Files:**
+- `src/components/assets/DeleteAssetModal.tsx` - QR verification + deletion with transaction checks
+- `src/components/assets/InactivateAssetModal.tsx` - Asset inactivation with reason
 
-**Methods/Functions:**
-- `AssetService.checkHasTransactions(assetId: string)` - Returns `{ hasTransactions: boolean, count: number }`
-- `AssetService.delete(id: string, reason: string)` - Hard delete (only if no transactions)
-- `AssetService.inactivate(id: string, reason: string)` - Soft delete (set isActive = false)
+**Implemented Methods:**
+- `AssetService.checkHasTransactions(assetId)` - Returns `{ hasTransactions: boolean, count: number }`
+- `AssetService.delete(id, reason)` - Hard delete (only if no transactions)
+- `AssetService.inactivate(id, reason)` - Soft delete (set isActive = false)
+- `AssetService.reactivate(id)` - Reactivate inactive assets
 
 **UI Requirements:**
 
@@ -1417,14 +1481,16 @@ Reference `docs/data-model.md` → `assets` collection
 Reference `docs/data-model.md` → `assets` collection fields: `isActive`, `inactiveReason`, `inactiveDate`, `deletedReason`
 
 **Acceptance Criteria:**
-- ☐ QR scan required to delete (text input for desktop scanner)
-- ☐ Transaction check prevents deletion (queries weighing_records and security_checks)
-- ☐ Hard delete only if no transactions
-- ☐ Inactivation available as alternative (seamless modal switch)
-- ☐ Reason required for both actions (textarea input)
-- ☐ Notifications sent correctly (asset.deleted / asset.inactive)
-- ☐ Audit log created (deletedReason / inactiveReason stored)
-- ☐ Inactive assets hidden from operational dropdowns (isActive = false)
+- ✅ QR scan required to delete (text input for desktop scanner)
+- ✅ Transaction check prevents deletion (queries weighing_records and security_checks)
+- ✅ Hard delete only if no transactions
+- ✅ Inactivation available as alternative (seamless modal switch)
+- ✅ Reason required for both actions (textarea input)
+- 🔄 Notifications pending (Phase 2.6)
+- ✅ Deletion reason stored before hard delete (deletedReason field)
+- ✅ Inactivation stores reason, date, and sets isActive = false
+- ✅ Reactivate button available on inactive asset details page
+- ✅ Inactive assets filtered from main listing (unless "inactive" status filter selected)
 
 ---
 

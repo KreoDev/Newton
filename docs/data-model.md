@@ -196,27 +196,83 @@ securityAlerts: {
 
 ### assets (documents)
 
-| Field              | Type            | Required | Description                                        | Example         |
-| ------------------ | --------------- | -------- | -------------------------------------------------- | --------------- |
-| id                 | string (doc id) | yes      | Unique asset id                                    | a_123           |
-| companyId          | string          | yes      | Company reference (transporter/logistics operator) | c_456           |
-| assetType          | enum            | yes      | truck\|trailer\|driver                             | truck           |
-| qrCode             | string          | yes      | QR code data                                       | qr_string       |
-| vehicleDiskData    | string          | no       | Vehicle disk data                                  | disk_string     |
-| driverLicenseData  | string          | no       | Driver license data                                | license_string  |
-| registrationNumber | string          | no       | Vehicle registration (trucks/trailers)             | CAW 12345       |
-| licenseNumber      | string          | no       | Driver license number                              | DL123456789     |
-| licenseExpiryDate  | timestamp       | no       | License expiry date                                | 2025-12-31      |
-| fleetNumber        | string          | no       | Optional fleet number                              | FL-001          |
-| groupId            | string          | no       | Optional group identifier                          | grp_north       |
-| createdAt          | number          | yes      | Client event time (ms)                             | Date.now()      |
-| updatedAt          | number          | yes      | Last client event time (ms)                        | Date.now()      |
-| dbCreatedAt        | timestamp       | yes      | Server creation time                               | serverTimestamp |
-| dbUpdatedAt        | timestamp       | yes      | Last server update time                            | serverTimestamp |
-| isActive           | boolean         | yes      | Asset active status                                | true            |
-| inactiveReason     | string          | no       | Reason for deactivation                            | License expired |
-| inactiveDate       | timestamp       | no       | When asset was deactivated                         | 2024-01-15      |
-| deletedReason      | string          | no       | Reason for deletion (induction errors)             | Duplicate entry |
+**Important:** This collection uses field names compatible with the Android app for seamless data sharing. The `type` field (NOT `assetType`) determines which fields are populated.
+
+**Validation Rules:**
+- **ntCode** must start with "NT" prefix (South African NaTIS standard) and be unique
+- **registration** must be unique (vehicles only)
+- **vin** must be unique (vehicles only)
+- **idNumber** must be unique (drivers only)
+
+| Field                    | Type            | Required | Description                                                    | Example              | Asset Types        |
+| ------------------------ | --------------- | -------- | -------------------------------------------------------------- | -------------------- | ------------------ |
+| id                       | string (doc id) | yes      | Unique asset id                                                | a_123                | All                |
+| companyId                | string          | yes      | Company reference (transporter/logistics operator)             | c_456                | All                |
+| type                     | enum            | yes      | truck\|trailer\|driver (NOT assetType)                         | truck                | All                |
+| ntCode                   | string          | yes      | Newton QR code (NaTIS transaction code, must start with "NT")  | NT1234567890         | All                |
+| firstQRCode              | string          | yes      | First QR scan (for verification)                               | NT1234567890         | All                |
+| secondQRCode             | string          | yes      | Second QR scan (must match first)                              | NT1234567890         | All                |
+| **Vehicle Fields**       |                 |          |                                                                |                      |                    |
+| registration             | string          | no       | Vehicle registration (primary field, must be unique)           | DJM739X              | Truck, Trailer     |
+| registrationNumber       | string          | no       | Vehicle registration (alias for compatibility)                 | DJM739X              | Truck, Trailer     |
+| vehicleReg               | string          | no       | Vehicle registration (alias)                                   | DJM739X              | Truck, Trailer     |
+| make                     | string          | no       | Vehicle make                                                   | Mercedes-Benz        | Truck, Trailer     |
+| model                    | string          | no       | Vehicle model                                                  | Actros               | Truck, Trailer     |
+| colour                   | string          | no       | Vehicle color                                                  | White                | Truck, Trailer     |
+| vehicleDescription       | string          | no       | Vehicle type/description from license disk                     | Truck                | Truck, Trailer     |
+| description              | string          | no       | Additional description                                         | Heavy duty truck     | Truck, Trailer     |
+| engineNo                 | string          | no       | Engine number                                                  | OM47012345           | Truck              |
+| vin                      | string          | no       | Vehicle Identification Number (must be unique)                 | WDB9634161L123456    | Truck, Trailer     |
+| licenceDiskNo            | string          | no       | License disk number                                            | DISK123456           | Truck, Trailer     |
+| expiryDate               | string          | no       | License disk expiry date (DD/MM/YYYY format)                   | 31/12/2025           | Truck, Trailer     |
+| **Driver Fields**        |                 |          |                                                                |                      |                    |
+| idNumber                 | string          | no       | Driver ID number (must be unique)                              | 8501015800080        | Driver             |
+| name                     | string          | no       | Driver first name                                              | John                 | Driver             |
+| surname                  | string          | no       | Driver surname                                                 | Smith                | Driver             |
+| initials                 | string          | no       | Driver initials                                                | JS                   | Driver             |
+| gender                   | string          | no       | Driver gender                                                  | M                    | Driver             |
+| birthDate                | string          | no       | Driver birth date                                              | 01/01/1985           | Driver             |
+| licenseNumber            | string          | no       | Driver license number (primary)                                | DL1234567890         | Driver             |
+| licenceNumber            | string          | no       | Driver license number (alias)                                  | DL1234567890         | Driver             |
+| licenseExpiryDate        | string          | no       | License expiry date (DD/MM/YYYY format)                        | 31/12/2025           | Driver             |
+| licenseType              | string          | no       | License type                                                   | C1                   | Driver             |
+| issueDate                | string          | no       | License issue date                                             | 15/01/2020           | Driver             |
+| licenseIssueNumber       | string          | no       | License issue number                                           | 001                  | Driver             |
+| vehicleCodes             | string          | no       | Vehicle codes from license                                     | C1, EB               | Driver             |
+| vehicleClassCodes        | string          | no       | Vehicle class codes                                            | C, E                 | Driver             |
+| prdpCode                 | string          | no       | PrDP code                                                      | 08                   | Driver             |
+| category                 | string          | no       | License category                                               | Professional         | Driver             |
+| validUntil               | string          | no       | Valid until date                                               | 31/12/2025           | Driver             |
+| endorsement              | string          | no       | License endorsement                                            | None                 | Driver             |
+| driverRestrictions       | string          | no       | Driver-specific restrictions                                   | None                 | Driver             |
+| vehicleRestrictions      | string          | no       | Vehicle-specific restrictions                                  | None                 | Driver             |
+| generalRestrictions      | string          | no       | General restrictions                                           | None                 | Driver             |
+| country                  | string          | no       | Country of issue                                               | South Africa         | Driver             |
+| placeIssued              | string          | no       | Place of issue                                                 | Cape Town            | Driver             |
+| idType                   | string          | no       | ID document type                                               | ID Book              | Driver             |
+| img                      | string          | no       | Driver photo (base64 encoded)                                  | data:image/jpeg;...  | Driver             |
+| **Optional Fields**      |                 |          |                                                                |                      |                    |
+| fleetNumber              | string          | no       | Fleet number (if company has fleet numbering enabled)          | FL-001               | All                |
+| groupId                  | string          | no       | Transporter group reference (if enabled)                       | grp_north            | All                |
+| **Status & Audit**       |                 |          |                                                                |                      |                    |
+| isActive                 | boolean         | yes      | Asset active status                                            | true                 | All                |
+| inactiveReason           | string          | no       | Reason for deactivation                                        | License expired      | All                |
+| inactiveDate             | string          | no       | When asset was deactivated (ISO string)                        | 2024-01-15T10:30:00Z | All                |
+| deletedReason            | string          | no       | Reason for deletion (stored before hard delete)                | Duplicate entry      | All                |
+| createdAt                | number          | yes      | Client event time (ms)                                         | Date.now()           | All                |
+| updatedAt                | number          | yes      | Last client event time (ms)                                    | Date.now()           | All                |
+| dbCreatedAt              | timestamp       | yes      | Server creation time                                           | serverTimestamp      | All                |
+| dbUpdatedAt              | timestamp       | yes      | Last server update time                                        | serverTimestamp      | All                |
+
+**Notes:**
+- The `type` field (NOT `assetType`) determines which category of fields are populated
+- Drivers have personal information and license details extracted via expo-sadl library
+- Vehicles have registration, make/model, and disk information
+- All assets require two-scan QR verification (firstQRCode must match secondQRCode)
+- Expiry dates are stored in DD/MM/YYYY format for compatibility
+- Driver photos are stored as base64 strings in the `img` field
+- Field name aliases exist for backward compatibility (registration/registrationNumber/vehicleReg)
+- Real production data structure available in `/data/assets-data.json`
 
 ## Order Management Collections
 
@@ -305,20 +361,21 @@ securityAlerts: {
 
 ### sites (documents)
 
-| Field           | Type            | Required | Description                   | Example          |
-| --------------- | --------------- | -------- | ----------------------------- | ---------------- |
-| id              | string (doc id) | yes      | Unique site id                | site_123         |
-| companyId       | string          | yes      | Owning company reference      | c_123            |
-| name            | string          | yes      | Site name                     | Main Loading Bay |
-| siteType        | enum            | yes      | collection\|destination       | collection       |
-| physicalAddress | string          | yes      | Physical address              | 123 Mining Road  |
-| contactUserId   | string          | yes      | Contact person user reference | u_456            |
-| operatingHours  | map             | yes      | Operating hours               | See below        |
-| createdAt       | number          | yes      | Client event time (ms)        | Date.now()       |
-| updatedAt       | number          | yes      | Last client event time (ms)   | Date.now()       |
-| dbCreatedAt     | timestamp       | yes      | Server creation time          | serverTimestamp  |
-| dbUpdatedAt     | timestamp       | yes      | Last server update time       | serverTimestamp  |
-| isActive        | boolean         | yes      | Site active status            | true             |
+| Field           | Type            | Required | Description                                      | Example          |
+| --------------- | --------------- | -------- | ------------------------------------------------ | ---------------- |
+| id              | string (doc id) | yes      | Unique site id                                   | site_123         |
+| companyId       | string          | yes      | Owning company reference                         | c_123            |
+| name            | string          | yes      | Site name                                        | Main Loading Bay |
+| siteType        | enum            | yes      | collection\|destination                          | collection       |
+| physicalAddress | string          | yes      | Physical address                                 | 123 Mining Road  |
+| contactUserId   | string          | yes      | Contact person user reference                    | u_456            |
+| groupId         | string          | no       | Organizational group reference (mine companies)  | grp_123          |
+| operatingHours  | map             | yes      | Operating hours                                  | See below        |
+| createdAt       | number          | yes      | Client event time (ms)                           | Date.now()       |
+| updatedAt       | number          | yes      | Last client event time (ms)                      | Date.now()       |
+| dbCreatedAt     | timestamp       | yes      | Server creation time                             | serverTimestamp  |
+| dbUpdatedAt     | timestamp       | yes      | Last server update time                          | serverTimestamp  |
+| isActive        | boolean         | yes      | Site active status                               | true             |
 
 #### operatingHours structure
 
@@ -333,6 +390,32 @@ securityAlerts: {
   sunday: { open: "closed", close: "closed" }
 }
 ```
+
+### groups (documents)
+
+**Mine Companies Only:** Organizational groups provide hierarchical structure for mine companies. Unlimited nesting supported.
+
+| Field         | Type            | Required | Description                                              | Example                      |
+| ------------- | --------------- | -------- | -------------------------------------------------------- | ---------------------------- |
+| id            | string (doc id) | yes      | Unique group id                                          | grp_123                      |
+| companyId     | string          | yes      | Owning company reference (mine companies only)           | c_123                        |
+| name          | string          | yes      | Group name                                               | Northern Division            |
+| description   | string          | no       | Group description                                        | Mining operations in the north |
+| parentGroupId | string          | no       | Parent group reference (undefined for root groups)       | grp_456                      |
+| level         | number          | yes      | Depth in hierarchy (0 for root)                          | 0                            |
+| path          | string[]        | yes      | Array of ancestor IDs for querying/breadcrumbs           | ["grp_456", "grp_123"]       |
+| createdAt     | number          | yes      | Client event time (ms)                                   | Date.now()                   |
+| updatedAt     | number          | yes      | Last client event time (ms)                              | Date.now()                   |
+| dbCreatedAt   | timestamp       | yes      | Server creation time                                     | serverTimestamp              |
+| dbUpdatedAt   | timestamp       | yes      | Last server update time                                  | serverTimestamp              |
+| isActive      | boolean         | yes      | Group active status                                      | true                         |
+
+**Notes:**
+- Groups support unlimited hierarchical nesting (groups → subgroups → sub-subgroups → etc.)
+- Sites can be assigned to groups via the `groupId` field
+- Tree UI with expand/collapse functionality in Company Settings → Groups tab
+- Only available for mine companies (hidden for transporter/logistics coordinator companies)
+- The `path` array enables easy breadcrumb generation and hierarchical queries
 
 ## Weighbridge Operations Collections
 
