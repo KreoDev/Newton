@@ -178,15 +178,68 @@ export interface Client extends Timestamped, CompanyScoped {
 
 export interface Asset extends Timestamped, CompanyScoped {
   id: string
-  assetType: "truck" | "trailer" | "driver"
-  qrCode: string
-  vehicleDiskData?: string
-  driverLicenseData?: string
-  registrationNumber?: string
-  licenseNumber?: string
-  licenseExpiryDate?: string
-  fleetNumber?: string
-  groupId?: string
+  type: "truck" | "trailer" | "driver" // Matches Android app field name
+
+  // Induction QR verification (scanned twice for verification)
+  firstQRCode?: string // First QR scan during induction
+  secondQRCode?: string // Second QR scan for verification
+  ntCode?: string // NaTIS transaction code (Newton QR) - set to firstQRCode after match verification
+
+  // Barcode data (stored as JSON strings - parsed at runtime)
+  vehicleDiskData?: string // JSON string containing full vehicle disk barcode data
+  driverLicenseData?: string // JSON string containing full driver license barcode data
+
+  // Common fields (used for display and filtering)
+  registration?: string // Vehicle registration (for trucks/trailers) - primary field from data
+  registrationNumber?: string // Vehicle registration (for trucks/trailers) - alias for compatibility
+  licenseNumber?: string // Driver license number (for drivers)
+  licenseExpiryDate?: string // Expiry date for license/disk
+  fleetNumber?: string // Optional fleet number
+  groupId?: string // Optional group assignment
+
+  // Driver-specific fields (from expo-sadl DecodedLicenseInfo)
+  idNumber?: string // SA ID number
+  licenceNumber?: string // License number (duplicate of licenseNumber for compatibility)
+  issueDate?: string // License issue date
+  expiryDate?: string // License expiry date (duplicate of licenseExpiryDate for compatibility)
+  licenceType?: string // e.g., "EB", "C1", "EC"
+  gender?: string // "M" or "F"
+  birthDate?: string // Date of birth
+  prdpCode?: string // Professional Driving Permit code
+  vehicleCodes?: string // Vehicle codes driver is authorized for
+  driverRestrictions?: string // Driving restrictions
+  img?: string // Base64 encoded driver photo (data:image/jpeg;base64,...)
+  initials?: string // Driver initials
+  surname?: string // Driver surname
+  name?: string // Driver first name
+  sadcCountry?: string // SADC country code
+  issuedPlace?: string // Place where license was issued
+  idType?: string // ID type
+  restrictions?: string // General restrictions
+  licenceIssueNumber?: string // License issue number
+  firstIssueDate?: string // First issue date of license
+  endorsement?: string // License endorsement
+  vehicleClassCodes?: string // Vehicle class codes
+  vehicleRestrictions?: string // Vehicle-specific restrictions
+  prdpCategory?: string // PrDP category
+  prdpValidUntil?: string // PrDP valid until date
+  age?: number // Calculated age
+  expired?: boolean // Whether license is expired
+
+  // Vehicle-specific fields (from barcode scan)
+  vehicleReg?: string // Vehicle registration (duplicate of registrationNumber for compatibility)
+  vehicleDescription?: string // Vehicle type description (e.g., "Sedan (Closed Top)", "Truck")
+  make?: string // Vehicle make
+  model?: string // Vehicle model
+  licenceNo?: string // License number from disk
+  licenceDiskNo?: string // License disk number
+  vin?: string // Vehicle Identification Number
+  engineNo?: string // Engine number
+  colour?: string // Vehicle colour
+  dateOfExpiry?: string // Expiry date from disk
+  description?: string // Full vehicle description
+
+  // Status
   isActive: boolean
   inactiveReason?: string
   inactiveDate?: string

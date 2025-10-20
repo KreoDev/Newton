@@ -974,16 +974,38 @@ async function seedAssets(sendProgress: (data: ProgressData) => void) {
   let batchCount = 0
 
   for (const asset of assets) {
-    const { id, ...data } = asset
-    batch.set(adminDb.collection("assets").doc(id), {
+    const { id, registration, licenceNumber, ntCode, ...data } = asset
+
+    // Transform Android app field names to web app schema
+    const transformedData: any = {
       ...data,
       companyId: data.companyId ?? DEFAULT_COMPANY_ID,
+      // Note: 'type' field is kept as-is from Android app
       createdAt: data.createdAt ?? Date.now(),
       updatedAt: Date.now(),
       dbCreatedAt: FieldValue.serverTimestamp(),
       dbUpdatedAt: FieldValue.serverTimestamp(),
       isActive: data.isActive ?? true,
-    })
+    }
+
+    // Map registration -> registrationNumber for vehicles
+    if (registration) {
+      transformedData.registrationNumber = registration
+    }
+
+    // Map licenceNumber -> licenseNumber for drivers (British to American spelling)
+    if (licenceNumber) {
+      transformedData.licenseNumber = licenceNumber
+    }
+
+    // Map ntCode -> qrCode (Newton QR identifier - NaTIS transaction code)
+    // The ntCode is scanned twice during induction (firstQRCode, secondQRCode) for verification
+    if (ntCode) {
+      transformedData.qrCode = ntCode.trim()
+      transformedData.ntCode = ntCode.trim()
+    }
+
+    batch.set(adminDb.collection("assets").doc(id), transformedData)
 
     batchCount += 1
     count += 1

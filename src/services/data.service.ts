@@ -1,6 +1,6 @@
 import { signal, Signal } from "@preact/signals-react"
 import { log } from "@/services/console.service"
-import type { User, Company, Role, Product, Group, Site, Client } from "@/types"
+import type { User, Company, Role, Product, Group, Site, Client, Asset } from "@/types"
 import { createCollectionListener } from "@/lib/firebase-utils"
 
 class Data {
@@ -13,11 +13,12 @@ class Data {
   groups: Signal<Group[]> = signal([])
   sites: Signal<Site[]> = signal([])
   clients: Signal<Client[]> = signal([])
+  assets: Signal<Asset[]> = signal([])
   loading: Signal<boolean> = signal(true)
 
   private unsubscribers: (() => void)[] = []
   private loadedCollections = new Set<string>()
-  private expectedCollections = 7 // companies, roles, users, products, groups, sites, clients
+  private expectedCollections = 8 // companies, roles, users, products, groups, sites, clients, assets
 
   private constructor() {
     log.loaded("Data")
@@ -85,6 +86,12 @@ class Data {
       onFirstLoad: () => this.markCollectionLoaded("clients"),
     })
 
+    // Assets: Company-scoped
+    const assetsListener = createCollectionListener<Asset>("assets", this.assets, {
+      companyScoped: true,
+      onFirstLoad: () => this.markCollectionLoaded("assets"),
+    })
+
     // Start all listeners
     const unsubCompanies = companiesListener()
     const unsubRoles = rolesListener() // No companyId - roles are global
@@ -93,6 +100,7 @@ class Data {
     const unsubGroups = groupsListener(companyId)
     const unsubSites = sitesListener(companyId)
     const unsubClients = clientsListener(companyId)
+    const unsubAssets = assetsListener(companyId)
 
     this.unsubscribers = [
       unsubCompanies,
@@ -102,6 +110,7 @@ class Data {
       unsubGroups,
       unsubSites,
       unsubClients,
+      unsubAssets,
     ]
 
     return () => this.cleanup()

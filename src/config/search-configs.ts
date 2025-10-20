@@ -55,7 +55,7 @@ export const SEARCH_CONFIGS = {
   // Asset Management
   assets: {
     fields: [
-      { path: "assetType", weight: 2 },
+      { path: "type", weight: 2 },
       { path: "registrationNumber", weight: 2 },
       { path: "licenseNumber", weight: 2 },
       { path: "qrCode", weight: 1 },

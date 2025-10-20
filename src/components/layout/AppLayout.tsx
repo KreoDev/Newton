@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useLayout } from "@/hooks/useLayout"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Home, Settings, Menu, X, LogOut, ChevronDown, Building2, Users, Package, MapPin, Shield, Bell, UserCog } from "lucide-react"
+import { Home, Settings, Menu, X, LogOut, ChevronDown, Building2, Users, Package, MapPin, Shield, Bell, UserCog, Truck, LayoutDashboard } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -70,6 +70,27 @@ interface AppLayoutProps {
 const baseNavigation = [
   { name: "Dashboard", href: "/", icon: Home },
   {
+    name: "Admin",
+    href: "/admin",
+    icon: LayoutDashboard,
+    requiredPermissions: [
+      PERMISSIONS.ADMIN_COMPANIES_VIEW,
+      PERMISSIONS.ADMIN_COMPANIES,
+      PERMISSIONS.ADMIN_USERS_VIEW,
+      PERMISSIONS.ADMIN_USERS,
+      PERMISSIONS.ADMIN_ROLES_VIEW,
+      PERMISSIONS.ADMIN_ROLES,
+      PERMISSIONS.ADMIN_PRODUCTS_VIEW,
+      PERMISSIONS.ADMIN_PRODUCTS,
+      PERMISSIONS.ADMIN_SITES_VIEW,
+      PERMISSIONS.ADMIN_SITES,
+      PERMISSIONS.ADMIN_CLIENTS_VIEW,
+      PERMISSIONS.ADMIN_CLIENTS,
+      PERMISSIONS.ADMIN_NOTIFICATIONS_VIEW,
+      PERMISSIONS.ADMIN_NOTIFICATIONS
+    ]
+  },
+  {
     name: "Companies",
     href: "/admin/companies",
     icon: Building2,
@@ -95,6 +116,12 @@ const baseNavigation = [
     icon: MapPin,
     requiresMine: true,
     requiredPermissions: [PERMISSIONS.ADMIN_SITES_VIEW, PERMISSIONS.ADMIN_SITES]
+  },
+  {
+    name: "Assets",
+    href: "/assets",
+    icon: Truck,
+    requiredPermissions: [PERMISSIONS.ASSETS_VIEW, PERMISSIONS.ASSETS_ADD, PERMISSIONS.ASSETS_EDIT]
   },
   {
     name: "Users",
@@ -128,7 +155,10 @@ interface NavigationItem {
 function NavLink({ item, className, onClick }: { item: NavigationItem; className?: string; onClick?: () => void }) {
   const pathname = usePathname()
   const isDashboard = item.href === "/"
-  const isActive = isDashboard ? pathname === item.href : pathname.startsWith(item.href)
+  const isAdmin = item.href === "/admin"
+  // For exact match routes (Dashboard and Admin), check exact path
+  // For others, check if path starts with href
+  const isActive = isDashboard || isAdmin ? pathname === item.href : pathname.startsWith(item.href)
 
   return (
     <Link
