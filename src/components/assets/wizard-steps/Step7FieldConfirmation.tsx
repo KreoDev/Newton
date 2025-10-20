@@ -28,7 +28,7 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
       const data = state.parsedData
 
       if (state.type === "driver") {
-        setFields({
+        const driverFields = {
           idNumber: data.personInfo?.idNumber || "",
           name: data.personInfo?.name || "",
           surname: data.personInfo?.surname || "",
@@ -41,17 +41,23 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
           issueDate: data.licenceInfo?.issueDate || "",
           driverRestrictions: data.licenceInfo?.driverRestrictions || "",
           ntCode: data.licenceInfo?.ntCode || "",
-        })
+        }
+        setFields(driverFields)
 
         // Check expiry for driver
         if (data.licenceInfo?.expiryDate) {
           const info = AssetFieldMapper.getExpiryInfo(data.licenceInfo.expiryDate)
           setExpiryInfo(info)
           setIsExpired(info.status === "expired")
+
+          // Auto-advance if not expired
+          if (info.status !== "expired") {
+            autoAdvance(driverFields)
+          }
         }
       } else {
         // Truck or Trailer
-        setFields({
+        const vehicleFields = {
           registration: data.vehicleInfo?.registration || "",
           make: data.vehicleInfo?.make || "",
           model: data.vehicleInfo?.model || "",
@@ -60,17 +66,70 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
           expiryDate: data.vehicleInfo?.expiryDate || "",
           engineNo: data.vehicleInfo?.engineNo || "",
           vin: data.vehicleInfo?.vin || "",
-        })
+        }
+        setFields(vehicleFields)
 
         // Check expiry for vehicle
         if (data.vehicleInfo?.expiryDate) {
           const info = AssetFieldMapper.getExpiryInfo(data.vehicleInfo.expiryDate)
           setExpiryInfo(info)
           setIsExpired(info.status === "expired")
+
+          // Auto-advance if not expired
+          if (info.status !== "expired") {
+            autoAdvance(vehicleFields)
+          }
         }
       }
     }
   }, [state.parsedData, state.type])
+
+  const autoAdvance = (currentFields: any) => {
+    // Update parsed data and auto-advance after validation
+    const updatedParsedData: any = {
+      ...state.parsedData,
+      type: state.type!,
+      qrCode: state.firstQRCode || "",
+      ...(state.type === "driver"
+        ? {
+            personInfo: {
+              idNumber: currentFields.idNumber,
+              name: currentFields.name,
+              surname: currentFields.surname,
+              initials: currentFields.initials,
+              gender: currentFields.gender,
+              birthDate: currentFields.birthDate,
+            },
+            licenceInfo: {
+              licenceNumber: currentFields.licenceNumber,
+              licenceType: currentFields.licenceType,
+              expiryDate: currentFields.expiryDate,
+              issueDate: currentFields.issueDate,
+              driverRestrictions: currentFields.driverRestrictions,
+              ntCode: currentFields.ntCode,
+            },
+          }
+        : {
+            vehicleInfo: {
+              registration: currentFields.registration,
+              make: currentFields.make,
+              model: currentFields.model,
+              colour: currentFields.colour,
+              vehicleDiskNo: currentFields.vehicleDiskNo,
+              expiryDate: currentFields.expiryDate,
+              engineNo: currentFields.engineNo,
+              vin: currentFields.vin,
+            },
+          }),
+    }
+
+    updateState({ parsedData: updatedParsedData })
+
+    // Auto-advance after short delay to show fields
+    setTimeout(() => {
+      onNext()
+    }, 800)
+  }
 
   const handleNext = () => {
     if (isExpired) {
@@ -81,7 +140,7 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
     // Update parsed data with any edited fields
     const updatedParsedData: any = {
       ...state.parsedData,
-      assetType: state.type!,
+      type: state.type!,
       qrCode: state.firstQRCode || "",
       ...(state.type === "driver"
         ? {
@@ -277,14 +336,10 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
         )}
       </div>
 
-      <div className="flex justify-between pt-4">
+      <div className="flex justify-start pt-4">
         <Button variant="outline" onClick={onPrev}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Previous
-        </Button>
-        <Button onClick={handleNext} disabled={isExpired}>
-          {isExpired ? "Cannot Proceed (Expired)" : "Next"}
-          {!isExpired && <ArrowRight className="ml-2 h-4 w-4" />}
         </Button>
       </div>
     </div>

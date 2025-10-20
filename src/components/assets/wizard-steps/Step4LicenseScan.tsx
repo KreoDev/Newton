@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { AssetInductionState } from "@/types/asset-types"
-import { ArrowRight, ArrowLeft, AlertCircle } from "lucide-react"
+import { ArrowLeft, AlertCircle, X } from "lucide-react"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import { toast } from "sonner"
+import onScan from "onscan.js"
 
 interface Step4Props {
   state: Partial<AssetInductionState>
@@ -20,21 +21,51 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
   const [barcodeData, setBarcodeData] = useState(state.firstBarcodeData || "")
   const [error, setError] = useState("")
   const [parsedData, setParsedData] = useState<any>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Handle scans coming from onscan.js
+  const handleScannerScan = useCallback((scannedValue: string) => {
+    setBarcodeData(scannedValue)
+    setError("")
+    setParsedData(null)
+  }, [])
+
+  // Attach onScan listener
+  useEffect(() => {
+    onScan.attachTo(document, {
+      onScan: handleScannerScan,
+      suffixKeyCodes: [13], // Enter key
+      avgTimeByChar: 20,
+      minLength: 6,
+      reactToPaste: false,
+    })
+
+    return () => {
+      try {
+        onScan.detachFrom(document)
+      } catch {}
+    }
+  }, [handleScannerScan])
 
   useEffect(() => {
     // Auto-focus the input when component mounts
-    const input = document.getElementById("barcode-input")
-    if (input) {
-      input.focus()
-    }
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 100)
   }, [])
 
-  const handleParse = () => {
-    if (!barcodeData.trim()) {
-      setError("Barcode data is required")
-      return
+  // Auto-parse and advance when barcode is scanned
+  useEffect(() => {
+    if (barcodeData && !isProcessing && !error && !parsedData) {
+      handleParse()
     }
+  }, [barcodeData])
 
+  const handleParse = async () => {
+    if (!barcodeData.trim() || isProcessing) return
+
+    setIsProcessing(true)
     setError("")
 
     // Try to parse as vehicle disk first
@@ -43,6 +74,12 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
     if (!("error" in vehicleResult)) {
       // Successfully parsed as vehicle
       setParsedData({ type: "vehicle", data: vehicleResult })
+      updateState({ firstBarcodeData: barcodeData.trim() })
+
+      // Auto-advance after successful parse
+      setTimeout(() => {
+        onNext()
+      }, 300)
       return
     }
 
@@ -52,6 +89,12 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
     if (!("error" in driverResult)) {
       // Successfully parsed as driver
       setParsedData({ type: "driver", data: driverResult })
+      updateState({ firstBarcodeData: barcodeData.trim() })
+
+      // Auto-advance after successful parse
+      setTimeout(() => {
+        onNext()
+      }, 300)
       return
     }
 
@@ -59,60 +102,73 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
     setError("Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk or driver license.")
     toast.error("Barcode parsing failed")
     setParsedData(null)
+    setIsProcessing(false)
   }
 
-  const handleNext = () => {
-    if (!parsedData) {
-      setError("Please scan and parse a valid barcode first")
-      return
-    }
-
-    updateState({ firstBarcodeData: barcodeData.trim() })
-    onNext()
+  const handleClear = () => {
+    setBarcodeData("")
+    setError("")
+    setParsedData(null)
+    setIsProcessing(false)
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 100)
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault()
-      handleParse()
+      if (!parsedData && barcodeData) {
+        handleParse()
+      }
     }
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-muted-foreground mb-4">Use your desktop scanner to scan the vehicle license disk barcode OR driver license barcode.</p>
+        <p className="text-muted-foreground mb-4">Scan the vehicle license disk OR driver license barcode. Will auto-advance after parsing.</p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="barcode-input">License/Disk Barcode *</Label>
-        <div className="flex gap-2">
-          <Input
-            id="barcode-input"
-            type="text"
-            placeholder="Scan barcode or type manually..."
-            value={barcodeData}
-            onChange={e => {
-              setBarcodeData(e.target.value)
-              setError("")
-              setParsedData(null)
-            }}
-            onKeyPress={handleKeyPress}
-            className={error ? "border-red-500" : parsedData ? "border-green-500" : ""}
-            autoComplete="off"
-          />
-          <Button onClick={handleParse} variant="secondary">
-            Parse
-          </Button>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="barcode-input" className={error ? "text-destructive" : ""}>
+            License/Disk Barcode (First Scan) *
+          </Label>
+          {barcodeData && (
+            <Button variant="ghost" size="sm" type="button" className="h-auto p-1 text-xs text-muted-foreground hover:text-destructive" onClick={handleClear}>
+              <X className="h-3 w-3 mr-1" />
+              Clear
+            </Button>
+          )}
         </div>
+        <Input
+          ref={inputRef}
+          id="barcode-input"
+          type="text"
+          placeholder="Scan 1: Scan the barcode"
+          value={barcodeData}
+          onKeyDown={handleKeyDown}
+          className={error ? "border-destructive" : parsedData ? "border-green-500" : ""}
+          autoComplete="off"
+          readOnly
+          onPaste={e => e.preventDefault()}
+          onDrop={e => e.preventDefault()}
+        />
         {error && (
-          <div className="flex items-center gap-2 text-sm text-red-600">
+          <div className="flex items-center gap-2 text-sm text-destructive">
             <AlertCircle className="h-4 w-4" />
             <span>{error}</span>
           </div>
         )}
-        <p className="text-xs text-muted-foreground">Scan with desktop scanner and click Parse, or press Enter after scanning</p>
+        <p className="text-xs text-muted-foreground">Scan with desktop scanner - will auto-advance after parsing</p>
       </div>
+
+      {isProcessing && (
+        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Parsing barcode data...</p>
+        </div>
+      )}
 
       {parsedData && (
         <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
@@ -132,14 +188,6 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
                   <span className="text-muted-foreground">Model:</span>
                   <span>{parsedData.data.model}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <span className="text-muted-foreground">Colour:</span>
-                  <span>{parsedData.data.colour}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <span className="text-muted-foreground">Expiry Date:</span>
-                  <span>{parsedData.data.expiryDate}</span>
-                </div>
               </>
             ) : (
               <>
@@ -153,32 +201,16 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
                     {parsedData.data.person.name} {parsedData.data.person.surname}
                   </span>
                 </div>
-                {parsedData.data.licence && (
-                  <>
-                    <div className="grid grid-cols-2 gap-2">
-                      <span className="text-muted-foreground">License Number:</span>
-                      <span className="font-mono">{parsedData.data.licence.licenceNumber}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <span className="text-muted-foreground">Expiry Date:</span>
-                      <span>{parsedData.data.licence.expiryDate}</span>
-                    </div>
-                  </>
-                )}
               </>
             )}
           </div>
         </div>
       )}
 
-      <div className="flex justify-between pt-4">
+      <div className="flex justify-start pt-4">
         <Button variant="outline" onClick={onPrev}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Previous
-        </Button>
-        <Button onClick={handleNext} disabled={!parsedData}>
-          Next
-          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>

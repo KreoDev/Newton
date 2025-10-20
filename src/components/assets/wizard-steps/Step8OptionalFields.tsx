@@ -37,18 +37,11 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
     return groups.filter(g => g.companyId === state.companyId && g.isActive)
   }, [groups, state.companyId])
 
-  const handleNext = () => {
+  const handleSkip = () => {
+    // Update state with any filled values and proceed
     updateState({
       fleetNumber: fleetNumber.trim() || undefined,
       groupId: groupId || undefined,
-    })
-    onNext()
-  }
-
-  const handleSkip = () => {
-    updateState({
-      fleetNumber: undefined,
-      groupId: undefined,
     })
     onNext()
   }
@@ -135,15 +128,10 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
           <ArrowLeft className="mr-2 h-4 w-4" />
           Previous
         </Button>
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={handleSkip}>
-            Skip
-          </Button>
-          <Button onClick={handleNext}>
-            Next
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
+        <Button onClick={handleSkip}>
+          Continue
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
       </div>
     </div>
   )

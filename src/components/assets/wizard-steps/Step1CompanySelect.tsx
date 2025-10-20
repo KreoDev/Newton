@@ -7,15 +7,16 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { AssetInductionState } from "@/types/asset-types"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, ArrowLeft } from "lucide-react"
 
 interface Step1Props {
   state: Partial<AssetInductionState>
   updateState: (updates: Partial<AssetInductionState>) => void
   onNext: () => void
+  onBack?: () => void
 }
 
-export function Step1CompanySelect({ state, updateState, onNext }: Step1Props) {
+export function Step1CompanySelect({ state, updateState, onNext, onBack }: Step1Props) {
   useSignals()
   const companies = globalData.companies.value
   const [selectedCompanyId, setSelectedCompanyId] = useState(state.companyId || "")
@@ -35,11 +36,14 @@ export function Step1CompanySelect({ state, updateState, onNext }: Step1Props) {
     })
   }, [companies])
 
-  const handleNext = () => {
-    if (!selectedCompanyId) return
+  const handleCompanySelect = (companyId: string) => {
+    setSelectedCompanyId(companyId)
+    updateState({ companyId })
 
-    updateState({ companyId: selectedCompanyId })
-    onNext()
+    // Auto-advance after selection
+    setTimeout(() => {
+      onNext()
+    }, 300) // Small delay for visual feedback
   }
 
   return (
@@ -50,7 +54,7 @@ export function Step1CompanySelect({ state, updateState, onNext }: Step1Props) {
 
       <div className="space-y-2">
         <Label htmlFor="company">Company *</Label>
-        <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+        <Select value={selectedCompanyId} onValueChange={handleCompanySelect}>
           <SelectTrigger id="company">
             <SelectValue placeholder="Select a company" />
           </SelectTrigger>
@@ -60,13 +64,13 @@ export function Step1CompanySelect({ state, updateState, onNext }: Step1Props) {
             ) : (
               transporterCompanies.map(company => (
                 <SelectItem key={company.id} value={company.id}>
-                  {company.name} ({company.companyType})
+                  {company.name}
                 </SelectItem>
               ))
             )}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">Only transporter companies and logistics coordinators marked as transporters are shown</p>
+        <p className="text-xs text-muted-foreground">Company will be auto-selected upon choosing</p>
       </div>
 
       {selectedCompanyId && (
@@ -76,11 +80,13 @@ export function Step1CompanySelect({ state, updateState, onNext }: Step1Props) {
         </div>
       )}
 
-      <div className="flex justify-end pt-4">
-        <Button onClick={handleNext} disabled={!selectedCompanyId}>
-          Next
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
+      <div className="flex justify-start pt-4">
+        {onBack && (
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Assets
+          </Button>
+        )}
       </div>
     </div>
   )

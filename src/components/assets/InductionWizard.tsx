@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, ArrowRight, CheckCircle } from "lucide-react"
+import { CheckCircle } from "lucide-react"
 import { Step1CompanySelect } from "./wizard-steps/Step1CompanySelect"
 import { Step2QRScan } from "./wizard-steps/Step2QRScan"
 import { Step3QRVerification } from "./wizard-steps/Step3QRVerification"
@@ -56,6 +55,10 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
     } else {
       router.push("/assets")
     }
+  }
+
+  const handleBackToAssets = () => {
+    router.push("/assets")
   }
 
   const getStepTitle = (step: number): string => {
@@ -119,7 +122,7 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
           <CardTitle>{getStepTitle(currentStep)}</CardTitle>
         </CardHeader>
         <CardContent className="min-h-[400px]">
-          {currentStep === 1 && <Step1CompanySelect state={wizardState} updateState={updateState} onNext={nextStep} />}
+          {currentStep === 1 && <Step1CompanySelect state={wizardState} updateState={updateState} onNext={nextStep} onBack={handleBackToAssets} />}
           {currentStep === 2 && <Step2QRScan state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} />}
           {currentStep === 3 && <Step3QRVerification state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} onError={() => goToStep(2)} />}
           {currentStep === 4 && <Step4LicenseScan state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} />}
@@ -130,18 +133,6 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
           {currentStep === 9 && <Step9Review state={wizardState} onComplete={handleComplete} onPrev={prevStep} onEdit={goToStep} />}
         </CardContent>
       </Card>
-
-      {/* Navigation Buttons (fallback - each step has its own) */}
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={prevStep} disabled={currentStep === 1}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Previous
-        </Button>
-        <Button onClick={nextStep} disabled={currentStep === totalSteps}>
-          Next
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
     </div>
   )
 }

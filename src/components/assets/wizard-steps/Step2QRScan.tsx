@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { AssetInductionState } from "@/types/asset-types"
-import { ArrowRight, ArrowLeft, AlertCircle } from "lucide-react"
+import { ArrowLeft, AlertCircle, X } from "lucide-react"
 import { AssetService } from "@/services/asset.service"
 import { toast } from "sonner"
+import onScan from "onscan.js"
 
 interface Step2Props {
   state: Partial<AssetInductionState>
@@ -20,20 +21,47 @@ export function Step2QRScan({ state, updateState, onNext, onPrev }: Step2Props) 
   const [qrCode, setQrCode] = useState(state.firstQRCode || "")
   const [isValidating, setIsValidating] = useState(false)
   const [error, setError] = useState("")
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Handle scans coming from onscan.js
+  const handleScannerScan = useCallback((scannedValue: string) => {
+    setQrCode(scannedValue)
+    setError("")
+  }, [])
+
+  // Attach onScan listener
+  useEffect(() => {
+    onScan.attachTo(document, {
+      onScan: handleScannerScan,
+      suffixKeyCodes: [13], // Enter key
+      avgTimeByChar: 20, // Scanners are fast
+      minLength: 6,
+      reactToPaste: false,
+    })
+
+    return () => {
+      try {
+        onScan.detachFrom(document)
+      } catch {}
+    }
+  }, [handleScannerScan])
 
   useEffect(() => {
     // Auto-focus the input when component mounts
-    const input = document.getElementById("qr-code-input")
-    if (input) {
-      input.focus()
-    }
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 100)
   }, [])
 
-  const handleValidateAndNext = async () => {
-    if (!qrCode.trim()) {
-      setError("QR code is required")
-      return
+  // Auto-advance when QR code is scanned
+  useEffect(() => {
+    if (qrCode && !isValidating && !error) {
+      handleValidateAndNext()
     }
+  }, [qrCode])
+
+  const handleValidateAndNext = async () => {
+    if (!qrCode.trim() || isValidating) return
 
     setIsValidating(true)
     setError("")
@@ -49,19 +77,29 @@ export function Step2QRScan({ state, updateState, onNext, onPrev }: Step2Props) 
         return
       }
 
-      // QR code is valid and unique, proceed
+      // QR code is valid and unique, auto-advance
       updateState({ firstQRCode: qrCode.trim() })
-      onNext()
+      setTimeout(() => {
+        onNext()
+      }, 300)
     } catch (error) {
       console.error("Error validating QR code:", error)
       setError("Failed to validate QR code. Please try again.")
       toast.error("Validation failed")
-    } finally {
       setIsValidating(false)
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleClear = () => {
+    setQrCode("")
+    setError("")
+    setIsValidating(false)
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 100)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     // Desktop scanner typically sends Enter after scanning
     if (e.key === "Enter") {
       e.preventDefault()
@@ -72,48 +110,60 @@ export function Step2QRScan({ state, updateState, onNext, onPrev }: Step2Props) 
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-muted-foreground mb-4">Use your desktop scanner to scan the asset&apos;s QR code. The scanner will automatically paste the code into the field below.</p>
+        <p className="text-muted-foreground mb-4">Scan the asset&apos;s Newton QR code. The system will automatically validate and proceed.</p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="qr-code-input">QR Code *</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="qr-code-input" className={error ? "text-destructive" : ""}>
+            QR Code (First Scan) *
+          </Label>
+          {qrCode && (
+            <Button variant="ghost" size="sm" type="button" className="h-auto p-1 text-xs text-muted-foreground hover:text-destructive" onClick={handleClear}>
+              <X className="h-3 w-3 mr-1" />
+              Clear
+            </Button>
+          )}
+        </div>
         <Input
+          ref={inputRef}
           id="qr-code-input"
           type="text"
-          placeholder="Scan QR code or type manually..."
+          placeholder="Scan 1: Scan the QR code"
           value={qrCode}
-          onChange={e => {
-            setQrCode(e.target.value)
-            setError("")
-          }}
-          onKeyPress={handleKeyPress}
-          className={error ? "border-red-500" : ""}
+          onKeyDown={handleKeyDown}
+          className={error ? "border-destructive" : ""}
           autoComplete="off"
+          readOnly
+          onPaste={e => e.preventDefault()}
+          onDrop={e => e.preventDefault()}
         />
         {error && (
-          <div className="flex items-center gap-2 text-sm text-red-600">
+          <div className="flex items-center gap-2 text-sm text-destructive">
             <AlertCircle className="h-4 w-4" />
             <span>{error}</span>
           </div>
         )}
-        <p className="text-xs text-muted-foreground">Tip: Click the field and scan with your desktop scanner. Press Enter or click Next when done.</p>
+        <p className="text-xs text-muted-foreground">Scan with desktop scanner - will auto-advance after validation</p>
       </div>
 
-      {qrCode && !error && (
+      {qrCode && !error && !isValidating && (
         <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
           <p className="text-sm font-medium text-green-700 dark:text-green-300">QR Code Captured:</p>
           <p className="text-sm text-muted-foreground font-mono">{qrCode}</p>
         </div>
       )}
 
-      <div className="flex justify-between pt-4">
+      {isValidating && (
+        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Validating QR code...</p>
+        </div>
+      )}
+
+      <div className="flex justify-start pt-4">
         <Button variant="outline" onClick={onPrev}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Previous
-        </Button>
-        <Button onClick={handleValidateAndNext} disabled={!qrCode.trim() || isValidating}>
-          {isValidating ? "Validating..." : "Next"}
-          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
