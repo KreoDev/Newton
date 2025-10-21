@@ -47,9 +47,19 @@ export function AssetListModal({ open, onClose, assets, field, fieldLabel, onBul
 
   const getAssetLabel = (asset: Asset) => {
     if (asset.type === "driver") {
-      return `${asset.name} ${asset.surname} (${asset.idNumber})`
+      const name = asset.name || ""
+      const surname = asset.surname || ""
+      const idNumber = asset.idNumber || ""
+      return `${name} ${surname} ${idNumber ? `(${idNumber})` : ""}`.trim()
     }
-    return `${asset.registration} - ${asset.make} ${asset.model}`
+
+    // For trucks/trailers
+    const registration = asset.registration || "Unknown Registration"
+    const make = asset.make || ""
+    const model = asset.model || ""
+    const vehicleInfo = [make, model].filter(Boolean).join(" ")
+
+    return vehicleInfo ? `${registration} - ${vehicleInfo}` : registration
   }
 
   const getFieldValue = (asset: Asset) => {
