@@ -65,24 +65,6 @@ export const getTrailerColumns = (
       },
     },
     {
-      id: "status",
-      accessorKey: "isActive",
-      header: "Status",
-      cell: ({ row }) => {
-        const asset = row.original
-        if (!asset.isActive) {
-          return <Badge variant="secondary">Inactive</Badge>
-        }
-        if (asset.dateOfExpiry) {
-          const expiryInfo = AssetFieldMapper.getExpiryInfo(asset.dateOfExpiry)
-          if (expiryInfo.status === "expired") {
-            return <Badge variant="destructive">Expired</Badge>
-          }
-        }
-        return <Badge variant="success">Active</Badge>
-      },
-    },
-    {
       id: "expiryDate",
       accessorKey: "dateOfExpiry",
       header: "Expiry Date",
@@ -157,6 +139,24 @@ export const getTrailerColumns = (
       header: "Updated At",
       cell: ({ row }) => <span className="text-sm">{new Date(row.original.updatedAt).toLocaleDateString()}</span>,
       enableHiding: true,
+    },
+    {
+      id: "status",
+      accessorKey: "isActive",
+      header: "Status",
+      cell: ({ row }) => {
+        const asset = row.original
+        if (!asset.isActive) {
+          return <Badge variant="secondary">Inactive</Badge>
+        }
+        if (asset.dateOfExpiry) {
+          const expiryInfo = AssetFieldMapper.getExpiryInfo(asset.dateOfExpiry)
+          if (expiryInfo.status === "expired") {
+            return <Badge variant="destructive">Expired</Badge>
+          }
+        }
+        return <Badge variant="success">Active</Badge>
+      },
     },
     {
       id: "actions",

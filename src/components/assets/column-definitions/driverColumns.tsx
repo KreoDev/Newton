@@ -110,27 +110,6 @@ export const getDriverColumns = (
       },
     },
     {
-      id: "status",
-      accessorKey: "isActive",
-      header: "Status",
-      cell: ({ row }) => {
-        const asset = row.original
-        if (!asset.isActive) {
-          return <Badge variant="secondary">Inactive</Badge>
-        }
-        if (asset.expiryDate) {
-          const expiryDate = asset.expiryDate
-          if (expiryDate) {
-            const expiryInfo = AssetFieldMapper.getExpiryInfo(expiryDate)
-            if (expiryInfo.status === "expired") {
-              return <Badge variant="destructive">Expired</Badge>
-            }
-          }
-        }
-        return <Badge variant="success">Active</Badge>
-      },
-    },
-    {
       id: "expiryDate",
       accessorFn: (row) => row.expiryDate,
       header: "License Expiry",
@@ -299,6 +278,27 @@ export const getDriverColumns = (
       header: "Updated At",
       cell: ({ row }) => <span className="text-sm">{new Date(row.original.updatedAt).toLocaleDateString()}</span>,
       enableHiding: true,
+    },
+    {
+      id: "status",
+      accessorKey: "isActive",
+      header: "Status",
+      cell: ({ row }) => {
+        const asset = row.original
+        if (!asset.isActive) {
+          return <Badge variant="secondary">Inactive</Badge>
+        }
+        if (asset.expiryDate) {
+          const expiryDate = asset.expiryDate
+          if (expiryDate) {
+            const expiryInfo = AssetFieldMapper.getExpiryInfo(expiryDate)
+            if (expiryInfo.status === "expired") {
+              return <Badge variant="destructive">Expired</Badge>
+            }
+          }
+        }
+        return <Badge variant="success">Active</Badge>
+      },
     },
     {
       id: "actions",
