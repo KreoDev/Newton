@@ -345,9 +345,19 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
         ntCode: qrCode,
       })
 
-      toast.success("QR code updated successfully")
-      onSuccess()
-      onClose()
+      // Show success alert to ensure user sees the confirmation
+      const assetIdentifier = asset.type === "driver"
+        ? `${asset.name} ${asset.surname}`
+        : asset.registration
+
+      alert.showSuccess(
+        "QR Code Updated",
+        `QR code for ${assetIdentifier} has been successfully updated.`,
+        () => {
+          onSuccess()
+          onClose()
+        }
+      )
     } catch (error) {
       console.error("Error updating QR code:", error)
       toast.error("Failed to update QR code")
@@ -384,9 +394,20 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
 
       await AssetService.update(asset.id, updates)
 
-      toast.success("Barcode data updated successfully")
-      onSuccess()
-      onClose()
+      // Show success alert to ensure user sees the confirmation
+      const assetIdentifier = asset.type === "driver"
+        ? `${asset.name} ${asset.surname}`
+        : asset.registration
+      const updateType = asset.type === "driver" ? "driver's license" : "vehicle license disk"
+
+      alert.showSuccess(
+        "Asset Updated Successfully",
+        `${updateType.charAt(0).toUpperCase() + updateType.slice(1)} for ${assetIdentifier} has been successfully updated with the new barcode data.`,
+        () => {
+          onSuccess()
+          onClose()
+        }
+      )
     } catch (error) {
       console.error("Error updating barcode:", error)
       toast.error("Failed to update barcode data")

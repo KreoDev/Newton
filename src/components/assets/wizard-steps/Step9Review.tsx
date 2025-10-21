@@ -83,14 +83,22 @@ export function Step9Review({ state, onComplete, onPrev }: Step9Props) {
         }
       )
 
-      toast.success("Asset inducted successfully!")
+      // Show success alert to ensure user sees the confirmation
+      const assetType = state.type === "truck" ? "Truck" : state.type === "trailer" ? "Trailer" : "Driver"
+      const assetIdentifier = state.type === "driver"
+        ? `${state.parsedData.personInfo?.name} ${state.parsedData.personInfo?.surname}`
+        : state.parsedData.vehicleInfo?.registration
+
+      alert.showSuccess(
+        "Asset Inducted Successfully",
+        `${assetType} (${assetIdentifier}) has been successfully inducted and added to the system.`,
+        () => {
+          // Complete the wizard after user acknowledges
+          onComplete()
+        }
+      )
 
       // TODO: Send notification to users with "asset.added" preference
-
-      // Complete the wizard
-      setTimeout(() => {
-        onComplete()
-      }, 1000)
     } catch (error) {
       console.error("Error creating asset:", error)
       toast.error("Failed to induct asset. Please try again.")
