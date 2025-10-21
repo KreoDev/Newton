@@ -38,11 +38,15 @@ This document provides a comprehensive, phase-by-phase implementation guide for 
 - **`src/lib/firebase-admin.ts`**: Admin SDK (`adminDb`, `adminAuth`) - API routes ONLY
 
 ### Critical Patterns
-- Use centralized `src/services/data.service.ts` for companies, users, and roles (NO duplicate queries)
+
+- **ALWAYS use centralized `src/services/data.service.ts`** for companies, users, roles, products, groups, sites, clients, and assets (NO duplicate queries or listeners)
+- **ALWAYS use `updateDocument`, `createDocument`, `deleteDocument`** from `@/lib/firebase-utils` for ALL CRUD operations (automatic timestamps)
+- **For validation**, check in-memory data from `globalData.{collection}.value` instead of making Firebase queries
 - Use `useOptimizedSearch` hook from `src/hooks/useOptimizedSearch.ts` with configs from `src/config/search-configs.ts`
 - All loading states must use components from `src/components/ui/loading-spinner.tsx`
-- Follow timestamp convention: `createdAt`/`updatedAt` (client), `dbCreatedAt`/`dbUpdatedAt` (server)
+- Follow timestamp convention: `createdAt`/`updatedAt` (client), `dbCreatedAt`/`dbUpdatedAt` (server) - firebase-utils handles this automatically
 - Soft deletes via `isActive` flag; hard delete only for immediate induction errors
+- Use Preact Signals with `useSignals()` hook when accessing `globalData`
 
 ---
 
@@ -148,12 +152,68 @@ All foundational systems are implemented and tested. The following components ar
 
 **Completed Features:**
 - Preact Signals-based reactive state
-- Real-time Firebase listeners for companies, users, roles
+- Real-time Firebase listeners for **all centralized collections**:
+  - **Companies**: All companies (including inactive) - no company scoping
+  - **Users**: Company-scoped, filtered by `companyId`
+  - **Roles**: Global (shared across all companies) - no company scoping
+  - **Products**: Company-scoped, filtered by `companyId`
+  - **Groups**: Company-scoped, filtered by `companyId`
+  - **Sites**: Company-scoped, filtered by `companyId`
+  - **Clients**: Company-scoped, filtered by `companyId`
+  - **Assets**: Company-scoped, filtered by `companyId`
 - Smart loading state tracking (no arbitrary timeouts)
 - Automatic cleanup on company switch/unmount
-- Single source of truth for all company/user/role data
+- Single source of truth for all data - **NO duplicate queries allowed**
+- All components access the same reactive data via `globalData.{collection}.value`
+- In-memory validation using already-loaded data (no additional Firebase queries)
 
-**Important:** Roles are **global** (shared across companies), so they are NOT filtered by `companyId`. Users are company-scoped and ARE filtered by `companyId`.
+**Usage Pattern:**
+
+```typescript
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
+
+export default function MyComponent() {
+  useSignals() // Required for reactivity
+
+  const products = globalData.products.value
+  const assets = globalData.assets.value
+  const sites = globalData.sites.value
+
+  // Component auto re-renders when data changes
+}
+```
+
+**For CRUD Operations:**
+
+```typescript
+import { createDocument, updateDocument, deleteDocument } from "@/lib/firebase-utils"
+
+// ALWAYS use firebase-utils (automatic timestamps)
+await createDocument("products", productData, "Product created")
+await updateDocument("sites", siteId, { isActive: false })
+await deleteDocument("clients", clientId, "Client deleted")
+```
+
+**For Validation (In-Memory):**
+
+```typescript
+import { data as globalData } from "@/services/data.service"
+
+// Check for duplicates in already-loaded data
+const existingAsset = globalData.assets.value.find(a => a.registration === regNum)
+if (existingAsset) {
+  // Handle duplicate
+}
+```
+
+**Important Notes:**
+
+- **Roles are global** (shared across companies), so they are NOT filtered by `companyId`
+- **Companies show all** (including inactive) for admin pages
+- **All other collections** (users, products, groups, sites, clients, assets) are company-scoped
+- Never make additional Firebase queries for data that's already in `globalData`
+- Use in-memory filtering/searching for better performance and lower Firestore costs
 
 ### 1.5 Search Infrastructure ✅
 **Technical Infrastructure**
@@ -393,9 +453,12 @@ Implement all administrative configuration modules required BEFORE orders can be
 - `src/components/products/ProductFormModal.tsx`
 
 **Implementation Pattern:**
-- Use `createDocument()`, `updateDocument()` from firebase-utils directly in components
-- No service file needed - simple CRUD operations only
-- Search: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.products`
+
+- **Data Access**: Use `globalData.products.value` from `data.service.ts` (already loaded, real-time)
+- **CRUD Operations**: Use `createDocument()`, `updateDocument()`, `deleteDocument()` from firebase-utils
+- **Search**: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.products`
+- **No service file needed** - simple CRUD operations only
+- **No Firebase queries** - all data already in memory via data.service.ts
 
 **UI Requirements:**
 - Simple list view with search by name/code
@@ -430,9 +493,12 @@ Reference `docs/data-model.md` → `products` collection
 - `src/components/clients/ClientFormModal.tsx`
 
 **Implementation Pattern:**
-- Use `createDocument()`, `updateDocument()` from firebase-utils directly in components
-- No service file needed - simple CRUD operations only
-- Search: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.clients`
+
+- **Data Access**: Use `globalData.clients.value` from `data.service.ts` (already loaded, real-time)
+- **CRUD Operations**: Use `createDocument()`, `updateDocument()`, `deleteDocument()` from firebase-utils
+- **Search**: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.clients`
+- **No service file needed** - simple CRUD operations only
+- **No Firebase queries** - all data already in memory via data.service.ts
 
 **UI Requirements:**
 - List view with search by name/registration/VAT
@@ -474,9 +540,12 @@ Reference `docs/data-model.md` → `clients` collection
 - `src/components/sites/OperatingHoursEditor.tsx`
 
 **Implementation Pattern:**
-- Use `createDocument()`, `updateDocument()` from firebase-utils directly in components
-- No service file needed - simple CRUD operations only
-- Search: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.sites`
+
+- **Data Access**: Use `globalData.sites.value` from `data.service.ts` (already loaded, real-time)
+- **CRUD Operations**: Use `createDocument()`, `updateDocument()`, `deleteDocument()` from firebase-utils
+- **Search**: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.sites`
+- **No service file needed** - simple CRUD operations only
+- **No Firebase queries** - all data already in memory via data.service.ts
 - Operating hours validation: Implement in OperatingHoursEditor component
 
 **UI Requirements:**
@@ -536,10 +605,11 @@ Reference `docs/data-model.md` → `sites` collection
 - `src/components/layout/AppLayout.tsx` - Navigation filtering based on company type
 
 **Implementation Pattern:**
-- Groups stored in root-level `groups` collection (company-scoped via `companyId`)
-- Use `createDocument()`, `updateDocument()`, `deleteDoc()` from firebase/firestore
-- Real-time Firebase listeners with `onSnapshot`
-- Hierarchical structure using `parentGroupId`, `level`, and `path` fields
+
+- **Data Access**: Use `globalData.groups.value` from `data.service.ts` (already loaded, real-time)
+- **CRUD Operations**: Use `createDocument()`, `updateDocument()`, `deleteDocument()` from firebase-utils
+- **No Firebase queries** - all data already in memory via data.service.ts
+- **Hierarchical structure**: Using `parentGroupId`, `level`, and `path` fields for unlimited nesting
 
 **UI Requirements:**
 
@@ -624,10 +694,11 @@ interface Group extends Timestamped, CompanyScoped {
 - `src/components/users/PermissionOverrideEditor.tsx` - Granular permission overrides
 
 **Implementation Pattern:**
-- Use `updateDocument("users", userId, updates)` from firebase-utils for all updates
-- No service file needed - simple updates to user document
-- Access current data via `globalData.users.value` (from data.service.ts)
-- Role data via `globalData.roles.value` (from data.service.ts)
+
+- **Data Access**: Use `globalData.users.value` and `globalData.roles.value` from `data.service.ts` (already loaded, real-time)
+- **CRUD Operations**: Use `createDocument()`, `updateDocument()`, `deleteDocument()` from firebase-utils
+- **No service file needed** - simple updates to user documents
+- **No Firebase queries** - all data already in memory via data.service.ts
 
 **UI Requirements:**
 
@@ -768,10 +839,12 @@ Reference `docs/data-model.md` → `users` collection:
 - `src/services/role.service.ts` (optional, or use firebase-utils directly)
 
 **Implementation Pattern:**
-- Use `createDocument()`, `updateDocument()`, `updateDoc()` from firebase-utils directly in components
-- No service file needed - simple CRUD operations only
-- Access role data via `globalData.roles.value` (from data.service.ts)
-- Search: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.roles`
+
+- **Data Access**: Use `globalData.roles.value` from `data.service.ts` (already loaded, real-time, **GLOBAL** - not company-scoped)
+- **CRUD Operations**: Use `createDocument()`, `updateDocument()`, `deleteDocument()` from firebase-utils
+- **Search**: Use existing `useOptimizedSearch` hook with `SEARCH_CONFIGS.roles`
+- **No service file needed** - simple CRUD operations only
+- **No Firebase queries** - all data already in memory via data.service.ts
 
 **Important:**
 - Roles are **global** and do NOT have a `companyId` field. They are shared across all companies.
@@ -923,12 +996,13 @@ Stored in `settings/permissions` document (global):
 - `src/lib/template-placeholders.ts` (helper functions)
 
 **Implementation Pattern:**
-- Use `createDocument()`, `updateDocument()` from firebase-utils directly in components
-- No service file needed - simple CRUD operations only
-- Helper functions in `template-placeholders.ts`:
+
+- **CRUD Operations**: Use `createDocument()`, `updateDocument()`, `deleteDocument()` from firebase-utils
+- **Search**: Use existing `useOptimizedSearch` hook with search config
+- **No service file needed** - simple CRUD operations only
+- **Helper functions** in `template-placeholders.ts`:
   - `parsePlaceholders(template: string, data: Record<string, any>)` - Replace {{placeholders}}
   - `sendTestEmail(templateId: string, userEmail: string)` - Send test email
-- Search: Use existing `useOptimizedSearch` hook with search config
 
 **Template Categories (per data-model.md):**
 - **Asset**: asset.added, asset.inactive, asset.edited, asset.deleted
@@ -985,9 +1059,11 @@ Reference `docs/data-model.md` → `notification_templates` collection
 - Update `src/components/users/AddUserModal.tsx` to include default preferences
 
 **Implementation Pattern:**
-- Use `updateDocument("users", userId, { notificationPreferences: prefs })` directly
-- No service file needed - simple field update
-- Default preferences: Create helper function `getDefaultNotificationPreferences()` in component or lib
+
+- **Data Access**: Use `globalData.users.value` from `data.service.ts` (already loaded, real-time)
+- **CRUD Operations**: Use `updateDocument()` from firebase-utils to update `notificationPreferences` field
+- **No service file needed** - simple field update on user document
+- **Helper function**: `getDefaultNotificationPreferences()` in lib for default preferences on user creation
 
 **UI Requirements:**
 - Notification Preferences modal/section in user edit
@@ -1058,9 +1134,10 @@ Reference `docs/data-model.md` → `users.notificationPreferences`
 - `src/components/settings/SystemSettingsForm.tsx`
 
 **Implementation Pattern:**
-- Use `updateDocument("companies", companyId, { systemSettings })` directly
-- No service file needed - simple field update on company document
-- Access current settings via `CompanyContext` or `globalData.companies.value`
+
+- **Data Access**: Use `globalData.companies.value` from `data.service.ts` (already loaded, real-time)
+- **CRUD Operations**: Use `updateDocument()` from firebase-utils to update `systemSettings` field on company document
+- **No service file needed** - simple field update on company document
 
 **UI Requirements:**
 - Single-page form with sections:
@@ -1132,11 +1209,17 @@ The Asset data model uses field names that match the Android app's data structur
 **Driver Validation:**
 - `idNumber` must be unique (no duplicate ID numbers)
 
-**Implementation:**
-- `AssetService.validateNTCode(ntCode: string, excludeId?: string)` - NT prefix + uniqueness check
-- `AssetService.validateRegistration(registration: string, excludeId?: string)` - Uniqueness check
-- `AssetService.validateVIN(vin: string, excludeId?: string)` - Uniqueness check
-- `AssetService.validateIDNumber(idNumber: string, excludeId?: string)` - Uniqueness check
+**Implementation Pattern:**
+
+- **Data Access**: Use `globalData.assets.value` from `data.service.ts` (already loaded, real-time, company-scoped)
+- **Validation Methods** (in `AssetService`):
+  - `AssetService.validateNTCode(ntCode: string, excludeId?: string)` - **Synchronous** NT prefix + in-memory uniqueness check
+  - `AssetService.validateRegistration(registration: string, excludeId?: string)` - **Synchronous** in-memory uniqueness check
+  - `AssetService.validateVIN(vin: string, excludeId?: string)` - **Synchronous** in-memory uniqueness check
+  - `AssetService.validateIDNumber(idNumber: string, excludeId?: string)` - **Synchronous** in-memory uniqueness check
+- **No companyId parameter needed** - data already filtered by company in `globalData.assets.value`
+- **No Firebase queries** - all validation done against in-memory data for performance
+- **Returns**: `{ isValid: boolean, error?: string }`
 
 ---
 
@@ -1498,6 +1581,22 @@ Reference `docs/data-model.md` → `assets` collection fields: `isActive`, `inac
 
 ### Overview
 Implement order creation, allocation, and tracking. Orders depend on products, clients, sites being configured (Phase 2).
+
+**Implementation Pattern (Apply to All Phase 4 Features):**
+
+- **CRUD Operations**: Use `createDocument()`, `updateDocument()`, `deleteDocument()` from firebase-utils for all order operations
+- **Data Access for Related Entities**: Use `globalData` from `data.service.ts` for:
+  - `globalData.products.value` - Product lookup for order creation
+  - `globalData.clients.value` - Client selection
+  - `globalData.sites.value` - Site selection
+  - `globalData.assets.value` - Asset allocation
+- **Order Service**: Create `OrderService` with business logic methods for:
+  - Order creation/validation
+  - Order allocation
+  - Status transitions
+  - Validation against business rules
+- **Real-time Updates**: Orders collection should use Firebase listeners for real-time status updates
+- **Search**: Use `useOptimizedSearch` hook with appropriate search config
 
 ---
 
@@ -1879,6 +1978,20 @@ Reference `docs/data-model.md` → `orders.allocations`
 
 ### Overview
 Implement truck pre-booking and scheduling for orders.
+
+**Implementation Pattern (Apply to All Phase 5 Features):**
+
+- **CRUD Operations**: Use `createDocument()`, `updateDocument()`, `deleteDocument()` from firebase-utils for all pre-booking operations
+- **Data Access for Related Entities**: Use `globalData` from `data.service.ts` for:
+  - `globalData.assets.value` - Asset (truck/trailer/driver) selection
+  - Orders collection access (may need Firebase queries for unallocated orders)
+- **PreBooking Service**: Create `PreBookingService` with business logic methods for:
+  - Pre-booking creation/validation
+  - Time slot validation
+  - Status transitions
+  - Late arrival detection
+- **Real-time Updates**: Pre-bookings collection should use Firebase listeners for real-time status updates
+- **Search**: Use `useOptimizedSearch` hook with appropriate search config
 
 ---
 

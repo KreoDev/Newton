@@ -193,6 +193,7 @@ Are you in an API route (src/app/api/)?
 - **Groups**: `globalData.groups.value` (company-scoped, real-time)
 - **Sites**: `globalData.sites.value` (company-scoped, real-time)
 - **Clients**: `globalData.clients.value` (company-scoped, real-time)
+- **Assets**: `globalData.assets.value` (company-scoped, real-time)
 
 **Why use data.service.ts?**
 - ✅ Single source of truth - all components share the same data
@@ -200,6 +201,8 @@ Are you in an API route (src/app/api/)?
 - ✅ Company-scoped filtering handled automatically
 - ✅ Smart loading state tracking
 - ✅ Automatic cleanup on company switch
+- ✅ No duplicate Firebase queries - reduces Firestore read costs
+- ✅ In-memory data operations are much faster than Firebase queries
 
 **Usage Pattern:**
 ```typescript
@@ -212,18 +215,40 @@ export default function MyComponent() {
   const products = globalData.products.value
   const sites = globalData.sites.value
   const groups = globalData.groups.value
+  const assets = globalData.assets.value
 
   // Component auto re-renders when data changes
 }
 ```
 
-**For CRUD operations**, still use firebase-utils:
+**For CRUD operations**, ALWAYS use firebase-utils (includes automatic timestamps):
 ```typescript
-import { createDocument, updateDocument, deleteDoc } from "@/lib/firebase-utils"
+import { createDocument, updateDocument } from "@/lib/firebase-utils"
 
+// ✅ CORRECT - Automatic timestamps (createdAt, updatedAt, dbCreatedAt, dbUpdatedAt)
 await createDocument("products", productData, "Product created")
-await updateDocument("sites", siteId, updates, "Site updated")
+await updateDocument("sites", siteId, { isActive: false }, "Site updated")
+
+// ❌ WRONG - Manual updateDoc misses automatic dbUpdatedAt timestamp
+import { updateDoc, doc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+await updateDoc(doc(db, "sites", siteId), {
+  isActive: false,
+  updatedAt: Date.now() // Missing dbUpdatedAt!
+})
 ```
+
+**When Complex Firebase Queries ARE Appropriate:**
+Complex queries with `getDocs` are acceptable for:
+- ✅ **Validation queries**: Checking relationships before deletion (e.g., "Is this product used in any orders?")
+- ✅ **Cross-collection queries**: Querying collections not in data.service.ts (e.g., orders, weighing records)
+- ✅ **One-time fetches**: Loading data for specific entities (e.g., fetching users for a different company)
+- ✅ **Aggregation queries**: Counting, summing, or complex filtering across large datasets
+
+**When Complex Queries are NOT Appropriate:**
+- ❌ **Reading centralized data**: Never query companies, users, roles, products, groups, sites, clients, or assets directly - use `globalData` instead
+- ❌ **Duplicate validation**: Don't query to check uniqueness of fields in centralized collections - check in-memory data instead
+- ❌ **List views**: Don't query for list pages - use `globalData` which is already real-time
 
 ### Type Definitions (`src/types/index.ts`)
 
@@ -914,20 +939,22 @@ When working on a new task:
 1. **Read** the relevant section in `docs/dev.md`
 2. **Check** `docs/data-model.md` for data structure requirements
 3. **Review** existing similar code for patterns
-4. **Use** `data.service.ts` for companies, users, and roles data (don't create new queries)
-5. **Use** firebase-utils for simple CRUD operations
-6. **Follow** the service layer pattern
-7. **Add** proper TypeScript types
-8. **Include** error handling and loading states
-9. **Use** `useSignals()` when accessing Preact Signals
-10. **Test** manually with the provided checklists
-11. **Verify** Firestore data structure in Firebase Console
+4. **Use** `data.service.ts` for centralized collections (companies, users, roles, products, groups, sites, clients, assets) - don't create new queries
+5. **Use** firebase-utils for ALL CRUD operations (automatic timestamps)
+6. **For validation**, check in-memory data from `globalData` instead of making Firebase queries
+7. **Follow** the service layer pattern
+8. **Add** proper TypeScript types
+9. **Include** error handling and loading states
+10. **Use** `useSignals()` when accessing Preact Signals
+11. **Test** manually with the provided checklists
+12. **Verify** Firestore data structure in Firebase Console
 
 **Remember:**
 - **Prefer editing existing files** over creating new ones
-- **Always use `data.service.ts`** for companies, users, and roles - these are centrally managed with real-time listeners
-- Use firebase-utils for CRUD operations (automatic timestamps + toasts)
-- Fall back to firebase.ts for complex queries only
+- **Always use `data.service.ts`** for centralized collections (companies, users, roles, products, groups, sites, clients, assets) - these are centrally managed with real-time listeners
+- **ALWAYS use firebase-utils** for CRUD operations (automatic timestamps including dbUpdatedAt)
+- **For validation**, check in-memory `globalData` instead of making Firebase queries
+- Fall back to firebase.ts for legitimate complex queries (relationship validation, cross-collection queries)
 - Only use firebase-admin.ts in API routes
 
 **New Component Checklist:**
