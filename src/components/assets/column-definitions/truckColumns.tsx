@@ -26,25 +26,6 @@ export const getTruckColumns = (
 
   return [
     {
-      id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-    },
-    {
       id: "icon",
       header: "",
       cell: () => <div className="text-2xl">🚚</div>,
@@ -197,45 +178,53 @@ export const getTruckColumns = (
       cell: ({ row }) => {
         const asset = row.original
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onView(asset)}>
-                <Eye className="mr-2 h-4 w-4" />
-                View Details
-              </DropdownMenuItem>
-              {canEdit && (
-                <>
-                  <DropdownMenuItem onClick={() => onEdit(asset)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit
-                  </DropdownMenuItem>
-                  {asset.isActive && (
-                    <DropdownMenuItem onClick={() => onInactivate(asset)}>
-                      <AlertTriangle className="mr-2 h-4 w-4" />
-                      Mark Inactive
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onView(asset)}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Details
+                </DropdownMenuItem>
+                {canEdit && (
+                  <>
+                    <DropdownMenuItem onClick={() => onEdit(asset)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
                     </DropdownMenuItem>
-                  )}
-                </>
-              )}
-              {canDelete && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => onDelete(asset)} className="text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                    {asset.isActive && (
+                      <DropdownMenuItem onClick={() => onInactivate(asset)}>
+                        <AlertTriangle className="mr-2 h-4 w-4" />
+                        Mark Inactive
+                      </DropdownMenuItem>
+                    )}
+                  </>
+                )}
+                {canDelete && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onDelete(asset)} className="text-destructive">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label="Select row"
+            />
+          </div>
         )
       },
+      enableSorting: false,
       enableHiding: false,
     },
   ]

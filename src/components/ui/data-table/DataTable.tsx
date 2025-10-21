@@ -15,6 +15,7 @@ import {
   type PaginationState,
   type RowSelectionState,
   type ColumnSizingState,
+  type ColumnPinningState,
 } from "@tanstack/react-table"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useTableConfigStore } from "@/stores/table-config.store"
@@ -35,6 +36,7 @@ interface DataTableProps<TData, TValue> {
   enableRowSelection?: boolean
   enableColumnResizing?: boolean
   enableExport?: boolean
+  pinnedColumns?: ColumnPinningState
   onRowSelectionChange?: (selectedRows: TData[]) => void
 }
 
@@ -51,6 +53,7 @@ export function DataTable<TData, TValue>({
   enableRowSelection = true,
   enableColumnResizing = true,
   enableExport = true,
+  pinnedColumns,
   onRowSelectionChange,
 }: DataTableProps<TData, TValue>) {
   const { getConfig, setConfig } = useTableConfigStore()
@@ -76,6 +79,7 @@ export function DataTable<TData, TValue>({
   const [pagination, setPagination] = useState<PaginationState>(savedConfig?.pagination ?? { pageIndex: 0, pageSize: defaultPageSize })
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(savedConfig?.columnSizing ?? {})
+  const [columnPinning, setColumnPinning] = useState<ColumnPinningState>(pinnedColumns ?? {})
 
   // Initialize table
   const table = useReactTable({
@@ -89,10 +93,12 @@ export function DataTable<TData, TValue>({
       pagination,
       rowSelection,
       columnSizing,
+      columnPinning,
     },
     enableRowSelection,
     enableColumnResizing,
     columnResizeMode: "onChange",
+    enablePinning: true,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
@@ -100,6 +106,7 @@ export function DataTable<TData, TValue>({
     onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
     onColumnSizingChange: setColumnSizing,
+    onColumnPinningChange: setColumnPinning,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),

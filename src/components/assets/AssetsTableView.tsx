@@ -125,24 +125,27 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
         </TabsList>
 
         <TabsContent value="truck" className="space-y-4">
-          <AssetBulkActionsToolbar
-            selectedAssets={selectedAssets}
-            onClearSelection={handleClearSelection}
-            assetType="truck"
-          />
+          {selectedAssets.length > 0 && (
+            <AssetBulkActionsToolbar
+              selectedAssets={selectedAssets}
+              onClearSelection={handleClearSelection}
+              assetType="truck"
+            />
+          )}
 
           <DataTable
             key={`truck-${tableKey}`}
             tableId="assets-trucks-table"
             columns={columns}
             data={filteredAssets}
-            defaultColumnOrder={["select", "icon", "registration", "fleetNumber", "group", "makeModel", "status", "expiryDate", "actions"]}
+            defaultColumnOrder={["icon", "registration", "fleetNumber", "group", "makeModel", "status", "expiryDate", "actions"]}
             defaultPageSize={20}
             searchPlaceholder="Search trucks by registration, fleet number, VIN..."
             enablePagination={true}
             enableRowSelection={true}
             enableColumnResizing={true}
             enableExport={true}
+            pinnedColumns={{ right: ["actions"] }}
             onRowSelectionChange={(selectedRows) => {
               setSelectedAssets(selectedRows)
             }}
@@ -150,24 +153,27 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
         </TabsContent>
 
         <TabsContent value="trailer" className="space-y-4">
-          <AssetBulkActionsToolbar
-            selectedAssets={selectedAssets}
-            onClearSelection={handleClearSelection}
-            assetType="trailer"
-          />
+          {selectedAssets.length > 0 && (
+            <AssetBulkActionsToolbar
+              selectedAssets={selectedAssets}
+              onClearSelection={handleClearSelection}
+              assetType="trailer"
+            />
+          )}
 
           <DataTable
             key={`trailer-${tableKey}`}
             tableId="assets-trailers-table"
             columns={columns}
             data={filteredAssets}
-            defaultColumnOrder={["select", "icon", "registration", "fleetNumber", "group", "makeModel", "status", "expiryDate", "actions"]}
+            defaultColumnOrder={["icon", "registration", "fleetNumber", "group", "makeModel", "status", "expiryDate", "actions"]}
             defaultPageSize={20}
             searchPlaceholder="Search trailers by registration, fleet number, VIN..."
             enablePagination={true}
             enableRowSelection={true}
             enableColumnResizing={true}
             enableExport={true}
+            pinnedColumns={{ right: ["actions"] }}
             onRowSelectionChange={(selectedRows) => {
               setSelectedAssets(selectedRows)
             }}
@@ -175,24 +181,27 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
         </TabsContent>
 
         <TabsContent value="driver" className="space-y-4">
-          <AssetBulkActionsToolbar
-            selectedAssets={selectedAssets}
-            onClearSelection={handleClearSelection}
-            assetType="driver"
-          />
+          {selectedAssets.length > 0 && (
+            <AssetBulkActionsToolbar
+              selectedAssets={selectedAssets}
+              onClearSelection={handleClearSelection}
+              assetType="driver"
+            />
+          )}
 
           <DataTable
             key={`driver-${tableKey}`}
             tableId="assets-drivers-table"
             columns={columns}
             data={filteredAssets}
-            defaultColumnOrder={["select", "photo", "name", "idNumber", "licenceNumber", "licenceType", "group", "status", "expiryDate", "actions"]}
+            defaultColumnOrder={["photo", "name", "idNumber", "licenceNumber", "licenceType", "group", "status", "expiryDate", "actions"]}
             defaultPageSize={20}
             searchPlaceholder="Search drivers by name, ID number, license number..."
             enablePagination={true}
             enableRowSelection={true}
             enableColumnResizing={true}
             enableExport={true}
+            pinnedColumns={{ right: ["actions"] }}
             onRowSelectionChange={(selectedRows) => {
               setSelectedAssets(selectedRows)
             }}
