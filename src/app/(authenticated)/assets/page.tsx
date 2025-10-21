@@ -18,11 +18,19 @@ export default function AssetsPage() {
   useSignals()
   const { user } = useAuth()
   const assets = globalData.assets.value
+  const groups = globalData.groups.value
   const loading = globalData.loading.value
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<"all" | "truck" | "trailer" | "driver">("all")
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive" | "expired">("all")
+
+  // Helper function to get group name from groupId
+  const getGroupName = (groupId?: string | null) => {
+    if (!groupId) return null
+    const group = groups.find(g => g.id === groupId)
+    return group?.name || null
+  }
 
   // Filter and search assets
   const filteredAssets = useMemo(() => {
@@ -229,6 +237,7 @@ export default function AssetsPage() {
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{getAssetIdentifier(asset)}</span>
                       {asset.fleetNumber && <Badge variant="secondary">Fleet: {asset.fleetNumber}</Badge>}
+                      {getGroupName(asset.groupId) && <Badge variant="outline">Group: {getGroupName(asset.groupId)}</Badge>}
                       {!asset.isActive && <Badge variant="destructive">Inactive</Badge>}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
