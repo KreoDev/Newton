@@ -9,11 +9,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { Asset } from "@/types"
 import { AssetService } from "@/services/asset.service"
+import { useAlert } from "@/hooks/useAlert"
 import { toast } from "sonner"
 import { AlertCircle, CheckCircle, AlertTriangle } from "lucide-react"
 
@@ -26,45 +26,22 @@ interface DeleteAssetModalProps {
 }
 
 export function DeleteAssetModal({ asset, isOpen, onClose, onSuccess, onSwitchToInactivate }: DeleteAssetModalProps) {
-  const [step, setStep] = useState<"qr-verify" | "check-transactions" | "has-transactions" | "reason-input">("qr-verify")
-  const [qrCode, setQrCode] = useState("")
+  const alert = useAlert()
+  const [step, setStep] = useState<"check-transactions" | "has-transactions" | "reason-input">("check-transactions")
   const [reason, setReason] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [transactionCount, setTransactionCount] = useState(0)
 
   useEffect(() => {
     if (isOpen) {
-      setStep("qr-verify")
-      setQrCode("")
+      setStep("check-transactions")
       setReason("")
       setTransactionCount(0)
+      checkTransactions()
     }
   }, [isOpen])
 
-  useEffect(() => {
-    // Auto-focus QR input
-    if (step === "qr-verify" && isOpen) {
-      const input = document.getElementById("delete-qr-input")
-      if (input) {
-        setTimeout(() => input.focus(), 100)
-      }
-    }
-  }, [step, isOpen])
-
-  const handleQRVerify = async () => {
-    if (!qrCode.trim()) {
-      toast.error("Please scan the QR code")
-      return
-    }
-
-    if (qrCode.trim() !== asset.ntCode) {
-      toast.error("QR code does not match. Please try again.")
-      setQrCode("")
-      return
-    }
-
-    // QR verified, check transactions
-    setStep("check-transactions")
+  const checkTransactions = async () => {
     setIsProcessing(true)
 
     try {
@@ -87,7 +64,7 @@ export function DeleteAssetModal({ asset, isOpen, onClose, onSuccess, onSwitchTo
 
   const handleDelete = async () => {
     if (!reason.trim()) {
-      toast.error("Please provide a reason for deletion")
+      alert.showError("Reason Required", "Please provide a reason for deletion. This will be logged in the audit trail.")
       return
     }
 
@@ -119,58 +96,16 @@ export function DeleteAssetModal({ asset, isOpen, onClose, onSuccess, onSwitchTo
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {step === "qr-verify" && "Verify QR Code"}
             {step === "check-transactions" && "Checking Transactions..."}
             {step === "has-transactions" && "Cannot Delete - Asset Has Transactions"}
             {step === "reason-input" && "Confirm Deletion"}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {step === "qr-verify" && "Scan the asset's QR code to confirm deletion"}
-            {step === "check-transactions" && "Please wait while we check for transactions..."}
+            {step === "check-transactions" && "Please wait while we check if this asset is in use..."}
             {step === "has-transactions" && `This asset has ${transactionCount} transaction(s) and cannot be deleted.`}
             {step === "reason-input" && "This action cannot be undone. Please provide a reason for deleting this asset."}
           </AlertDialogDescription>
         </AlertDialogHeader>
-
-        {step === "qr-verify" && (
-          <div className="space-y-4">
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium">Asset to Delete:</p>
-              <p className="text-sm text-muted-foreground capitalize">
-                {asset.type}: {asset.registration || asset.licenceNumber || "Unknown"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">QR: {asset.ntCode}</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="delete-qr-input">Scan QR Code to Confirm *</Label>
-              <Input
-                id="delete-qr-input"
-                type="text"
-                placeholder="Scan QR code..."
-                value={qrCode}
-                onChange={e => setQrCode(e.target.value)}
-                onKeyPress={e => {
-                  if (e.key === "Enter") {
-                    e.preventDefault()
-                    handleQRVerify()
-                  }
-                }}
-                autoComplete="off"
-              />
-              <p className="text-xs text-muted-foreground">Use your desktop scanner or type manually</p>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={handleQRVerify} disabled={!qrCode.trim()}>
-                Verify & Continue
-              </Button>
-            </div>
-          </div>
-        )}
 
         {step === "check-transactions" && (
           <div className="flex items-center justify-center py-8">

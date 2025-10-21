@@ -8,7 +8,7 @@ import type { AssetInductionState } from "@/types/asset-types"
 import { ArrowLeft, AlertCircle, X } from "lucide-react"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import { AssetService } from "@/services/asset.service"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import onScan from "onscan.js"
 
 interface Step4Props {
@@ -19,6 +19,7 @@ interface Step4Props {
 }
 
 export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Props) {
+  const alert = useAlert()
   const [barcodeData, setBarcodeData] = useState(state.firstBarcodeData || "")
   const [error, setError] = useState("")
   const [parsedData, setParsedData] = useState<any>(null)
@@ -84,7 +85,7 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
         if (!validation.isValid) {
           console.log("Step4: Duplicate vehicle detected, showing error")
           setError(validation.error || "Duplicate vehicle registration")
-          toast.error(validation.error || "Duplicate vehicle registration")
+          alert.showError("Duplicate Vehicle", validation.error || "This vehicle registration is already registered in the system.")
           setParsedData(null)
           setIsProcessing(false)
           return
@@ -114,7 +115,7 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
         if (!validation.isValid) {
           console.log("Step4: Duplicate driver detected, showing error")
           setError(validation.error || "Duplicate driver ID number")
-          toast.error(validation.error || "Duplicate driver ID number")
+          alert.showError("Duplicate Driver", validation.error || "This driver ID number is already registered in the system.")
           setParsedData(null)
           setIsProcessing(false)
           return
@@ -134,13 +135,13 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
 
       // Both parsers failed
       setError("Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk or driver license.")
-      toast.error("Barcode parsing failed")
+      alert.showError("Barcode Parsing Failed", "Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk or driver license.")
       setParsedData(null)
       setIsProcessing(false)
     } catch (error) {
       console.error("Error parsing/validating barcode:", error)
       setError("Failed to validate barcode. Please try again.")
-      toast.error("Validation failed")
+      alert.showError("Validation Failed", "Failed to validate barcode. Please try again.")
       setParsedData(null)
       setIsProcessing(false)
     }

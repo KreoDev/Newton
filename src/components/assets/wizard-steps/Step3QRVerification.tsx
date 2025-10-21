@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { AssetInductionState } from "@/types/asset-types"
 import { ArrowLeft, AlertCircle, CheckCircle } from "lucide-react"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import onScan from "onscan.js"
 
 interface Step3Props {
@@ -27,6 +27,7 @@ function normalize(str: string): string {
 }
 
 export function Step3QRVerification({ state, updateState, onNext, onPrev, onError }: Step3Props) {
+  const alert = useAlert()
   const [qrCode, setQrCode] = useState("")
   const [error, setError] = useState("")
   const [isMatch, setIsMatch] = useState(false)
@@ -85,7 +86,7 @@ export function Step3QRVerification({ state, updateState, onNext, onPrev, onErro
       } else {
         setIsMatch(false)
         setError("QR codes do not match")
-        toast.error("QR codes do not match. Please scan again.")
+        alert.showError("QR Code Mismatch", "The QR codes do not match. Please scan again.")
 
         // Clear BOTH scans and go back to Step 2
         setTimeout(() => {

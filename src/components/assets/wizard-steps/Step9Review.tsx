@@ -9,6 +9,7 @@ import { useSignals } from "@preact/signals-react/runtime"
 import { data as globalData } from "@/services/data.service"
 import { AssetService } from "@/services/asset.service"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
+import { useAlert } from "@/hooks/useAlert"
 import { toast } from "sonner"
 
 interface Step9Props {
@@ -19,6 +20,7 @@ interface Step9Props {
 
 export function Step9Review({ state, onComplete, onPrev }: Step9Props) {
   useSignals()
+  const alert = useAlert()
   const companies = globalData.companies.value
   const groups = globalData.groups.value
 
@@ -64,7 +66,7 @@ export function Step9Review({ state, onComplete, onPrev }: Step9Props) {
 
   const handleSubmit = async () => {
     if (!state.companyId || !state.parsedData || !state.type) {
-      toast.error("Missing required data. Please go back and complete all steps.")
+      alert.showError("Incomplete Data", "Missing required data. Please go back and complete all steps.")
       return
     }
 

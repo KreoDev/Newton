@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import type { AssetInductionState } from "@/types/asset-types"
 import { ArrowLeft, AlertCircle, X } from "lucide-react"
 import { AssetService } from "@/services/asset.service"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import onScan from "onscan.js"
 
 interface Step2Props {
@@ -18,6 +18,7 @@ interface Step2Props {
 }
 
 export function Step2QRScan({ state, updateState, onNext, onPrev }: Step2Props) {
+  const alert = useAlert()
   const [qrCode, setQrCode] = useState(state.firstQRCode || "")
   const [isValidating, setIsValidating] = useState(false)
   const [error, setError] = useState("")
@@ -77,7 +78,7 @@ export function Step2QRScan({ state, updateState, onNext, onPrev }: Step2Props) 
       if (!validation.isValid) {
         console.log("Step2: Duplicate or invalid NT code detected, showing error")
         setError(validation.error || "Invalid QR code")
-        toast.error(validation.error || "Invalid QR code")
+        alert.showError("Invalid QR Code", validation.error || "Invalid QR code")
         setIsValidating(false)
         return
       }
@@ -91,7 +92,7 @@ export function Step2QRScan({ state, updateState, onNext, onPrev }: Step2Props) 
     } catch (error) {
       console.error("Step2: Error validating QR code:", error)
       setError("Failed to validate QR code. Please try again.")
-      toast.error("Validation failed")
+      alert.showError("Validation Failed", "Failed to validate QR code. Please try again.")
       setIsValidating(false)
     }
   }

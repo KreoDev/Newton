@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { AssetInductionState } from "@/types/asset-types"
 import { ArrowLeft, AlertCircle, CheckCircle } from "lucide-react"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 import onScan from "onscan.js"
 
 interface Step5Props {
@@ -27,6 +27,7 @@ function normalize(str: string): string {
 }
 
 export function Step5LicenseVerification({ state, updateState, onNext, onPrev, onError }: Step5Props) {
+  const alert = useAlert()
   const [barcodeData, setBarcodeData] = useState("")
   const [error, setError] = useState("")
   const [isMatch, setIsMatch] = useState(false)
@@ -85,7 +86,7 @@ export function Step5LicenseVerification({ state, updateState, onNext, onPrev, o
       } else {
         setIsMatch(false)
         setError("Barcode data does not match")
-        toast.error("Barcodes do not match. Please scan again.")
+        alert.showError("Barcode Mismatch", "The barcodes do not match. Please scan again.")
 
         // Clear BOTH scans and go back to Step 4
         setTimeout(() => {

@@ -9,7 +9,7 @@ import type { AssetInductionState } from "@/types/asset-types"
 import { ArrowRight, ArrowLeft } from "lucide-react"
 import { useSignals } from "@preact/signals-react/runtime"
 import { data as globalData } from "@/services/data.service"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 
 interface Step8Props {
   state: Partial<AssetInductionState>
@@ -20,6 +20,7 @@ interface Step8Props {
 
 export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step8Props) {
   useSignals()
+  const alert = useAlert()
   const companies = globalData.companies.value
 
   const [fleetNumber, setFleetNumber] = useState(state.fleetNumber || "")
@@ -41,12 +42,14 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
   const handleContinue = () => {
     // Validate required fields
     if (fleetNumberEnabled && !fleetNumber.trim()) {
-      toast.error(`${selectedCompany?.systemSettings?.fleetNumberLabel || "Fleet Number"} is required`)
+      const fieldLabel = selectedCompany?.systemSettings?.fleetNumberLabel || "Fleet Number"
+      alert.showError("Required Field Missing", `${fieldLabel} is required. Please provide a value.`)
       return
     }
 
     if (groupEnabled && !groupId) {
-      toast.error(`${selectedCompany?.systemSettings?.transporterGroupLabel || "Group"} is required`)
+      const fieldLabel = selectedCompany?.systemSettings?.transporterGroupLabel || "Group"
+      alert.showError("Required Field Missing", `${fieldLabel} is required. Please select a value.`)
       return
     }
 

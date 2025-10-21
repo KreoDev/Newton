@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import type { AssetInductionState } from "@/types/asset-types"
 import { ArrowRight, ArrowLeft, AlertCircle, AlertTriangle } from "lucide-react"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
 
 interface Step7Props {
   state: Partial<AssetInductionState>
@@ -18,6 +18,7 @@ interface Step7Props {
 }
 
 export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onError }: Step7Props) {
+  const alert = useAlert()
   const [fields, setFields] = useState<any>({})
   const [expiryInfo, setExpiryInfo] = useState<any>(null)
   const [isExpired, setIsExpired] = useState(false)
@@ -136,7 +137,7 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
 
   const handleNext = () => {
     if (isExpired) {
-      toast.error("Cannot proceed with expired license/disk")
+      alert.showError("Expired License/Disk", "Cannot proceed with expired license or disk. Please scan a valid, non-expired document.")
       return
     }
 

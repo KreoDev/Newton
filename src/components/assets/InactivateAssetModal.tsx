@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { Asset } from "@/types"
 import { AssetService } from "@/services/asset.service"
+import { useAlert } from "@/hooks/useAlert"
 import { toast } from "sonner"
 import { AlertTriangle } from "lucide-react"
 
@@ -24,6 +25,7 @@ interface InactivateAssetModalProps {
 }
 
 export function InactivateAssetModal({ asset, isOpen, onClose, onSuccess }: InactivateAssetModalProps) {
+  const alert = useAlert()
   const [reason, setReason] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -35,7 +37,7 @@ export function InactivateAssetModal({ asset, isOpen, onClose, onSuccess }: Inac
 
   const handleInactivate = async () => {
     if (!reason.trim()) {
-      toast.error("Please provide a reason for marking this asset inactive")
+      alert.showError("Reason Required", "Please provide a reason for marking this asset inactive. This will be displayed on the asset details page.")
       return
     }
 

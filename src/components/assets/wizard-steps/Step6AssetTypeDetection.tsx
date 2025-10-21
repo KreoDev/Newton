@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import type { AssetInductionState, ParsedAssetData } from "@/types/asset-types"
 import { ArrowLeft, CheckCircle } from "lucide-react"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
+import { useAlert } from "@/hooks/useAlert"
 import { toast } from "sonner"
 
 interface Step6Props {
@@ -37,6 +38,7 @@ function determineVehicleType(description: string): "truck" | "trailer" | null {
 }
 
 export function Step6AssetTypeDetection({ state, updateState, onNext, onPrev }: Step6Props) {
+  const alert = useAlert()
   const [detectedType, setDetectedType] = useState<"truck" | "trailer" | "driver" | null>(null)
   const [parsedData, setParsedData] = useState<any>(null)
   const [error, setError] = useState<string>("")
@@ -88,7 +90,7 @@ export function Step6AssetTypeDetection({ state, updateState, onNext, onPrev }: 
           const errorMsg = `Could not determine vehicle type. Description: "${vehicleResult.description}". Please ensure you are scanning a Truck Tractor or Tipper license disk.`
           console.error("Step6:", errorMsg)
           setError(errorMsg)
-          toast.error("Invalid vehicle type detected")
+          alert.showError("Invalid Vehicle Type", "Could not determine if this is a truck or trailer. Please scan a valid Truck Tractor or Tipper license disk.")
         }
         return
       }
@@ -129,7 +131,7 @@ export function Step6AssetTypeDetection({ state, updateState, onNext, onPrev }: 
       const errorMsg = "Could not parse barcode as vehicle or driver license"
       console.error("Step6:", errorMsg, driverResult)
       setError(errorMsg)
-      toast.error(errorMsg)
+      alert.showError("Invalid Barcode", "Could not parse the barcode as a vehicle license disk or driver license. Please ensure you are scanning a valid South African license.")
     }
 
     detectAndValidate()
