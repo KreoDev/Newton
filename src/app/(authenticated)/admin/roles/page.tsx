@@ -47,6 +47,12 @@ export default function RolesPage() {
   })
 
   const toggleRoleStatus = async (role: Role) => {
+    // Prevent actions on Contact role
+    if (role.id === "r_contact") {
+      showError("Cannot Modify System Role", "The Contact role is a protected system role and cannot be modified.")
+      return
+    }
+
     try {
       await updateDocument("roles", role.id, {
         isActive: !role.isActive,
@@ -62,6 +68,12 @@ export default function RolesPage() {
   }
 
   const toggleCompanyVisibility = async (role: Role) => {
+    // Prevent actions on Contact role
+    if (role.id === "r_contact") {
+      showError("Cannot Modify System Role", "The Contact role is a protected system role and cannot be modified.")
+      return
+    }
+
     if (!user?.companyId) {
       showError("Error", "Cannot toggle visibility: No active company selected.")
       return
@@ -90,6 +102,12 @@ export default function RolesPage() {
   }
 
   const handleDeleteClick = async (role: Role) => {
+    // Prevent actions on Contact role
+    if (role.id === "r_contact") {
+      showError("Cannot Delete System Role", "The Contact role is a protected system role and cannot be deleted.")
+      return
+    }
+
     try {
       // Check if role is assigned to any users
       const usersQuery = query(collection(db, "users"), where("roleId", "==", role.id))
@@ -202,7 +220,14 @@ export default function RolesPage() {
                       <Shield className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold">{role.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold">{role.name}</h3>
+                        {role.id === "r_contact" && (
+                          <Badge variant="info" className="text-xs">
+                            System Role
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">{role.description || "No description"}</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {role.permissionKeys?.length || 0} permission(s)
@@ -212,14 +237,21 @@ export default function RolesPage() {
                   <div className="flex items-center gap-2">
                     {canManage ? (
                       <>
-                        <Button variant="ghost" size="sm" onClick={() => toggleRoleStatus(role)} title={role.isActive ? "Deactivate role globally" : "Activate role globally"}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleRoleStatus(role)}
+                          title={role.id === "r_contact" ? "System role cannot be modified" : (role.isActive ? "Deactivate role globally" : "Activate role globally")}
+                          disabled={role.id === "r_contact"}
+                        >
                           {role.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => toggleCompanyVisibility(role)}
-                          title={role.hiddenForCompanies?.includes(user?.companyId || "") ? "Show role for your company" : "Hide role for your company"}
+                          title={role.id === "r_contact" ? "System role cannot be modified" : (role.hiddenForCompanies?.includes(user?.companyId || "") ? "Show role for your company" : "Hide role for your company")}
+                          disabled={role.id === "r_contact"}
                         >
                           {role.hiddenForCompanies?.includes(user?.companyId || "") ? (
                             <EyeOff className="h-4 w-4 text-orange-500" />
@@ -227,10 +259,22 @@ export default function RolesPage() {
                             <Eye className="h-4 w-4 text-blue-500" />
                           )}
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setEditingRole(role)} title="Edit role">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingRole(role)}
+                          title={role.id === "r_contact" ? "System role cannot be edited" : "Edit role"}
+                          disabled={role.id === "r_contact"}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(role)} title="Delete role">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClick(role)}
+                          title={role.id === "r_contact" ? "System role cannot be deleted" : "Delete role"}
+                          disabled={role.id === "r_contact"}
+                        >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </>
