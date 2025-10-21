@@ -150,7 +150,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
 
           <DataTable
             key={`truck-${tableKey}`}
-            tableId="assets-trucks-table-v2"
+            tableId="assets-trucks-table"
             columns={columns}
             data={filteredAssets}
             defaultColumnOrder={[
@@ -168,7 +168,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
             enableRowSelection={true}
             enableColumnResizing={true}
             enableExport={true}
-            pinnedColumns={{ right: ["actions"] }}
+            pinnedColumns={{ right: ["status", "actions"] }}
             onRowSelectionChange={(selectedRows) => {
               setSelectedAssets(selectedRows)
             }}
@@ -186,7 +186,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
 
           <DataTable
             key={`trailer-${tableKey}`}
-            tableId="assets-trailers-table-v2"
+            tableId="assets-trailers-table"
             columns={columns}
             data={filteredAssets}
             defaultColumnOrder={["registration", "makeModel", "expiryDate", "status", "actions"]}
@@ -196,7 +196,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
             enableRowSelection={true}
             enableColumnResizing={true}
             enableExport={true}
-            pinnedColumns={{ right: ["actions"] }}
+            pinnedColumns={{ right: ["status", "actions"] }}
             onRowSelectionChange={(selectedRows) => {
               setSelectedAssets(selectedRows)
             }}
@@ -214,7 +214,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
 
           <DataTable
             key={`driver-${tableKey}`}
-            tableId="assets-drivers-table-v2"
+            tableId="assets-drivers-table"
             columns={columns}
             data={filteredAssets}
             defaultColumnOrder={["photo", "name", "idNumber", "licenceNumber", "licenceType", "group", "expiryDate", "status", "actions"]}
@@ -224,7 +224,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
             enableRowSelection={true}
             enableColumnResizing={true}
             enableExport={true}
-            pinnedColumns={{ right: ["actions"] }}
+            pinnedColumns={{ right: ["status", "actions"] }}
             onRowSelectionChange={(selectedRows) => {
               setSelectedAssets(selectedRows)
             }}
