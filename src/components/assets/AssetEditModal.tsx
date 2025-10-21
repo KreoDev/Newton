@@ -425,10 +425,31 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
           {step === "verify-barcode" && (
             <div className="space-y-4">
               <p className="text-muted-foreground">Scan the existing barcode to verify this is the correct asset.</p>
+
+              {/* Show asset details to help identify correct barcode */}
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-1">Looking for:</p>
+                {asset.type === "driver" ? (
+                  <p className="text-sm text-muted-foreground">
+                    Driver's License: <span className="font-semibold">{asset.name} {asset.surname}</span>
+                    {asset.idNumber && <span className="block text-xs">ID: {asset.idNumber}</span>}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Vehicle License Disk: <span className="font-semibold">{asset.registration}</span>
+                    {asset.make && asset.model && <span className="block text-xs">{asset.make} {asset.model}</span>}
+                  </p>
+                )}
+              </div>
+
               <BarcodeScanner
                 onScanSuccess={handleBarcodeVerified}
                 label="Existing Barcode"
-                helpText="Scan the current vehicle disk or driver's license"
+                helpText={
+                  asset.type === "driver"
+                    ? `Scan driver's license for ${asset.name} ${asset.surname}`
+                    : `Scan vehicle disk for ${asset.registration}`
+                }
               />
             </div>
           )}
@@ -449,10 +470,32 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
           {step === "verify-qr" && (
             <div className="space-y-4">
               <p className="text-muted-foreground">Scan the existing QR code to verify this is the correct asset.</p>
+
+              {/* Show asset details to help identify correct QR */}
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-1">Looking for:</p>
+                {asset.type === "driver" ? (
+                  <p className="text-sm text-muted-foreground">
+                    Driver: <span className="font-semibold">{asset.name} {asset.surname}</span>
+                    {asset.idNumber && <span className="block text-xs">ID: {asset.idNumber}</span>}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Vehicle: <span className="font-semibold">{asset.registration}</span>
+                    {asset.make && asset.model && <span className="block text-xs">{asset.make} {asset.model}</span>}
+                  </p>
+                )}
+                {asset.ntCode && <p className="text-xs text-muted-foreground mt-1">QR Code: {asset.ntCode.substring(0, 20)}...</p>}
+              </div>
+
               <QRCodeScanner
                 onScanSuccess={handleQRVerified}
                 label="Existing QR Code"
-                helpText="Scan the current Newton QR code"
+                helpText={
+                  asset.type === "driver"
+                    ? `Scan QR code for ${asset.name} ${asset.surname}`
+                    : `Scan QR code for ${asset.registration}`
+                }
               />
             </div>
           )}
@@ -461,10 +504,32 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
           {step === "scan-new-barcode" && (
             <div className="space-y-4">
               <p className="text-muted-foreground">Scan the new {asset.type === "driver" ? "driver's license" : "vehicle license disk"} barcode.</p>
+
+              {/* Show asset details for reference */}
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-1">
+                  {asset.type === "driver" ? "Driver must match:" : "Vehicle must match:"}
+                </p>
+                {asset.type === "driver" ? (
+                  <p className="text-sm text-muted-foreground">
+                    Name: <span className="font-semibold">{asset.name} {asset.surname}</span>
+                    <span className="block text-xs">ID Number: {asset.idNumber}</span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Registration: <span className="font-semibold">{asset.registration}</span>
+                  </p>
+                )}
+              </div>
+
               <BarcodeScanner
                 onScanSuccess={handleNewBarcodeScanned}
                 label="New Barcode"
-                helpText={`Scan the new ${asset.type === "driver" ? "driver's license" : "vehicle license disk"}`}
+                helpText={
+                  asset.type === "driver"
+                    ? `Scan new license for ${asset.name} ${asset.surname}`
+                    : `Scan new disk for ${asset.registration}`
+                }
               />
             </div>
           )}
