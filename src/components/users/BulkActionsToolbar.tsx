@@ -62,10 +62,10 @@ export function BulkActionsToolbar({
 
   return (
     <>
-      <div className="sticky top-0 z-50 bg-primary/95 backdrop-blur-sm border border-primary/20 rounded-lg shadow-lg p-4 mb-4 animate-in slide-in-from-top duration-200">
+      <div className="sticky top-0 z-50 glass-surface border border-[oklch(0.922_0_0_/_0.55)] rounded-lg backdrop-blur-[18px] shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.2),inset_0_-12px_30px_-24px_rgb(15_15_15_/_0.28),0_36px_80px_-36px_rgb(15_15_15_/_0.32)] p-4 mb-4 animate-in slide-in-from-top duration-200">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Badge variant="secondary" className="text-base px-3 py-1">
+            <Badge variant="info" className="text-base px-3 py-1">
               {selectedUsers.length} user{selectedUsers.length > 1 ? "s" : ""}{" "}
               selected
             </Badge>
@@ -73,7 +73,6 @@ export function BulkActionsToolbar({
               variant="ghost"
               size="sm"
               onClick={onClearSelection}
-              className="text-primary-foreground hover:bg-primary-foreground/10"
             >
               <X className="h-4 w-4 mr-2" />
               Clear
