@@ -26,13 +26,6 @@ export const getTruckColumns = (
 
   return [
     {
-      id: "icon",
-      header: "",
-      cell: () => <div className="text-2xl">🚚</div>,
-      enableHiding: false,
-      size: 50,
-    },
-    {
       id: "registration",
       accessorKey: "registration",
       header: "Registration",

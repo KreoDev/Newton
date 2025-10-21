@@ -138,7 +138,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
             tableId="assets-trucks-table"
             columns={columns}
             data={filteredAssets}
-            defaultColumnOrder={["icon", "registration", "fleetNumber", "group", "makeModel", "status", "expiryDate", "actions"]}
+            defaultColumnOrder={["registration", "fleetNumber", "group", "makeModel", "status", "expiryDate", "actions"]}
             defaultPageSize={20}
             searchPlaceholder="Search trucks by registration, fleet number, VIN..."
             enablePagination={true}
@@ -166,7 +166,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
             tableId="assets-trailers-table"
             columns={columns}
             data={filteredAssets}
-            defaultColumnOrder={["icon", "registration", "fleetNumber", "group", "makeModel", "status", "expiryDate", "actions"]}
+            defaultColumnOrder={["registration", "fleetNumber", "group", "makeModel", "status", "expiryDate", "actions"]}
             defaultPageSize={20}
             searchPlaceholder="Search trailers by registration, fleet number, VIN..."
             enablePagination={true}
