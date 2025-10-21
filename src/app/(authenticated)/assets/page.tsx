@@ -8,15 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Truck, X, User } from "lucide-react"
+import { Plus, Search, Truck, X, User, Eye, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import type { Asset } from "@/types"
 
 export default function AssetsPage() {
   useSignals()
   const { user } = useAuth()
+  const router = useRouter()
   const assets = globalData.assets.value
   const groups = globalData.groups.value
   const loading = globalData.loading.value
@@ -75,23 +77,20 @@ export default function AssetsPage() {
     return filtered
   }, [assets, filterType, filterStatus, searchTerm])
 
-  const getExpiryBadge = (expiryDate?: string) => {
-    if (!expiryDate) return null
-
-    const expiryInfo = AssetFieldMapper.getExpiryInfo(expiryDate)
-
-    const colorMap = {
-      green: "bg-green-500/20 text-green-700 dark:text-green-300",
-      yellow: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300",
-      orange: "bg-orange-500/20 text-orange-700 dark:text-orange-300",
-      red: "bg-red-500/20 text-red-700 dark:text-red-300",
+  const getStatusBadge = (asset: Asset) => {
+    if (!asset.isActive) {
+      return <Badge variant="secondary">Inactive</Badge>
     }
 
-    return (
-      <Badge variant="outline" className={colorMap[expiryInfo.color]}>
-        {expiryInfo.status === "expired" ? "Expired" : `${expiryInfo.daysUntilExpiry}d left`}
-      </Badge>
-    )
+    if (asset.licenseExpiryDate) {
+      const expiryInfo = AssetFieldMapper.getExpiryInfo(asset.licenseExpiryDate)
+
+      if (expiryInfo.status === "expired") {
+        return <Badge variant="destructive">Expired</Badge>
+      }
+    }
+
+    return <Badge variant="success">Active</Badge>
   }
 
   const getAssetIcon = (asset: Asset) => {
@@ -236,37 +235,31 @@ export default function AssetsPage() {
               )}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {filteredAssets.map(asset => (
-                <div key={asset.id} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  {/* Icon/Avatar */}
-                  <div className="flex-shrink-0">{getAssetIcon(asset)}</div>
-
-                  {/* Info */}
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{getAssetIdentifier(asset)}</span>
-                      {asset.fleetNumber && <Badge variant="secondary">Fleet: {asset.fleetNumber}</Badge>}
-                      {getGroupName(asset) && <Badge variant="purple">Group: {getGroupName(asset)}</Badge>}
-                      {!asset.isActive && <Badge variant="destructive">Inactive</Badge>}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="capitalize">{asset.type}</span>
-                      <span>Newton QR: {asset.ntCode}</span>
-                      {asset.licenseExpiryDate && <span>Expires: {asset.licenseExpiryDate}</span>}
+                <div key={asset.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors backdrop-blur-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0">{getAssetIcon(asset)}</div>
+                    <div>
+                      <h3 className="font-semibold">{getAssetIdentifier(asset)}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {asset.type.charAt(0).toUpperCase() + asset.type.slice(1)} • Newton QR: {asset.ntCode}
+                        {asset.fleetNumber && <> • Fleet: {asset.fleetNumber}</>}
+                        {getGroupName(asset) && <> • Group: {getGroupName(asset)}</>}
+                      </p>
                     </div>
                   </div>
-
-                  {/* Expiry Badge */}
-                  <div>{getExpiryBadge(asset.licenseExpiryDate)}</div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    <Link href={`/assets/${asset.id}`}>
-                      <Button variant="outline" size="sm">
-                        View
-                      </Button>
-                    </Link>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => router.push(`/assets/${asset.id}`)} title="View asset">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => router.push(`/assets/${asset.id}`)} title="Edit asset">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => {}} title="Delete asset">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                    {getStatusBadge(asset)}
                   </div>
                 </div>
               ))}
