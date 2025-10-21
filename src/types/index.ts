@@ -128,6 +128,7 @@ export interface SystemSettings {
   transporterGroupEnabled: boolean
   transporterGroupLabel: string
   groupOptions: string[]
+  inactiveGroups?: string[] // Groups marked as inactive (hidden from dropdowns but still in system for historical data)
 }
 
 export interface SecurityAlerts {

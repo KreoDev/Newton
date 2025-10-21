@@ -63,6 +63,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   const [transporterGroupEnabled, setTransporterGroupEnabled] = useState(false)
   const [transporterGroupLabel, setTransporterGroupLabel] = useState("Group")
   const [groupOptions, setGroupOptions] = useState<string[]>([])
+  const [inactiveGroups, setInactiveGroups] = useState<string[]>([]) // Groups marked as inactive
   const [newGroupOption, setNewGroupOption] = useState("")
 
   // Escalation (Security Alerts)
@@ -97,6 +98,44 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
 
   // Determine if editing current user's company (can use centralized data)
   const editingCurrentCompany = company?.id === user?.companyId
+
+  // Get assets for validation (from globalData for current company, will need to fetch for others)
+  const assets = globalData.assets.value
+
+  // Check if fleet numbers are in use by active assets
+  const fleetNumbersInUse = useMemo(() => {
+    if (!isEditing || !company) return false
+    return assets.some(
+      asset =>
+        asset.companyId === company.id &&
+        asset.isActive &&
+        asset.fleetNumber &&
+        asset.fleetNumber.trim() !== ""
+    )
+  }, [assets, isEditing, company])
+
+  // Check if groups are in use by active assets
+  const groupsInUse = useMemo(() => {
+    if (!isEditing || !company) return false
+    return assets.some(
+      asset =>
+        asset.companyId === company.id &&
+        asset.isActive &&
+        asset.groupId &&
+        asset.groupId.trim() !== ""
+    )
+  }, [assets, isEditing, company])
+
+  // Check if a specific group name is in use by active assets
+  const isGroupNameInUse = (groupName: string) => {
+    if (!isEditing || !company) return false
+    return assets.some(
+      asset =>
+        asset.companyId === company.id &&
+        asset.isActive &&
+        asset.groupId === groupName
+    )
+  }
 
   // Use centralized data when editing current company, otherwise fetch locally
   useEffect(() => {
@@ -198,6 +237,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
         setTransporterGroupEnabled(company.systemSettings.transporterGroupEnabled)
         setTransporterGroupLabel(company.systemSettings.transporterGroupLabel)
         setGroupOptions(company.systemSettings.groupOptions || [])
+        setInactiveGroups(company.systemSettings.inactiveGroups || [])
       }
 
       // Security Alerts
@@ -408,6 +448,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
           transporterGroupEnabled,
           transporterGroupLabel,
           groupOptions: groupOptions,
+          inactiveGroups: inactiveGroups,
         }
       }
 
