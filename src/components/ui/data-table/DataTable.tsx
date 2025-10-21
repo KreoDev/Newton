@@ -123,7 +123,8 @@ export function DataTable<TData, TValue>({
       const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original)
       onRowSelectionChange(selectedRows)
     }
-  }, [rowSelection, onRowSelectionChange, table])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowSelection])
 
   return (
     <div className="space-y-4">
