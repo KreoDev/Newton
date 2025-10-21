@@ -3,9 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import type { AssetInductionState } from "@/types/asset-types"
-import { ArrowLeft, AlertCircle, X } from "lucide-react"
+import { ArrowLeft, Barcode, CheckCircle2, Loader2, XCircle } from "lucide-react"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import { AssetService } from "@/services/asset.service"
 import { useAlert } from "@/hooks/useAlert"
@@ -200,88 +199,124 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
     }
   }
 
+  // Determine visual state
+  const getVisualState = () => {
+    if (error) return "error"
+    if (isProcessing) return "processing"
+    if (parsedData) return "success"
+    return "waiting"
+  }
+
+  const visualState = getVisualState()
+
   return (
     <div className="space-y-6">
       <div>
         <p className="text-muted-foreground mb-4">Scan the vehicle license disk OR driver license barcode. Will auto-advance after parsing.</p>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="barcode-input" className={error ? "text-destructive" : ""}>
-            License/Disk Barcode (First Scan) *
-          </Label>
-          {barcodeData && (
-            <Button variant="ghost" size="sm" type="button" className="h-auto p-1 text-xs text-muted-foreground hover:text-destructive" onClick={handleClear}>
-              <X className="h-3 w-3 mr-1" />
-              Clear
-            </Button>
+      {/* Hidden input that captures scanner events */}
+      <Input
+        ref={inputRef}
+        id="barcode-input"
+        type="text"
+        value={barcodeData}
+        onKeyDown={handleKeyDown}
+        className="sr-only"
+        autoComplete="off"
+        readOnly
+        onPaste={e => e.preventDefault()}
+        onDrop={e => e.preventDefault()}
+        aria-label="Barcode Scanner Input"
+      />
+
+      {/* Visual placeholder */}
+      <div className="flex flex-col items-center justify-center py-8">
+        <div
+          className={`
+            flex flex-col items-center justify-center w-48 h-48 rounded-xl border-2 border-dashed
+            transition-all duration-300
+            ${visualState === "waiting" ? "border-green-500/50 bg-green-500/10" : ""}
+            ${visualState === "processing" ? "border-blue-500/50 bg-blue-500/10 animate-pulse" : ""}
+            ${visualState === "success" ? "border-green-500 bg-green-500/20" : ""}
+            ${visualState === "error" ? "border-red-500/50 bg-red-500/10" : ""}
+          `}
+        >
+          {visualState === "waiting" && (
+            <>
+              <Barcode className="w-16 h-16 text-green-600 dark:text-green-400" />
+              <p className="mt-4 text-sm font-medium text-green-700 dark:text-green-300">Ready to Scan</p>
+            </>
+          )}
+
+          {visualState === "processing" && (
+            <>
+              <Loader2 className="w-16 h-16 text-blue-600 dark:text-blue-400 animate-spin" />
+              <p className="mt-4 text-sm font-medium text-blue-700 dark:text-blue-300">Parsing...</p>
+            </>
+          )}
+
+          {visualState === "success" && (
+            <>
+              <CheckCircle2 className="w-16 h-16 text-green-600 dark:text-green-400" />
+              <p className="mt-4 text-sm font-medium text-green-700 dark:text-green-300">
+                {parsedData?.type === "vehicle" ? "Vehicle Scanned" : "Driver Scanned"}
+              </p>
+            </>
+          )}
+
+          {visualState === "error" && (
+            <>
+              <XCircle className="w-16 h-16 text-red-600 dark:text-red-400" />
+              <p className="mt-4 text-sm font-medium text-red-700 dark:text-red-300">Scan Failed</p>
+            </>
           )}
         </div>
-        <Input
-          ref={inputRef}
-          id="barcode-input"
-          type="text"
-          placeholder="Scan 1: Scan the barcode"
-          value={barcodeData}
-          onKeyDown={handleKeyDown}
-          className={error ? "border-destructive" : parsedData ? "border-green-500" : ""}
-          autoComplete="off"
-          readOnly
-          onPaste={e => e.preventDefault()}
-          onDrop={e => e.preventDefault()}
-        />
-        {error && (
-          <div className="flex items-center gap-2 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4" />
-            <span>{error}</span>
+
+        {/* Show parsed data when captured */}
+        {parsedData && (
+          <div className="mt-4 p-3 bg-muted rounded-lg w-full max-w-md">
+            <p className="text-xs font-medium text-muted-foreground mb-2">
+              {parsedData.type === "vehicle" ? "Vehicle License Disk" : "Driver License"}
+            </p>
+            <div className="space-y-1 text-xs">
+              {parsedData.type === "vehicle" ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Registration:</span>
+                    <span className="font-mono font-medium">{parsedData.data.registration}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Make/Model:</span>
+                    <span>{parsedData.data.make} {parsedData.data.model}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">ID Number:</span>
+                    <span className="font-mono font-medium">{parsedData.data.person.idNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Name:</span>
+                    <span>{parsedData.data.person.name} {parsedData.data.person.surname}</span>
+                  </div>
+                </>
+              )}
+            </div>
+            <Button variant="ghost" size="sm" type="button" className="h-6 px-2 text-xs mt-2 w-full" onClick={handleClear}>
+              Clear & Rescan
+            </Button>
           </div>
         )}
-        <p className="text-xs text-muted-foreground">Scan with desktop scanner - will auto-advance after parsing</p>
+
+        <p className="mt-6 text-xs text-center text-muted-foreground">
+          {visualState === "waiting" && "Scan vehicle license disk or driver's license"}
+          {visualState === "processing" && "Parsing barcode data..."}
+          {visualState === "success" && "Proceeding to next step..."}
+          {visualState === "error" && "Please scan a valid barcode"}
+        </p>
       </div>
-
-      {isProcessing && (
-        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Parsing barcode data...</p>
-        </div>
-      )}
-
-      {parsedData && (
-        <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-          <p className="text-sm font-medium text-green-700 dark:text-green-300 mb-2">Successfully Parsed {parsedData.type === "vehicle" ? "Vehicle License Disk" : "Driver License"}:</p>
-          <div className="space-y-1 text-sm">
-            {parsedData.type === "vehicle" ? (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  <span className="text-muted-foreground">Registration:</span>
-                  <span className="font-mono">{parsedData.data.registration}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <span className="text-muted-foreground">Make:</span>
-                  <span>{parsedData.data.make}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <span className="text-muted-foreground">Model:</span>
-                  <span>{parsedData.data.model}</span>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  <span className="text-muted-foreground">ID Number:</span>
-                  <span className="font-mono">{parsedData.data.person.idNumber}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <span className="text-muted-foreground">Name:</span>
-                  <span>
-                    {parsedData.data.person.name} {parsedData.data.person.surname}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       <div className="flex justify-start pt-4">
         <Button variant="outline" onClick={onPrev}>
