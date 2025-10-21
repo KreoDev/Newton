@@ -312,10 +312,10 @@ export default function AssetDetailsPage() {
                   </p>
                 </div>
               )}
-              {asset.vehicleDescription && (
+              {asset.description && (
                 <div>
                   <p className="text-sm text-muted-foreground">Vehicle Type</p>
-                  <p className="font-medium">{asset.vehicleDescription}</p>
+                  <p className="font-medium">{asset.description}</p>
                 </div>
               )}
               {asset.description && (

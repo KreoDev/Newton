@@ -227,7 +227,7 @@ export interface Asset extends Timestamped, CompanyScoped {
   expired?: boolean // Whether license is expired
 
   // Vehicle-specific fields (from barcode scan)
-  vehicleDescription?: string // Vehicle type description (e.g., "Sedan (Closed Top)", "Truck")
+  description?: string // Vehicle type description (e.g., "Sedan (Closed Top)", "Truck")
   make?: string // Vehicle make
   model?: string // Vehicle model
   licenceNo?: string // License number from disk

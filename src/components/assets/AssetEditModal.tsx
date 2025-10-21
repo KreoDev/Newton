@@ -379,7 +379,7 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
         updates.licenceDiskNo = parsed.data.vehicleDiskNo
         updates.engineNo = parsed.data.engineNo
         updates.vin = parsed.data.vin
-        updates.vehicleDescription = parsed.data.description
+        updates.description = parsed.data.description
         updates.description = parsed.data.description
       } else if (parsed.type === "driver" && !("error" in parsed.data)) {
         updates.expiryDate = parsed.data.licence?.expiryDate || parsed.data.person.birthDate

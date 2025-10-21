@@ -342,7 +342,7 @@ export class AssetFieldMapper {
         licenceDiskNo: parsedData.vehicleInfo.vehicleDiskNo,
         licenseExpiryDate: parsedData.vehicleInfo.expiryDate,
         dateOfExpiry: parsedData.vehicleInfo.expiryDate, // Duplicate for compatibility
-        vehicleDescription: parsedData.vehicleInfo.description,
+        description: parsedData.vehicleInfo.description,
         description: parsedData.vehicleInfo.description, // Duplicate for compatibility
       })
     }

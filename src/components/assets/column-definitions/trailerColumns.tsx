@@ -138,10 +138,10 @@ export const getTrailerColumns = (
       enableHiding: true,
     },
     {
-      id: "vehicleDescription",
-      accessorKey: "vehicleDescription",
+      id: "description",
+      accessorKey: "description",
       header: "Vehicle Type",
-      cell: ({ row }) => <span className="text-sm">{row.original.vehicleDescription || "-"}</span>,
+      cell: ({ row }) => <span className="text-sm">{row.original.description || "-"}</span>,
       enableHiding: true,
     },
     {
