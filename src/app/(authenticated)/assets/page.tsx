@@ -241,11 +241,13 @@ export default function AssetsPage() {
                   <div className="flex items-center gap-4">
                     <div className="flex-shrink-0">{getAssetIcon(asset)}</div>
                     <div>
-                      <h3 className="font-semibold">{getAssetIdentifier(asset)}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold">{getAssetIdentifier(asset)}</h3>
+                        {asset.fleetNumber && <Badge variant="secondary">Fleet: {asset.fleetNumber}</Badge>}
+                        {getGroupName(asset) && <Badge variant="purple">Group: {getGroupName(asset)}</Badge>}
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {asset.type.charAt(0).toUpperCase() + asset.type.slice(1)} • Newton QR: {asset.ntCode}
-                        {asset.fleetNumber && <> • Fleet: {asset.fleetNumber}</>}
-                        {getGroupName(asset) && <> • Group: {getGroupName(asset)}</>}
                       </p>
                     </div>
                   </div>
