@@ -607,6 +607,96 @@
             "border": "oklch(0.985 0 0 / 0.25)",
             "text": "oklch(0.985 0 0)"
           }
+        },
+        "purple": {
+          "light": {
+            "background": "oklch(0.9 0.12 290 / 0.82)",
+            "text": "oklch(0.4 0.16 290)"
+          },
+          "dark": {
+            "background": "oklch(0.65 0.18 290 / 0.20)",
+            "text": "oklch(0.92 0.12 290)"
+          }
+        },
+        "orange": {
+          "light": {
+            "background": "oklch(0.92 0.14 50 / 0.82)",
+            "text": "oklch(0.42 0.16 50)"
+          },
+          "dark": {
+            "background": "oklch(0.68 0.18 50 / 0.20)",
+            "text": "oklch(0.94 0.12 50)"
+          }
+        },
+        "lime": {
+          "light": {
+            "background": "oklch(0.92 0.14 130 / 0.82)",
+            "text": "oklch(0.42 0.16 130)"
+          },
+          "dark": {
+            "background": "oklch(0.72 0.16 130 / 0.20)",
+            "text": "oklch(0.92 0.12 130)"
+          }
+        },
+        "pink": {
+          "light": {
+            "background": "oklch(0.92 0.14 350 / 0.82)",
+            "text": "oklch(0.42 0.16 350)"
+          },
+          "dark": {
+            "background": "oklch(0.68 0.18 350 / 0.20)",
+            "text": "oklch(0.94 0.12 350)"
+          }
+        },
+        "rose": {
+          "light": {
+            "background": "oklch(0.91 0.14 10 / 0.82)",
+            "text": "oklch(0.42 0.16 10)"
+          },
+          "dark": {
+            "background": "oklch(0.67 0.17 10 / 0.20)",
+            "text": "oklch(0.93 0.12 10)"
+          }
+        },
+        "fuchsia": {
+          "light": {
+            "background": "oklch(0.9 0.15 320 / 0.82)",
+            "text": "oklch(0.4 0.18 320)"
+          },
+          "dark": {
+            "background": "oklch(0.64 0.20 320 / 0.20)",
+            "text": "oklch(0.92 0.14 320)"
+          }
+        },
+        "teal": {
+          "light": {
+            "background": "oklch(0.92 0.12 190 / 0.82)",
+            "text": "oklch(0.42 0.14 190)"
+          },
+          "dark": {
+            "background": "oklch(0.68 0.16 190 / 0.20)",
+            "text": "oklch(0.92 0.12 190)"
+          }
+        },
+        "cyan": {
+          "light": {
+            "background": "oklch(0.93 0.12 210 / 0.82)",
+            "text": "oklch(0.42 0.14 210)"
+          },
+          "dark": {
+            "background": "oklch(0.70 0.16 210 / 0.20)",
+            "text": "oklch(0.93 0.12 210)"
+          }
+        },
+        "indigo": {
+          "light": {
+            "background": "oklch(0.88 0.14 270 / 0.82)",
+            "text": "oklch(0.38 0.16 270)"
+          },
+          "dark": {
+            "background": "oklch(0.62 0.18 270 / 0.20)",
+            "text": "oklch(0.90 0.12 270)"
+          }
         }
       }
     },
