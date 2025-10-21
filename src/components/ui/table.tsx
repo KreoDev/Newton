@@ -53,8 +53,8 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
       className={cn(
         "p-2 align-middle whitespace-nowrap backdrop-blur-[var(--glass-blur-sm)]",
         "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
-        // Cell-level hover effect with border
-        "hover:bg-[oklch(1_0_0_/_0.22)] hover:shadow-[inset_0_0_0_1px_oklch(0.922_0_0_/_0.75)]",
+        // Cell-level hover effect with blue tint and border
+        "hover:bg-[oklch(0.75_0.08_240_/_0.15)] hover:shadow-[inset_0_0_0_1px_oklch(0.7_0.1_240_/_0.35)]",
         "transition-all duration-150",
         className
       )}
