@@ -56,9 +56,9 @@ export const SEARCH_CONFIGS = {
   assets: {
     fields: [
       { path: "type", weight: 2 },
-      { path: "registrationNumber", weight: 2 },
-      { path: "licenseNumber", weight: 2 },
-      { path: "qrCode", weight: 1 },
+      { path: "registration", weight: 2 }, // Android app field name
+      { path: "licenceNumber", weight: 2 }, // Android app field name (British spelling)
+      { path: "ntCode", weight: 1 }, // Android app field name
       { path: "fleetNumber", weight: 1 },
       { path: "groupId", weight: 1 },
     ],

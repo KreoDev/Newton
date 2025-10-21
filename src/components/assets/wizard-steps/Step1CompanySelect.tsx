@@ -37,6 +37,11 @@ export function Step1CompanySelect({ state, updateState, onNext, onBack }: Step1
   }, [companies])
 
   const handleCompanySelect = (companyId: string) => {
+    const selectedCompany = companies.find(c => c.id === companyId)
+    console.log("🏢 Company selected in wizard:")
+    console.log("  Company ID:", companyId)
+    console.log("  Company data:", selectedCompany)
+
     setSelectedCompanyId(companyId)
     updateState({ companyId })
 

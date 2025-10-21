@@ -17,6 +17,15 @@ interface Step5Props {
   onError: () => void
 }
 
+/**
+ * Normalize barcode/QR code by removing all non-alphanumeric characters except %
+ * This handles scanner issues where extra characters might be added
+ * Based on NewtonDemo: str.replace(/[^a-zA-Z0-9%]/g, "")
+ */
+function normalize(str: string): string {
+  return str.replace(/[^a-zA-Z0-9%]/g, "")
+}
+
 export function Step5LicenseVerification({ state, updateState, onNext, onPrev, onError }: Step5Props) {
   const [barcodeData, setBarcodeData] = useState("")
   const [error, setError] = useState("")
@@ -56,7 +65,16 @@ export function Step5LicenseVerification({ state, updateState, onNext, onPrev, o
   useEffect(() => {
     // Check if barcodes match and auto-advance
     if (barcodeData && state.firstBarcodeData) {
-      if (barcodeData.trim() === state.firstBarcodeData.trim()) {
+      // Normalize both scans to handle scanner issues (extra spaces, newlines, etc)
+      const normalizedScan1 = normalize(state.firstBarcodeData)
+      const normalizedScan2 = normalize(barcodeData)
+
+      console.log("Step5: Comparing barcodes")
+      console.log("  First (normalized):", normalizedScan1.substring(0, 50) + "...")
+      console.log("  Second (normalized):", normalizedScan2.substring(0, 50) + "...")
+      console.log("  Match:", normalizedScan1 === normalizedScan2)
+
+      if (normalizedScan1 === normalizedScan2) {
         setIsMatch(true)
         setError("")
         // Auto-advance on match
@@ -67,13 +85,28 @@ export function Step5LicenseVerification({ state, updateState, onNext, onPrev, o
       } else {
         setIsMatch(false)
         setError("Barcode data does not match")
-        toast.error("Barcodes do not match. Please try again.")
+        toast.error("Barcodes do not match. Please scan again.")
+
+        // Clear BOTH scans and go back to Step 4
         setTimeout(() => {
+          updateState({
+            firstBarcodeData: undefined,
+            secondBarcodeData: undefined
+          })
           onError() // Return to Step 4
         }, 1500)
       }
     }
   }, [barcodeData, state.firstBarcodeData])
+
+  const handlePrevious = () => {
+    // Clear both barcodes when going back
+    updateState({
+      firstBarcodeData: undefined,
+      secondBarcodeData: undefined
+    })
+    onPrev()
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -135,7 +168,7 @@ export function Step5LicenseVerification({ state, updateState, onNext, onPrev, o
       )}
 
       <div className="flex justify-start pt-4">
-        <Button variant="outline" onClick={onPrev}>
+        <Button variant="outline" onClick={handlePrevious}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Previous
         </Button>

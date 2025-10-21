@@ -130,7 +130,7 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
           {currentStep === 6 && <Step6AssetTypeDetection state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} />}
           {currentStep === 7 && <Step7FieldConfirmation state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} onError={() => goToStep(1)} />}
           {currentStep === 8 && <Step8OptionalFields state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} />}
-          {currentStep === 9 && <Step9Review state={wizardState} onComplete={handleComplete} onPrev={prevStep} onEdit={goToStep} />}
+          {currentStep === 9 && <Step9Review state={wizardState} onComplete={handleComplete} onPrev={prevStep} />}
         </CardContent>
       </Card>
     </div>

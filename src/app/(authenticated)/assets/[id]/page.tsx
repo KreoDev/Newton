@@ -83,7 +83,7 @@ export default function AssetDetailsPage() {
     if (asset.type === "driver") {
       // For drivers: show "Initials Surname (License #)" or just name fields
       const driverName = asset.name && asset.surname ? `${asset.initials || asset.name} ${asset.surname}` : asset.surname || asset.name || ""
-      const license = asset.licenseNumber || asset.licenceNumber || ""
+      const license = asset.licenceNumber || "" // Android app field name (British spelling)
 
       if (driverName && license) {
         return `${driverName} (${license})`
@@ -94,8 +94,8 @@ export default function AssetDetailsPage() {
       }
       return "No License"
     }
-    // For vehicles: show registration number
-    return asset.registration || asset.registrationNumber || asset.vehicleReg || "No Registration"
+    // For vehicles: show registration number (Android app field name)
+    return asset.registration || "No Registration"
   }
 
   const company = companies.find(c => c.id === asset?.companyId)
@@ -259,10 +259,10 @@ export default function AssetDetailsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              {(asset.registration || asset.registrationNumber || asset.vehicleReg) && (
+              {asset.registration && (
                 <div>
                   <p className="text-sm text-muted-foreground">Registration Number</p>
-                  <p className="font-mono font-semibold">{asset.registration || asset.registrationNumber || asset.vehicleReg}</p>
+                  <p className="font-mono font-semibold">{asset.registration}</p>
                 </div>
               )}
               {(asset.make || asset.model) && (
@@ -394,7 +394,7 @@ export default function AssetDetailsPage() {
             </CardContent>
           </Card>
 
-          {(asset.licenseNumber || asset.licenceNumber) && (
+          {asset.licenceNumber && (
             <Card>
               <CardHeader>
                 <CardTitle>License Information</CardTitle>
@@ -403,7 +403,7 @@ export default function AssetDetailsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-sm text-muted-foreground">License Number</p>
-                    <p className="font-mono font-semibold">{asset.licenseNumber || asset.licenceNumber}</p>
+                    <p className="font-mono font-semibold">{asset.licenceNumber}</p>
                   </div>
                   {asset.licenceType && (
                     <div>

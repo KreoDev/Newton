@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import type { AssetInductionState } from "@/types/asset-types"
 import { ArrowLeft, AlertCircle, X } from "lucide-react"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
+import { AssetService } from "@/services/asset.service"
 import { toast } from "sonner"
 import onScan from "onscan.js"
 
@@ -26,9 +27,11 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
 
   // Handle scans coming from onscan.js
   const handleScannerScan = useCallback((scannedValue: string) => {
+    console.log("Step4: New barcode scanned, resetting state")
     setBarcodeData(scannedValue)
     setError("")
     setParsedData(null)
+    setIsProcessing(false) // Reset processing state for new scan
   }, [])
 
   // Attach onScan listener
@@ -68,41 +71,79 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
     setIsProcessing(true)
     setError("")
 
-    // Try to parse as vehicle disk first
-    const vehicleResult = AssetFieldMapper.parseVehicleDisk(barcodeData.trim())
+    try {
+      // Try to parse as vehicle disk first
+      const vehicleResult = AssetFieldMapper.parseVehicleDisk(barcodeData.trim())
 
-    if (!("error" in vehicleResult)) {
-      // Successfully parsed as vehicle
-      setParsedData({ type: "vehicle", data: vehicleResult })
-      updateState({ firstBarcodeData: barcodeData.trim() })
+      if (!("error" in vehicleResult)) {
+        // Successfully parsed as vehicle - now check for duplicates (checks in-memory assets)
+        console.log("Step4: Parsed as vehicle, registration:", vehicleResult.registration)
+        const validation = AssetService.validateRegistration(vehicleResult.registration)
+        console.log("Step4: Validation result:", validation)
 
-      // Auto-advance after successful parse
-      setTimeout(() => {
-        onNext()
-      }, 300)
-      return
+        if (!validation.isValid) {
+          console.log("Step4: Duplicate vehicle detected, showing error")
+          setError(validation.error || "Duplicate vehicle registration")
+          toast.error(validation.error || "Duplicate vehicle registration")
+          setParsedData(null)
+          setIsProcessing(false)
+          return
+        }
+
+        // Registration is valid and unique
+        console.log("Step4: Vehicle is unique, proceeding")
+        setParsedData({ type: "vehicle", data: vehicleResult })
+        updateState({ firstBarcodeData: barcodeData.trim() })
+
+        // Auto-advance after successful parse and validation
+        setTimeout(() => {
+          onNext()
+        }, 300)
+        return
+      }
+
+      // Try to parse as driver license/ID
+      const driverResult = AssetFieldMapper.parseDriverLicense(barcodeData.trim())
+
+      if (!("error" in driverResult)) {
+        // Successfully parsed as driver - now check for duplicates (checks in-memory assets)
+        console.log("Step4: Parsed as driver, ID number:", driverResult.person.idNumber)
+        const validation = AssetService.validateIDNumber(driverResult.person.idNumber)
+        console.log("Step4: Validation result:", validation)
+
+        if (!validation.isValid) {
+          console.log("Step4: Duplicate driver detected, showing error")
+          setError(validation.error || "Duplicate driver ID number")
+          toast.error(validation.error || "Duplicate driver ID number")
+          setParsedData(null)
+          setIsProcessing(false)
+          return
+        }
+
+        // ID number is valid and unique
+        console.log("Step4: Driver is unique, proceeding")
+        setParsedData({ type: "driver", data: driverResult })
+        updateState({ firstBarcodeData: barcodeData.trim() })
+
+        // Auto-advance after successful parse and validation
+        setTimeout(() => {
+          onNext()
+        }, 300)
+        return
+      }
+
+      // Both parsers failed
+      setError("Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk or driver license.")
+      toast.error("Barcode parsing failed")
+      setParsedData(null)
+      setIsProcessing(false)
+    } catch (error) {
+      console.error("Error parsing/validating barcode:", error)
+      setError("Failed to validate barcode. Please try again.")
+      toast.error("Validation failed")
+      setParsedData(null)
+      setIsProcessing(false)
     }
-
-    // Try to parse as driver license/ID
-    const driverResult = AssetFieldMapper.parseDriverLicense(barcodeData.trim())
-
-    if (!("error" in driverResult)) {
-      // Successfully parsed as driver
-      setParsedData({ type: "driver", data: driverResult })
-      updateState({ firstBarcodeData: barcodeData.trim() })
-
-      // Auto-advance after successful parse
-      setTimeout(() => {
-        onNext()
-      }, 300)
-      return
-    }
-
-    // Both parsers failed
-    setError("Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk or driver license.")
-    toast.error("Barcode parsing failed")
-    setParsedData(null)
-    setIsProcessing(false)
   }
 
   const handleClear = () => {

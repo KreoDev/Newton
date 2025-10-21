@@ -54,8 +54,7 @@ export default function AssetsPage() {
       filtered = filtered.filter(
         asset =>
           asset.registration?.toLowerCase().includes(term) ||
-          asset.registrationNumber?.toLowerCase().includes(term) ||
-          asset.licenseNumber?.toLowerCase().includes(term) ||
+          asset.licenceNumber?.toLowerCase().includes(term) ||
           asset.ntCode?.toLowerCase().includes(term) ||
           asset.fleetNumber?.toLowerCase().includes(term) ||
           asset.name?.toLowerCase().includes(term) ||
@@ -119,7 +118,7 @@ export default function AssetsPage() {
     if (asset.type === "driver") {
       // For drivers: show "Initials Surname (License #)" or just name fields
       const driverName = asset.name && asset.surname ? `${asset.initials || asset.name} ${asset.surname}` : asset.surname || asset.name || ""
-      const license = asset.licenseNumber || asset.licenceNumber || ""
+      const license = asset.licenceNumber || "" // Android app field name (British spelling)
 
       if (driverName && license) {
         return `${driverName} (${license})`
@@ -130,8 +129,8 @@ export default function AssetsPage() {
       }
       return "No License"
     }
-    // For vehicles: show registration number
-    return asset.registration || asset.registrationNumber || asset.vehicleReg || "No Registration"
+    // For vehicles: show registration number (Android app field name)
+    return asset.registration || "No Registration"
   }
 
   if (!user) {

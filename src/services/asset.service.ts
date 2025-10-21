@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase"
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import type { ParsedAssetData } from "@/types/asset-types"
+import { data as globalData } from "@/services/data.service"
 
 export class AssetService {
   /**
@@ -36,10 +37,12 @@ export class AssetService {
   /**
    * Validate Newton QR code (ntCode)
    * - Must start with "NT"
-   * - Must be unique across all assets
+   * - Must be unique within the company (checks in-memory assets from data service)
    */
-  static async validateNTCode(ntCode: string, excludeId?: string): Promise<{ isValid: boolean; error?: string; existingAsset?: Asset }> {
+  static validateNTCode(ntCode: string, excludeId?: string): { isValid: boolean; error?: string; existingAsset?: Asset } {
     try {
+      console.log("AssetService: Validating NT code:", ntCode, "using in-memory assets")
+
       // Validate NT prefix
       if (!ntCode.toUpperCase().startsWith("NT")) {
         return {
@@ -48,27 +51,25 @@ export class AssetService {
         }
       }
 
-      // Check uniqueness
-      const q = query(collection(db, "assets"), where("ntCode", "==", ntCode))
-      const snapshot = await getDocs(q)
+      // Check uniqueness in the already-loaded company-scoped assets
+      const assets = globalData.assets.value
+      const existingAsset = assets.find(a => a.ntCode === ntCode && a.id !== excludeId)
 
-      if (snapshot.empty) {
+      if (!existingAsset) {
+        console.log("AssetService: NT code is unique in this company")
         return { isValid: true }
       }
 
-      // Check if it's the same asset being edited
-      const existingAsset = snapshot.docs[0].data() as Asset
-      if (excludeId && snapshot.docs[0].id === excludeId) {
-        return { isValid: true }
-      }
+      console.log("AssetService: Existing asset found:", {
+        id: existingAsset.id,
+        ntCode: existingAsset.ntCode,
+        companyId: existingAsset.companyId,
+      })
 
       return {
         isValid: false,
         error: "This QR code is already assigned to another asset",
-        existingAsset: {
-          ...existingAsset,
-          id: snapshot.docs[0].id,
-        },
+        existingAsset,
       }
     } catch (error) {
       console.error("Error validating NT code:", error)
@@ -77,34 +78,36 @@ export class AssetService {
   }
 
   /**
-   * Validate vehicle registration is unique
+   * Validate vehicle registration is unique within the company (checks in-memory assets from data service)
    */
-  static async validateRegistration(registration: string, excludeId?: string): Promise<{ isValid: boolean; error?: string; existingAsset?: Asset }> {
+  static validateRegistration(registration: string, excludeId?: string): { isValid: boolean; error?: string; existingAsset?: Asset } {
     try {
+      console.log("AssetService: Validating registration using in-memory assets:", registration.trim())
+
       if (!registration || !registration.trim()) {
         return { isValid: true }
       }
 
-      const q = query(collection(db, "assets"), where("registration", "==", registration.trim()))
-      const snapshot = await getDocs(q)
+      // Check uniqueness in the already-loaded company-scoped assets
+      const assets = globalData.assets.value
+      const existingAsset = assets.find(a => a.registration === registration.trim() && a.id !== excludeId)
 
-      if (snapshot.empty) {
+      if (!existingAsset) {
+        console.log("AssetService: Registration is unique in this company")
         return { isValid: true }
       }
 
-      // Check if it's the same asset being edited
-      const existingAsset = snapshot.docs[0].data() as Asset
-      if (excludeId && snapshot.docs[0].id === excludeId) {
-        return { isValid: true }
-      }
+      console.log("AssetService: Found existing asset:", {
+        id: existingAsset.id,
+        registration: existingAsset.registration,
+        type: existingAsset.type,
+        companyId: existingAsset.companyId,
+      })
 
       return {
         isValid: false,
         error: "This registration number is already assigned to another vehicle",
-        existingAsset: {
-          ...existingAsset,
-          id: snapshot.docs[0].id,
-        },
+        existingAsset,
       }
     } catch (error) {
       console.error("Error validating registration:", error)
@@ -149,34 +152,35 @@ export class AssetService {
   }
 
   /**
-   * Validate driver ID number is unique
+   * Validate driver ID number is unique within the company (checks in-memory assets from data service)
    */
-  static async validateIDNumber(idNumber: string, excludeId?: string): Promise<{ isValid: boolean; error?: string; existingAsset?: Asset }> {
+  static validateIDNumber(idNumber: string, excludeId?: string): { isValid: boolean; error?: string; existingAsset?: Asset } {
     try {
+      console.log("AssetService: Validating ID number using in-memory assets:", idNumber.trim())
+
       if (!idNumber || !idNumber.trim()) {
         return { isValid: true }
       }
 
-      const q = query(collection(db, "assets"), where("idNumber", "==", idNumber.trim()))
-      const snapshot = await getDocs(q)
+      // Check uniqueness in the already-loaded company-scoped assets
+      const assets = globalData.assets.value
+      const existingAsset = assets.find(a => a.idNumber === idNumber.trim() && a.id !== excludeId)
 
-      if (snapshot.empty) {
+      if (!existingAsset) {
+        console.log("AssetService: ID number is unique in this company")
         return { isValid: true }
       }
 
-      // Check if it's the same asset being edited
-      const existingAsset = snapshot.docs[0].data() as Asset
-      if (excludeId && snapshot.docs[0].id === excludeId) {
-        return { isValid: true }
-      }
+      console.log("AssetService: Existing asset found:", {
+        id: existingAsset.id,
+        idNumber: existingAsset.idNumber,
+        companyId: existingAsset.companyId,
+      })
 
       return {
         isValid: false,
         error: "This ID number is already assigned to another driver",
-        existingAsset: {
-          ...existingAsset,
-          id: snapshot.docs[0].id,
-        },
+        existingAsset,
       }
     } catch (error) {
       console.error("Error validating ID number:", error)

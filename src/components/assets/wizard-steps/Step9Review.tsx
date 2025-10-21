@@ -4,7 +4,7 @@ import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { AssetInductionState } from "@/types/asset-types"
-import { ArrowLeft, Check, Edit } from "lucide-react"
+import { ArrowLeft, Check } from "lucide-react"
 import { useSignals } from "@preact/signals-react/runtime"
 import { data as globalData } from "@/services/data.service"
 import { AssetService } from "@/services/asset.service"
@@ -15,10 +15,9 @@ interface Step9Props {
   state: Partial<AssetInductionState>
   onComplete: () => void
   onPrev: () => void
-  onEdit: (step: number) => void
 }
 
-export function Step9Review({ state, onComplete, onPrev, onEdit }: Step9Props) {
+export function Step9Review({ state, onComplete, onPrev }: Step9Props) {
   useSignals()
   const companies = globalData.companies.value
   const groups = globalData.groups.value
@@ -72,6 +71,11 @@ export function Step9Review({ state, onComplete, onPrev, onEdit }: Step9Props) {
     setIsSubmitting(true)
 
     try {
+      console.log("💾 Creating asset with following data:")
+      console.log("  Company ID:", state.companyId)
+      console.log("  Parsed Data:", state.parsedData)
+      console.log("  Optional Fields:", { fleetNumber: state.fleetNumber, groupId: state.groupId })
+
       // Create the asset
       await AssetService.create(
         state.parsedData,
@@ -113,29 +117,21 @@ export function Step9Review({ state, onComplete, onPrev, onEdit }: Step9Props) {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-muted-foreground mb-4">Review all information before submitting. You can edit any section by clicking the Edit button.</p>
+        <p className="text-muted-foreground mb-4">Review all information before submitting. Use the Previous button if you need to make any changes.</p>
       </div>
 
       {/* Company Info */}
       <div className="p-4 border rounded-lg">
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2">
           <h3 className="font-semibold">Company</h3>
-          <Button variant="ghost" size="sm" onClick={() => onEdit(1)}>
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
-          </Button>
         </div>
         <p className="text-sm text-muted-foreground">{selectedCompany?.name}</p>
       </div>
 
       {/* Asset Type */}
       <div className="p-4 border rounded-lg">
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2">
           <h3 className="font-semibold">Asset Type</h3>
-          <Button variant="ghost" size="sm" onClick={() => onEdit(6)}>
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
-          </Button>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-2xl">{getAssetIcon(state.type || "")}</span>
@@ -145,24 +141,16 @@ export function Step9Review({ state, onComplete, onPrev, onEdit }: Step9Props) {
 
       {/* QR Code */}
       <div className="p-4 border rounded-lg">
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2">
           <h3 className="font-semibold">QR Code</h3>
-          <Button variant="ghost" size="sm" onClick={() => onEdit(2)}>
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
-          </Button>
         </div>
         <p className="text-sm font-mono text-muted-foreground">{state.firstQRCode}</p>
       </div>
 
       {/* Extracted Fields */}
       <div className="p-4 border rounded-lg">
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2">
           <h3 className="font-semibold">Details</h3>
-          <Button variant="ghost" size="sm" onClick={() => onEdit(7)}>
-            <Edit className="h-4 w-4 mr-1" />
-            Edit
-          </Button>
         </div>
         <div className="space-y-2 text-sm">
           {state.type === "driver" ? (
@@ -232,12 +220,8 @@ export function Step9Review({ state, onComplete, onPrev, onEdit }: Step9Props) {
       {/* Optional Fields */}
       {(state.fleetNumber || state.groupId) && (
         <div className="p-4 border rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold">Optional Fields</h3>
-            <Button variant="ghost" size="sm" onClick={() => onEdit(8)}>
-              <Edit className="h-4 w-4 mr-1" />
-              Edit
-            </Button>
+          <div className="mb-2">
+            <h3 className="font-semibold">Additional Information</h3>
           </div>
           <div className="space-y-2 text-sm">
             {state.fleetNumber && (
@@ -249,7 +233,7 @@ export function Step9Review({ state, onComplete, onPrev, onEdit }: Step9Props) {
             {state.groupId && (
               <div className="grid grid-cols-2 gap-2">
                 <span className="text-muted-foreground">{selectedCompany?.systemSettings?.transporterGroupLabel || "Group"}:</span>
-                <span>{selectedGroup?.name}</span>
+                <span>{state.groupId}</span>
               </div>
             )}
           </div>

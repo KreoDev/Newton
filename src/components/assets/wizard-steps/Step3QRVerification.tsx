@@ -17,6 +17,15 @@ interface Step3Props {
   onError: () => void
 }
 
+/**
+ * Normalize barcode/QR code by removing all non-alphanumeric characters except %
+ * This handles scanner issues where extra characters might be added
+ * Based on NewtonDemo: str.replace(/[^a-zA-Z0-9%]/g, "")
+ */
+function normalize(str: string): string {
+  return str.replace(/[^a-zA-Z0-9%]/g, "")
+}
+
 export function Step3QRVerification({ state, updateState, onNext, onPrev, onError }: Step3Props) {
   const [qrCode, setQrCode] = useState("")
   const [error, setError] = useState("")
@@ -56,7 +65,16 @@ export function Step3QRVerification({ state, updateState, onNext, onPrev, onErro
   useEffect(() => {
     // Check if codes match and auto-advance
     if (qrCode && state.firstQRCode) {
-      if (qrCode.trim() === state.firstQRCode.trim()) {
+      // Normalize both scans to handle scanner issues (extra spaces, newlines, etc)
+      const normalizedScan1 = normalize(state.firstQRCode)
+      const normalizedScan2 = normalize(qrCode)
+
+      console.log("Step3: Comparing QR codes")
+      console.log("  First (normalized):", normalizedScan1.substring(0, 30) + "...")
+      console.log("  Second (normalized):", normalizedScan2.substring(0, 30) + "...")
+      console.log("  Match:", normalizedScan1 === normalizedScan2)
+
+      if (normalizedScan1 === normalizedScan2) {
         setIsMatch(true)
         setError("")
         // Auto-advance on match
@@ -67,13 +85,28 @@ export function Step3QRVerification({ state, updateState, onNext, onPrev, onErro
       } else {
         setIsMatch(false)
         setError("QR codes do not match")
-        toast.error("QR codes do not match. Please try again.")
+        toast.error("QR codes do not match. Please scan again.")
+
+        // Clear BOTH scans and go back to Step 2
         setTimeout(() => {
+          updateState({
+            firstQRCode: undefined,
+            secondQRCode: undefined
+          })
           onError() // Return to Step 2
         }, 1500)
       }
     }
   }, [qrCode, state.firstQRCode])
+
+  const handlePrevious = () => {
+    // Clear both QR codes when going back
+    updateState({
+      firstQRCode: undefined,
+      secondQRCode: undefined
+    })
+    onPrev()
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -135,7 +168,7 @@ export function Step3QRVerification({ state, updateState, onNext, onPrev, onErro
       )}
 
       <div className="flex justify-start pt-4">
-        <Button variant="outline" onClick={onPrev}>
+        <Button variant="outline" onClick={handlePrevious}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Previous
         </Button>

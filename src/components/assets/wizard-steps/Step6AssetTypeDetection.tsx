@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import type { AssetInductionState, ParsedAssetData } from "@/types/asset-types"
-import { ArrowRight, ArrowLeft, CheckCircle } from "lucide-react"
+import { ArrowLeft, CheckCircle } from "lucide-react"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import { toast } from "sonner"
 
@@ -17,13 +17,14 @@ interface Step6Props {
 /**
  * Determine vehicle type from description
  * Based on Android app logic (scan.service.ts:422-428)
+ * Enhanced to handle variations: "Trucktractor", "Truck tractor", "truck tractor", etc.
  */
 function determineVehicleType(description: string): "truck" | "trailer" | null {
   if (!description) return null
-  const desc = description.toLowerCase()
+  const desc = description.toLowerCase().replace(/\s+/g, "") // Remove all spaces for flexible matching
 
-  // Check for truck indicators
-  if (desc.includes("truck tractor") || desc.includes("voorspanmotor")) {
+  // Check for truck indicators (handle with/without spaces)
+  if (desc.includes("trucktractor") || desc.includes("voorspanmotor")) {
     return "truck"
   }
 
@@ -38,26 +39,38 @@ function determineVehicleType(description: string): "truck" | "trailer" | null {
 export function Step6AssetTypeDetection({ state, updateState, onNext, onPrev }: Step6Props) {
   const [detectedType, setDetectedType] = useState<"truck" | "trailer" | "driver" | null>(null)
   const [parsedData, setParsedData] = useState<any>(null)
-  const [isAutoDetected, setIsAutoDetected] = useState(false)
+  const [error, setError] = useState<string>("")
 
   useEffect(() => {
-    // Parse the barcode data and automatically detect type
-    if (state.firstBarcodeData) {
+    const detectAndValidate = async () => {
+      // Only run detection once when component mounts
+      if (!state.firstBarcodeData) {
+        setError("No barcode data found")
+        return
+      }
+
+      console.log("Step6: Detecting asset type from barcode:", state.firstBarcodeData?.substring(0, 50))
+
       // Try vehicle first
       const vehicleResult = AssetFieldMapper.parseVehicleDisk(state.firstBarcodeData)
+
       if (!("error" in vehicleResult)) {
+        console.log("Step6: Parsed as vehicle, description:", vehicleResult.description)
+
         // Automatically determine vehicle type from description
         const vehicleType = determineVehicleType(vehicleResult.description || "")
 
         if (vehicleType) {
+          console.log("Step6: Detected vehicle type:", vehicleType)
+
+          // Duplicate checking is done in Step4, so just detect and proceed
           setDetectedType(vehicleType)
           setParsedData({ vehicleInfo: vehicleResult })
-          setIsAutoDetected(true)
 
           // Auto-advance after detection
           const parsedAssetData: ParsedAssetData = {
             type: vehicleType,
-            qrCode: state.firstQRCode || "",
+            ntCode: state.firstQRCode || "", // Android app field name
             vehicleInfo: vehicleResult,
           }
 
@@ -66,27 +79,35 @@ export function Step6AssetTypeDetection({ state, updateState, onNext, onPrev }: 
             parsedData: parsedAssetData,
           })
 
+          // Auto-advance with slight delay
           setTimeout(() => {
+            console.log("Step6: Auto-advancing to next step")
             onNext()
-          }, 800) // Slightly longer delay to show the detection
+          }, 500)
         } else {
-          toast.error("Could not determine vehicle type from license disk. Description: " + vehicleResult.description)
-          setDetectedType(null)
+          const errorMsg = `Could not determine vehicle type. Description: "${vehicleResult.description}". Please ensure you are scanning a Truck Tractor or Tipper license disk.`
+          console.error("Step6:", errorMsg)
+          setError(errorMsg)
+          toast.error("Invalid vehicle type detected")
         }
         return
       }
 
       // Try driver
+      console.log("Step6: Not a vehicle, trying driver license...")
       const driverResult = AssetFieldMapper.parseDriverLicense(state.firstBarcodeData)
+
       if (!("error" in driverResult)) {
+        console.log("Step6: Detected as driver")
+
+        // Duplicate checking is done in Step4, so just detect and proceed
         setDetectedType("driver")
         setParsedData({ personInfo: driverResult.person, licenceInfo: driverResult.licence })
-        setIsAutoDetected(true)
 
         // Auto-advance after detection
         const parsedAssetData: ParsedAssetData = {
           type: "driver",
-          qrCode: state.firstQRCode || "",
+          ntCode: state.firstQRCode || "", // Android app field name
           personInfo: driverResult.person,
           licenceInfo: driverResult.licence,
         }
@@ -96,32 +117,23 @@ export function Step6AssetTypeDetection({ state, updateState, onNext, onPrev }: 
           parsedData: parsedAssetData,
         })
 
+        // Auto-advance with slight delay
         setTimeout(() => {
+          console.log("Step6: Auto-advancing to next step")
           onNext()
-        }, 800) // Slightly longer delay to show the detection
+        }, 500)
+        return
       }
-    }
-  }, [state.firstBarcodeData])
 
-  const handleNext = () => {
-    if (!detectedType) {
-      toast.error("Asset type could not be detected")
-      return
-    }
-
-    const parsedAssetData = {
-      assetType: detectedType,
-      qrCode: state.firstQRCode || "",
-      ...parsedData,
+      // Both failed
+      const errorMsg = "Could not parse barcode as vehicle or driver license"
+      console.error("Step6:", errorMsg, driverResult)
+      setError(errorMsg)
+      toast.error(errorMsg)
     }
 
-    updateState({
-      type: detectedType,
-      parsedData: parsedAssetData,
-    })
-
-    onNext()
-  }
+    detectAndValidate()
+  }, []) // Run once on mount
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -149,40 +161,54 @@ export function Step6AssetTypeDetection({ state, updateState, onNext, onPrev }: 
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-muted-foreground mb-4">
-          Based on the scanned barcode, we&apos;ve automatically detected the asset type.
-        </p>
-      </div>
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <p className="text-muted-foreground mb-4">
+            There was an error detecting the asset type.
+          </p>
+        </div>
 
-      {isAutoDetected && detectedType ? (
-        <div className="p-6 bg-green-500/10 border-2 border-green-500/30 rounded-lg">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0">
-              <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
-                <span className="text-4xl">{getTypeIcon(detectedType)}</span>
-              </div>
+        <div className="p-6 bg-red-500/10 border-2 border-red-500/30 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div className="text-red-600 dark:text-red-400">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                <h3 className="text-lg font-semibold text-green-700 dark:text-green-300">Asset Type Detected</h3>
-              </div>
-              <p className="text-lg font-medium mb-1 capitalize">{getTypeLabel(detectedType)}</p>
-              <p className="text-sm text-muted-foreground">
-                The asset type was automatically determined from the barcode data.
-              </p>
+            <div>
+              <p className="font-medium text-red-700 dark:text-red-300">Detection Failed</p>
+              <p className="text-sm text-muted-foreground mt-1">{error}</p>
             </div>
           </div>
         </div>
-      ) : (
+
+        <div className="flex justify-start pt-4">
+          <Button variant="outline" onClick={onPrev}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Previous (Re-scan)
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!detectedType) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <p className="text-muted-foreground mb-4">
+            Based on the scanned barcode, we&apos;re automatically detecting the asset type.
+          </p>
+        </div>
+
         <div className="p-6 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-lg">
           <div className="flex items-center gap-3">
             <div className="text-yellow-600 dark:text-yellow-400">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             </div>
             <div>
@@ -191,7 +217,44 @@ export function Step6AssetTypeDetection({ state, updateState, onNext, onPrev }: 
             </div>
           </div>
         </div>
-      )}
+
+        <div className="flex justify-start pt-4">
+          <Button variant="outline" onClick={onPrev}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Previous
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="text-muted-foreground mb-4">
+          Based on the scanned barcode, we&apos;ve automatically detected the asset type.
+        </p>
+      </div>
+
+      <div className="p-6 bg-green-500/10 border-2 border-green-500/30 rounded-lg">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
+              <span className="text-4xl">{getTypeIcon(detectedType)}</span>
+            </div>
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <h3 className="text-lg font-semibold text-green-700 dark:text-green-300">Asset Type Detected</h3>
+            </div>
+            <p className="text-lg font-medium mb-1 capitalize">{getTypeLabel(detectedType)}</p>
+            <p className="text-sm text-muted-foreground">
+              The asset type was automatically determined from the barcode data. Advancing...
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="flex justify-start pt-4">
         <Button variant="outline" onClick={onPrev}>

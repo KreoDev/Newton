@@ -974,7 +974,7 @@ async function seedAssets(sendProgress: (data: ProgressData) => void) {
   let batchCount = 0
 
   for (const asset of assets) {
-    const { id, registration, licenceNumber, ntCode, ...data } = asset
+    const { id, registration, licenceNumber, ntCode, idNumber, ...data } = asset
 
     // Transform Android app field names to web app schema
     const transformedData: any = {
@@ -988,21 +988,23 @@ async function seedAssets(sendProgress: (data: ProgressData) => void) {
       isActive: data.isActive ?? true,
     }
 
-    // Map registration -> registrationNumber for vehicles
+    // Map Android app field names (registration, idNumber, licenceNumber, ntCode)
     if (registration) {
-      transformedData.registrationNumber = registration
+      transformedData.registration = registration // Android app field name
     }
 
-    // Map licenceNumber -> licenseNumber for drivers (British to American spelling)
+    if (idNumber) {
+      transformedData.idNumber = idNumber // Android app field name
+    }
+
     if (licenceNumber) {
-      transformedData.licenseNumber = licenceNumber
+      transformedData.licenceNumber = licenceNumber // Android app field name (British spelling)
     }
 
-    // Map ntCode -> qrCode (Newton QR identifier - NaTIS transaction code)
+    // Map ntCode (Newton QR identifier - NaTIS transaction code)
     // The ntCode is scanned twice during induction (firstQRCode, secondQRCode) for verification
     if (ntCode) {
-      transformedData.qrCode = ntCode.trim()
-      transformedData.ntCode = ntCode.trim()
+      transformedData.ntCode = ntCode.trim() // Android app field name
     }
 
     batch.set(adminDb.collection("assets").doc(id), transformedData)

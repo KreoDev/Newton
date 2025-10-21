@@ -16,8 +16,9 @@ import { SiteFormModal } from "@/components/sites/SiteFormModal"
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { collection, query, where, updateDoc, doc, deleteDoc, getDocs } from "firebase/firestore"
+import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { updateDocument, deleteDocument } from "@/lib/firebase-utils"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
 
@@ -46,9 +47,8 @@ export default function SitesPage() {
 
   const toggleSiteStatus = async (site: Site) => {
     try {
-      await updateDoc(doc(db, "sites", site.id), {
+      await updateDocument("sites", site.id, {
         isActive: !site.isActive,
-        updatedAt: Date.now(),
       })
       showSuccess(
         `Site ${site.isActive ? "Deactivated" : "Activated"}`,
@@ -87,8 +87,7 @@ export default function SitesPage() {
         `Are you sure you want to delete "${site.name}"? This action cannot be undone.`,
         async () => {
           try {
-            await deleteDoc(doc(db, "sites", site.id))
-            showSuccess("Site Deleted", `${site.name} has been permanently removed.`)
+            await deleteDocument("sites", site.id, "Site deleted successfully")
           } catch (error) {
             console.error("Error deleting site:", error)
             showError("Failed to Delete Site", error instanceof Error ? error.message : "An unexpected error occurred.")

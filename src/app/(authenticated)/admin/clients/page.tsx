@@ -17,8 +17,9 @@ import { ClientFormModal } from "@/components/clients/ClientFormModal"
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { collection, query, where, updateDoc, doc, deleteDoc, getDocs } from "firebase/firestore"
+import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { updateDocument, deleteDocument } from "@/lib/firebase-utils"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
 
@@ -47,9 +48,8 @@ export default function ClientsPage() {
 
   const toggleClientStatus = async (client: Client) => {
     try {
-      await updateDoc(doc(db, "clients", client.id), {
+      await updateDocument("clients", client.id, {
         isActive: !client.isActive,
-        updatedAt: Date.now(),
       })
       showSuccess(
         `Client ${client.isActive ? "Deactivated" : "Activated"}`,
@@ -82,8 +82,7 @@ export default function ClientsPage() {
         `Are you sure you want to delete "${client.name}"? This action cannot be undone.`,
         async () => {
           try {
-            await deleteDoc(doc(db, "clients", client.id))
-            showSuccess("Client Deleted", `${client.name} has been permanently removed.`)
+            await deleteDocument("clients", client.id, "Client deleted successfully")
           } catch (error) {
             console.error("Error deleting client:", error)
             showError("Failed to Delete Client", error instanceof Error ? error.message : "An unexpected error occurred.")

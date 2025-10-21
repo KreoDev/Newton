@@ -17,8 +17,9 @@ import { RoleFormModal } from "@/components/roles/RoleFormModal"
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { collection, query, where, updateDoc, doc, deleteDoc, getDocs } from "firebase/firestore"
+import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { updateDocument, deleteDocument } from "@/lib/firebase-utils"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
 
@@ -47,9 +48,8 @@ export default function RolesPage() {
 
   const toggleRoleStatus = async (role: Role) => {
     try {
-      await updateDoc(doc(db, "roles", role.id), {
+      await updateDocument("roles", role.id, {
         isActive: !role.isActive,
-        updatedAt: Date.now(),
       })
       showSuccess(
         `Role ${role.isActive ? "Deactivated" : "Activated"}`,
@@ -75,9 +75,8 @@ export default function RolesPage() {
         ? currentHiddenCompanies.filter(id => id !== user.companyId) // Remove from hidden
         : [...currentHiddenCompanies, user.companyId] // Add to hidden
 
-      await updateDoc(doc(db, "roles", role.id), {
+      await updateDocument("roles", role.id, {
         hiddenForCompanies: updatedHiddenCompanies,
-        updatedAt: Date.now(),
       })
 
       showSuccess(
@@ -110,8 +109,7 @@ export default function RolesPage() {
         `Are you sure you want to delete "${role.name}"? This action cannot be undone.`,
         async () => {
           try {
-            await deleteDoc(doc(db, "roles", role.id))
-            showSuccess("Role Deleted", `${role.name} has been permanently removed.`)
+            await deleteDocument("roles", role.id, "Role deleted successfully")
           } catch (error) {
             console.error("Error deleting role:", error)
             showError("Failed to Delete Role", error instanceof Error ? error.message : "An unexpected error occurred.")

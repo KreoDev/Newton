@@ -47,7 +47,11 @@ class Data {
     // Companies: Load ALL (including inactive) for admin pages
     const companiesListener = createCollectionListener<Company>("companies", this.companies, {
       companyScoped: false,
-      onFirstLoad: () => this.markCollectionLoaded("companies"),
+      onFirstLoad: () => {
+        console.log("📊 Companies loaded:", this.companies.value.length, "companies")
+        console.log("Companies data:", this.companies.value.map(c => ({ id: c.id, name: c.name, type: c.companyType })))
+        this.markCollectionLoaded("companies")
+      },
     })
 
     // Roles: GLOBAL - not company-scoped (shared across all companies)

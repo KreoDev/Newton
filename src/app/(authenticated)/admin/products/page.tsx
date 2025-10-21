@@ -16,8 +16,9 @@ import { ProductFormModal } from "@/components/products/ProductFormModal"
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { collection, query, where, updateDoc, doc, deleteDoc, getDocs } from "firebase/firestore"
+import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { updateDocument, deleteDocument } from "@/lib/firebase-utils"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
 
@@ -46,9 +47,8 @@ export default function ProductsPage() {
 
   const toggleProductStatus = async (product: Product) => {
     try {
-      await updateDoc(doc(db, "products", product.id), {
+      await updateDocument("products", product.id, {
         isActive: !product.isActive,
-        updatedAt: Date.now(),
       })
       showSuccess(
         `Product ${product.isActive ? "Deactivated" : "Activated"}`,
@@ -79,8 +79,7 @@ export default function ProductsPage() {
         `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
         async () => {
           try {
-            await deleteDoc(doc(db, "products", product.id))
-            showSuccess("Product Deleted", `${product.name} has been permanently removed.`)
+            await deleteDocument("products", product.id, "Product deleted successfully")
           } catch (error) {
             console.error("Error deleting product:", error)
             showError("Failed to Delete Product", error instanceof Error ? error.message : "An unexpected error occurred.")

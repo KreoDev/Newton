@@ -25,8 +25,10 @@ export function Step2QRScan({ state, updateState, onNext, onPrev }: Step2Props) 
 
   // Handle scans coming from onscan.js
   const handleScannerScan = useCallback((scannedValue: string) => {
+    console.log("Step2: New QR code scanned, resetting state")
     setQrCode(scannedValue)
     setError("")
+    setIsValidating(false) // Reset validating state for new scan
   }, [])
 
   // Attach onScan listener
@@ -67,10 +69,13 @@ export function Step2QRScan({ state, updateState, onNext, onPrev }: Step2Props) 
     setError("")
 
     try {
-      // Validate NT code format and uniqueness
-      const validation = await AssetService.validateNTCode(qrCode.trim())
+      // Validate NT code format and uniqueness within the company (checks in-memory assets)
+      console.log("Step2: Validating NT code:", qrCode.trim())
+      const validation = AssetService.validateNTCode(qrCode.trim())
+      console.log("Step2: Validation result:", validation)
 
       if (!validation.isValid) {
+        console.log("Step2: Duplicate or invalid NT code detected, showing error")
         setError(validation.error || "Invalid QR code")
         toast.error(validation.error || "Invalid QR code")
         setIsValidating(false)
@@ -78,12 +83,13 @@ export function Step2QRScan({ state, updateState, onNext, onPrev }: Step2Props) 
       }
 
       // QR code is valid and unique, auto-advance
+      console.log("Step2: NT code is valid and unique, proceeding")
       updateState({ firstQRCode: qrCode.trim() })
       setTimeout(() => {
         onNext()
       }, 300)
     } catch (error) {
-      console.error("Error validating QR code:", error)
+      console.error("Step2: Error validating QR code:", error)
       setError("Failed to validate QR code. Please try again.")
       toast.error("Validation failed")
       setIsValidating(false)

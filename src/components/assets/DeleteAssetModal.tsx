@@ -137,7 +137,7 @@ export function DeleteAssetModal({ asset, isOpen, onClose, onSuccess, onSwitchTo
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm font-medium">Asset to Delete:</p>
               <p className="text-sm text-muted-foreground capitalize">
-                {asset.type}: {asset.registration || asset.registrationNumber || asset.licenseNumber || asset.licenceNumber}
+                {asset.type}: {asset.registration || asset.licenceNumber || "Unknown"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">QR: {asset.ntCode}</p>
             </div>

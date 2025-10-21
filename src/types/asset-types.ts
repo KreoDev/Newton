@@ -41,7 +41,7 @@ export interface LicenceInformation {
 // Combined parsed data from barcode scans
 export interface ParsedAssetData {
   type: "truck" | "trailer" | "driver" // Matches Android app field name
-  qrCode: string
+  ntCode: string // Android app field name (Newton QR code)
   vehicleInfo?: VehicleInformation
   personInfo?: PersonInformation
   licenceInfo?: LicenceInformation

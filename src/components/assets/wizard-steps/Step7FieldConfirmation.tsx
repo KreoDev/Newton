@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,10 +21,11 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
   const [fields, setFields] = useState<any>({})
   const [expiryInfo, setExpiryInfo] = useState<any>(null)
   const [isExpired, setIsExpired] = useState(false)
+  const hasAutoAdvanced = useRef(false) // Track if we've already auto-advanced to prevent infinite loop
 
   useEffect(() => {
     // Extract and populate fields from parsed data
-    if (state.parsedData) {
+    if (state.parsedData && !hasAutoAdvanced.current) {
       const data = state.parsedData
 
       if (state.type === "driver") {
@@ -52,6 +53,7 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
 
           // Auto-advance if not expired
           if (info.status !== "expired") {
+            hasAutoAdvanced.current = true // Mark that we're auto-advancing
             autoAdvance(driverFields)
           }
         }
@@ -77,6 +79,7 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
 
           // Auto-advance if not expired
           if (info.status !== "expired") {
+            hasAutoAdvanced.current = true // Mark that we're auto-advancing
             autoAdvance(vehicleFields)
           }
         }
@@ -89,7 +92,7 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
     const updatedParsedData: any = {
       ...state.parsedData,
       type: state.type!,
-      qrCode: state.firstQRCode || "",
+      ntCode: state.firstQRCode || "", // Android app field name
       ...(state.type === "driver"
         ? {
             personInfo: {
@@ -141,7 +144,7 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
     const updatedParsedData: any = {
       ...state.parsedData,
       type: state.type!,
-      qrCode: state.firstQRCode || "",
+      ntCode: state.firstQRCode || "", // Android app field name
       ...(state.type === "driver"
         ? {
             personInfo: {

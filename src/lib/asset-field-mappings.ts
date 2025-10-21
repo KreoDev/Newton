@@ -284,9 +284,16 @@ export class AssetFieldMapper {
       groupId?: string
     }
   ): any {
+    // Helper function to remove undefined values
+    const removeUndefined = (obj: any): any => {
+      return Object.fromEntries(
+        Object.entries(obj).filter(([_, value]) => value !== undefined)
+      )
+    }
+
     const baseData = {
       type: parsedData.type,
-      qrCode: parsedData.qrCode,
+      ntCode: parsedData.ntCode, // Android app field
       companyId,
       isActive: true,
       fleetNumber: additionalFields.fleetNumber || null,
@@ -294,31 +301,32 @@ export class AssetFieldMapper {
     }
 
     if (parsedData.type === "driver" && parsedData.personInfo && parsedData.licenceInfo) {
-      return {
+      return removeUndefined({
         ...baseData,
         driverLicenseData: JSON.stringify({
           person: parsedData.personInfo,
           licence: parsedData.licenceInfo,
         }),
-        licenseNumber: parsedData.licenceInfo.licenceNumber,
+        idNumber: parsedData.personInfo.idNumber, // Android app field
+        licenceNumber: parsedData.licenceInfo.licenceNumber, // Android app field (British spelling)
         licenseExpiryDate: parsedData.licenceInfo.expiryDate,
         // Additional expo-sadl driver fields
         driverNationality: parsedData.personInfo.nationality,
         driverCountryOfBirth: parsedData.personInfo.countryOfBirth,
         driverSecurityCode: parsedData.personInfo.securityCode,
         driverCitizenshipStatus: parsedData.personInfo.citizenshipStatus,
-      }
+      })
     }
 
     if ((parsedData.type === "truck" || parsedData.type === "trailer") && parsedData.vehicleInfo) {
-      return {
+      return removeUndefined({
         ...baseData,
         vehicleDiskData: JSON.stringify(parsedData.vehicleInfo),
-        registrationNumber: parsedData.vehicleInfo.registration,
+        registration: parsedData.vehicleInfo.registration, // Android app field
         licenseExpiryDate: parsedData.vehicleInfo.expiryDate,
         // Additional expo-sadl vehicle field
         vehicleDescription: parsedData.vehicleInfo.description,
-      }
+      })
     }
 
     return baseData

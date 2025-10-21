@@ -9,6 +9,7 @@ import type { AssetInductionState } from "@/types/asset-types"
 import { ArrowRight, ArrowLeft } from "lucide-react"
 import { useSignals } from "@preact/signals-react/runtime"
 import { data as globalData } from "@/services/data.service"
+import { toast } from "sonner"
 
 interface Step8Props {
   state: Partial<AssetInductionState>
@@ -20,7 +21,6 @@ interface Step8Props {
 export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step8Props) {
   useSignals()
   const companies = globalData.companies.value
-  const groups = globalData.groups.value
 
   const [fleetNumber, setFleetNumber] = useState(state.fleetNumber || "")
   const [groupId, setGroupId] = useState(state.groupId || "")
@@ -32,13 +32,24 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
   const fleetNumberEnabled = selectedCompany?.systemSettings?.fleetNumberEnabled ?? false
   const groupEnabled = selectedCompany?.systemSettings?.transporterGroupEnabled ?? false
 
-  // Filter groups for the selected company
-  const companyGroups = useMemo(() => {
-    return groups.filter(g => g.companyId === state.companyId && g.isActive)
-  }, [groups, state.companyId])
+  // Get group options from company systemSettings
+  const groupOptions = useMemo(() => {
+    return selectedCompany?.systemSettings?.groupOptions || []
+  }, [selectedCompany])
 
-  const handleSkip = () => {
-    // Update state with any filled values and proceed
+  const handleContinue = () => {
+    // Validate required fields
+    if (fleetNumberEnabled && !fleetNumber.trim()) {
+      toast.error(`${selectedCompany?.systemSettings?.fleetNumberLabel || "Fleet Number"} is required`)
+      return
+    }
+
+    if (groupEnabled && !groupId) {
+      toast.error(`${selectedCompany?.systemSettings?.transporterGroupLabel || "Group"} is required`)
+      return
+    }
+
+    // Update state with values and proceed
     updateState({
       fleetNumber: fleetNumber.trim() || undefined,
       groupId: groupId || undefined,
@@ -49,7 +60,11 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
   // If both fields are disabled, auto-skip
   useEffect(() => {
     if (!fleetNumberEnabled && !groupEnabled) {
-      handleSkip()
+      updateState({
+        fleetNumber: undefined,
+        groupId: undefined,
+      })
+      onNext()
     }
   }, [fleetNumberEnabled, groupEnabled])
 
@@ -64,13 +79,13 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-muted-foreground mb-4">Add optional information to this asset. These fields are configured in the company&apos;s system settings.</p>
+        <p className="text-muted-foreground mb-4">Complete the required information for this asset. These fields are configured in the company&apos;s system settings.</p>
       </div>
 
       {fleetNumberEnabled && (
         <div className="space-y-2">
           <Label htmlFor="fleetNumber">
-            {selectedCompany?.systemSettings?.fleetNumberLabel || "Fleet Number"}
+            {selectedCompany?.systemSettings?.fleetNumberLabel || "Fleet Number"} <span className="text-destructive">*</span>
           </Label>
           <Input
             id="fleetNumber"
@@ -78,30 +93,30 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
             placeholder={`Enter ${selectedCompany?.systemSettings?.fleetNumberLabel?.toLowerCase() || "fleet number"}...`}
             value={fleetNumber}
             onChange={e => setFleetNumber(e.target.value)}
+            required
           />
-          <p className="text-xs text-muted-foreground">Optional: Internal fleet identifier for this asset</p>
+          <p className="text-xs text-muted-foreground">Required: Internal fleet identifier for this asset</p>
         </div>
       )}
 
       {groupEnabled && (
         <div className="space-y-2">
           <Label htmlFor="group">
-            {selectedCompany?.systemSettings?.transporterGroupLabel || "Transporter Group"}
+            {selectedCompany?.systemSettings?.transporterGroupLabel || "Group"} <span className="text-destructive">*</span>
           </Label>
-          <Select value={groupId} onValueChange={setGroupId}>
+          <Select value={groupId || undefined} onValueChange={setGroupId} required>
             <SelectTrigger id="group">
-              <SelectValue placeholder="Select a group (optional)" />
+              <SelectValue placeholder="Select a group..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
-              {companyGroups.map(group => (
-                <SelectItem key={group.id} value={group.id}>
-                  {group.name}
+              {groupOptions.map((groupName, index) => (
+                <SelectItem key={index} value={groupName}>
+                  {groupName}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">Optional: Assign this asset to a transporter group</p>
+          <p className="text-xs text-muted-foreground">Required: Assign this asset to a group</p>
         </div>
       )}
 
@@ -111,13 +126,13 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
           {fleetNumberEnabled && (
             <div className="grid grid-cols-2 gap-2">
               <span className="text-muted-foreground">{selectedCompany?.systemSettings?.fleetNumberLabel || "Fleet Number"}:</span>
-              <span>{fleetNumber || "Not set"}</span>
+              <span className={!fleetNumber ? "text-destructive" : ""}>{fleetNumber || "Required"}</span>
             </div>
           )}
           {groupEnabled && (
             <div className="grid grid-cols-2 gap-2">
               <span className="text-muted-foreground">{selectedCompany?.systemSettings?.transporterGroupLabel || "Group"}:</span>
-              <span>{groupId ? companyGroups.find(g => g.id === groupId)?.name : "Not set"}</span>
+              <span className={!groupId ? "text-destructive" : ""}>{groupId || "Required"}</span>
             </div>
           )}
         </div>
@@ -128,7 +143,7 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
           <ArrowLeft className="mr-2 h-4 w-4" />
           Previous
         </Button>
-        <Button onClick={handleSkip}>
+        <Button onClick={handleContinue}>
           Continue
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>

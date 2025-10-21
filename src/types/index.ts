@@ -190,16 +190,14 @@ export interface Asset extends Timestamped, CompanyScoped {
   driverLicenseData?: string // JSON string containing full driver license barcode data
 
   // Common fields (used for display and filtering)
-  registration?: string // Vehicle registration (for trucks/trailers) - primary field from data
-  registrationNumber?: string // Vehicle registration (for trucks/trailers) - alias for compatibility
-  licenseNumber?: string // Driver license number (for drivers)
+  registration?: string // Vehicle registration (for trucks/trailers) - Android app field name
+  licenceNumber?: string // Driver license number (for drivers) - Android app field name (British spelling)
   licenseExpiryDate?: string // Expiry date for license/disk
   fleetNumber?: string // Optional fleet number
   groupId?: string // Optional group assignment
 
   // Driver-specific fields (from expo-sadl DecodedLicenseInfo)
-  idNumber?: string // SA ID number
-  licenceNumber?: string // License number (duplicate of licenseNumber for compatibility)
+  idNumber?: string // SA ID number - Android app field name
   issueDate?: string // License issue date
   expiryDate?: string // License expiry date (duplicate of licenseExpiryDate for compatibility)
   licenceType?: string // e.g., "EB", "C1", "EC"
@@ -227,7 +225,6 @@ export interface Asset extends Timestamped, CompanyScoped {
   expired?: boolean // Whether license is expired
 
   // Vehicle-specific fields (from barcode scan)
-  vehicleReg?: string // Vehicle registration (duplicate of registrationNumber for compatibility)
   vehicleDescription?: string // Vehicle type description (e.g., "Sedan (Closed Top)", "Truck")
   make?: string // Vehicle make
   model?: string // Vehicle model
