@@ -542,7 +542,53 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   }
 
   const removeGroupOption = (option: string) => {
+    // Check if this group is in use by active assets
+    if (isGroupNameInUse(option)) {
+      showError(
+        "Cannot Delete Group",
+        `The group "${option}" is currently assigned to active assets. Please mark it as inactive instead of deleting it.`
+      )
+      return
+    }
+
+    // Not in use - safe to delete
     setGroupOptions(groupOptions.filter(opt => opt !== option))
+  }
+
+  const toggleGroupInactive = (groupName: string) => {
+    if (inactiveGroups.includes(groupName)) {
+      // Mark as active (remove from inactive list)
+      setInactiveGroups(inactiveGroups.filter(g => g !== groupName))
+    } else {
+      // Mark as inactive (add to inactive list)
+      setInactiveGroups([...inactiveGroups, groupName])
+    }
+  }
+
+  const handleFleetNumberEnabledChange = (checked: boolean) => {
+    // If trying to disable and fleet numbers are in use, prevent it
+    if (!checked && fleetNumbersInUse) {
+      showError(
+        "Cannot Disable Fleet Numbers",
+        "Fleet numbers are currently assigned to active assets. You cannot disable this feature until all active assets with fleet numbers are marked as inactive."
+      )
+      return
+    }
+
+    setFleetNumberEnabled(checked)
+  }
+
+  const handleTransporterGroupEnabledChange = (checked: boolean) => {
+    // If trying to disable and groups are in use, prevent it
+    if (!checked && groupsInUse) {
+      showError(
+        "Cannot Disable Groups",
+        "Groups are currently assigned to active assets. You cannot disable this feature until all active assets with groups are marked as inactive."
+      )
+      return
+    }
+
+    setTransporterGroupEnabled(checked)
   }
 
   // Determine which tabs to show
@@ -850,7 +896,11 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
                 <fieldset disabled={viewOnly} className="space-y-4">
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="fleetNumberEnabled" checked={fleetNumberEnabled} onCheckedChange={checked => setFleetNumberEnabled(checked as boolean)} />
+                    <Checkbox
+                      id="fleetNumberEnabled"
+                      checked={fleetNumberEnabled}
+                      onCheckedChange={checked => handleFleetNumberEnabledChange(checked as boolean)}
+                    />
                     <Label htmlFor="fleetNumberEnabled" className="cursor-pointer">
                       Enable Fleet Number
                     </Label>
@@ -867,7 +917,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
                     <Checkbox
                       id="transporterGroupEnabled"
                       checked={transporterGroupEnabled}
-                      onCheckedChange={checked => setTransporterGroupEnabled(checked as boolean)}
+                      onCheckedChange={checked => handleTransporterGroupEnabledChange(checked as boolean)}
                     />
                     <Label htmlFor="transporterGroupEnabled" className="cursor-pointer">
                       Enable Transporter Group
@@ -910,19 +960,58 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
                         {/* List of added group options */}
                         {groupOptions.length > 0 && (
                           <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
-                            {groupOptions.map((option, index) => (
-                              <div key={index} className="flex items-center justify-between p-2 bg-accent/50 rounded-md">
-                                <span className="text-sm">{option}</span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeGroupOption(option)}
-                                  className="h-6 w-6 p-0">
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
+                            {groupOptions.map((option, index) => {
+                              const isInactive = inactiveGroups.includes(option)
+                              const isInUse = isGroupNameInUse(option)
+
+                              return (
+                                <div
+                                  key={index}
+                                  className={`flex items-center justify-between p-2 rounded-md ${
+                                    isInactive ? "bg-muted opacity-60" : "bg-accent/50"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm">{option}</span>
+                                    {isInactive && (
+                                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted-foreground/20 text-muted-foreground">
+                                        Inactive
+                                      </span>
+                                    )}
+                                    {isInUse && !isInactive && (
+                                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-700 dark:text-blue-300">
+                                        In Use
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-1">
+                                    {isInUse ? (
+                                      // If in use, show inactive toggle instead of delete
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => toggleGroupInactive(option)}
+                                        className="h-6 px-2 text-xs"
+                                      >
+                                        {isInactive ? "Activate" : "Deactivate"}
+                                      </Button>
+                                    ) : (
+                                      // Not in use - can delete
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeGroupOption(option)}
+                                        className="h-6 w-6 p-0"
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
                           </div>
                         )}
 

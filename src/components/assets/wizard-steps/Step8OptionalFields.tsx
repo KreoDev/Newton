@@ -35,8 +35,11 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
   const groupEnabled = (selectedCompany?.systemSettings?.transporterGroupEnabled ?? false) && state.type === "truck"
 
   // Get group options from company systemSettings (simple string array for transporters)
+  // Filter out inactive groups
   const groupOptions = useMemo(() => {
-    return selectedCompany?.systemSettings?.groupOptions || []
+    const allGroups = selectedCompany?.systemSettings?.groupOptions || []
+    const inactiveGroups = selectedCompany?.systemSettings?.inactiveGroups || []
+    return allGroups.filter(group => !inactiveGroups.includes(group))
   }, [selectedCompany])
 
   const handleContinue = () => {
