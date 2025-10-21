@@ -9,12 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Truck, X, User, FileText, Edit, Trash2 } from "lucide-react"
+import { Plus, Search, Truck, X, User, FileText, Trash2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import type { Asset } from "@/types"
+import { DeleteAssetModal } from "@/components/assets/DeleteAssetModal"
+import { InactivateAssetModal } from "@/components/assets/InactivateAssetModal"
 
 export default function AssetsPage() {
   useSignals()
@@ -41,6 +43,9 @@ export default function AssetsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<"all" | "truck" | "trailer" | "driver">("all")
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive" | "expired">("all")
+  const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [inactivateModalOpen, setInactivateModalOpen] = useState(false)
 
   // Helper function to get group name from groupId
   // For transporter companies: groupId is the group name itself (string from groupOptions)
@@ -270,7 +275,14 @@ export default function AssetsPage() {
                     <Button variant="ghost" size="sm" onClick={() => router.push(`/assets/${asset.id}`)} title="View asset details">
                       <FileText className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => {}} title="Delete asset">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setAssetToDelete(asset)
+                        setDeleteModalOpen(true)
+                      }}
+                      title="Delete asset">
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                     {getStatusBadge(asset)}
@@ -281,6 +293,44 @@ export default function AssetsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Modal */}
+      {assetToDelete && deleteModalOpen && (
+        <DeleteAssetModal
+          asset={assetToDelete}
+          isOpen={deleteModalOpen}
+          onClose={() => {
+            setDeleteModalOpen(false)
+            setAssetToDelete(null)
+          }}
+          onSuccess={() => {
+            setDeleteModalOpen(false)
+            setAssetToDelete(null)
+            // Assets will auto-update via globalData.assets signal
+          }}
+          onSwitchToInactivate={() => {
+            setDeleteModalOpen(false)
+            setInactivateModalOpen(true)
+          }}
+        />
+      )}
+
+      {/* Inactivate Modal */}
+      {assetToDelete && inactivateModalOpen && (
+        <InactivateAssetModal
+          asset={assetToDelete}
+          isOpen={inactivateModalOpen}
+          onClose={() => {
+            setInactivateModalOpen(false)
+            setAssetToDelete(null)
+          }}
+          onSuccess={() => {
+            setInactivateModalOpen(false)
+            setAssetToDelete(null)
+            // Assets will auto-update via globalData.assets signal
+          }}
+        />
+      )}
     </div>
   )
 }
