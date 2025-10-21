@@ -99,7 +99,11 @@ export default function AssetDetailsPage() {
   }
 
   const company = companies.find(c => c.id === asset?.companyId)
+
+  // For mine companies, groupId is a UUID (look up in Groups collection)
+  // For transporter/logistics companies, groupId is the group name itself (from groupOptions string array)
   const group = groups.find(g => g.id === asset?.groupId)
+  const groupDisplay = group?.name || asset?.groupId || "Unknown"
 
   if (loading) {
     return (
@@ -244,7 +248,7 @@ export default function AssetDetailsPage() {
             {asset.groupId && (
               <div>
                 <p className="text-sm text-muted-foreground">{company?.systemSettings?.transporterGroupLabel || "Group"}</p>
-                <p className="font-medium">{group?.name || "Unknown"}</p>
+                <p className="font-medium">{groupDisplay}</p>
               </div>
             )}
           </div>

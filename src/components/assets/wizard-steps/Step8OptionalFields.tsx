@@ -22,7 +22,6 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
   useSignals()
   const alert = useAlert()
   const companies = globalData.companies.value
-  const groups = globalData.groups.value
 
   const [fleetNumber, setFleetNumber] = useState(state.fleetNumber || "")
   const [groupId, setGroupId] = useState(state.groupId || "")
@@ -35,15 +34,10 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
   const fleetNumberEnabled = (selectedCompany?.systemSettings?.fleetNumberEnabled ?? false) && state.type === "truck"
   const groupEnabled = (selectedCompany?.systemSettings?.transporterGroupEnabled ?? false) && state.type === "truck"
 
-  // Get group options from globalData (actual Group objects with IDs)
-  const availableGroups = useMemo(() => {
-    return groups.filter(g => g.companyId === state.companyId && g.isActive)
-  }, [groups, state.companyId])
-
-  // Get selected group for display in summary
-  const selectedGroup = useMemo(() => {
-    return availableGroups.find(g => g.id === groupId)
-  }, [availableGroups, groupId])
+  // Get group options from company systemSettings (simple string array for transporters)
+  const groupOptions = useMemo(() => {
+    return selectedCompany?.systemSettings?.groupOptions || []
+  }, [selectedCompany])
 
   const handleContinue = () => {
     // Validate required fields
@@ -119,9 +113,9 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
               <SelectValue placeholder="Select a group..." />
             </SelectTrigger>
             <SelectContent>
-              {availableGroups.map((group) => (
-                <SelectItem key={group.id} value={group.id}>
-                  {group.name}
+              {groupOptions.map((groupName, index) => (
+                <SelectItem key={index} value={groupName}>
+                  {groupName}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -142,7 +136,7 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
           {groupEnabled && (
             <div className="grid grid-cols-2 gap-2">
               <span className="text-muted-foreground">{selectedCompany?.systemSettings?.transporterGroupLabel || "Group"}:</span>
-              <span className={!groupId ? "text-destructive" : ""}>{selectedGroup?.name || "Required"}</span>
+              <span className={!groupId ? "text-destructive" : ""}>{groupId || "Required"}</span>
             </div>
           )}
         </div>

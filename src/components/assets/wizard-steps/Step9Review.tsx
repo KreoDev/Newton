@@ -22,17 +22,12 @@ export function Step9Review({ state, onComplete, onPrev }: Step9Props) {
   useSignals()
   const alert = useAlert()
   const companies = globalData.companies.value
-  const groups = globalData.groups.value
 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const selectedCompany = useMemo(() => {
     return companies.find(c => c.id === state.companyId)
   }, [companies, state.companyId])
-
-  const selectedGroup = useMemo(() => {
-    return groups.find(g => g.id === state.groupId)
-  }, [groups, state.groupId])
 
   const expiryInfo = useMemo(() => {
     if (!state.parsedData) return null
@@ -235,7 +230,7 @@ export function Step9Review({ state, onComplete, onPrev }: Step9Props) {
             {state.groupId && (
               <div className="grid grid-cols-2 gap-2">
                 <span className="text-muted-foreground">{selectedCompany?.systemSettings?.transporterGroupLabel || "Group"}:</span>
-                <span>{selectedGroup?.name || state.groupId}</span>
+                <span>{state.groupId}</span>
               </div>
             )}
           </div>
