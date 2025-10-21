@@ -116,34 +116,36 @@ export class AssetService {
   }
 
   /**
-   * Validate vehicle VIN is unique
+   * Validate vehicle VIN is unique (synchronous, uses in-memory assets)
    */
-  static async validateVIN(vin: string, excludeId?: string): Promise<{ isValid: boolean; error?: string; existingAsset?: Asset }> {
+  static validateVIN(vin: string, excludeId?: string): { isValid: boolean; error?: string; existingAsset?: Asset } {
     try {
+      console.log("AssetService: Validating VIN using in-memory assets:", vin.trim())
+
       if (!vin || !vin.trim()) {
+        console.log("AssetService: VIN is empty, skipping validation")
         return { isValid: true }
       }
 
-      const q = query(collection(db, "assets"), where("vin", "==", vin.trim()))
-      const snapshot = await getDocs(q)
+      // Check uniqueness in the already-loaded company-scoped assets
+      const assets = globalData.assets.value
+      const existingAsset = assets.find(a => a.vin === vin.trim() && a.id !== excludeId)
 
-      if (snapshot.empty) {
+      if (!existingAsset) {
+        console.log("AssetService: VIN is unique in this company")
         return { isValid: true }
       }
 
-      // Check if it's the same asset being edited
-      const existingAsset = snapshot.docs[0].data() as Asset
-      if (excludeId && snapshot.docs[0].id === excludeId) {
-        return { isValid: true }
-      }
+      console.log("AssetService: Existing asset found:", {
+        id: existingAsset.id,
+        vin: existingAsset.vin,
+        companyId: existingAsset.companyId,
+      })
 
       return {
         isValid: false,
         error: "This VIN is already assigned to another vehicle",
-        existingAsset: {
-          ...existingAsset,
-          id: snapshot.docs[0].id,
-        },
+        existingAsset,
       }
     } catch (error) {
       console.error("Error validating VIN:", error)
