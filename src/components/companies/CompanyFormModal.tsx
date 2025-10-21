@@ -61,7 +61,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   const [defaultSealQuantity, setDefaultSealQuantity] = useState(2)
 
   // Fleet (Transporter or dual-role LC)
-  const [fleetNumberEnabled, setFleetNumberEnabled] = useState(true)
+  const [fleetNumberEnabled, setFleetNumberEnabled] = useState(false)
   const [fleetNumberLabel, setFleetNumberLabel] = useState("Fleet No.")
   const [transporterGroupEnabled, setTransporterGroupEnabled] = useState(false)
   const [transporterGroupLabel, setTransporterGroupLabel] = useState("Group")
@@ -241,12 +241,20 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
 
       // System Settings
       if (company.systemSettings) {
-        setFleetNumberEnabled(company.systemSettings.fleetNumberEnabled)
-        setFleetNumberLabel(company.systemSettings.fleetNumberLabel)
-        setTransporterGroupEnabled(company.systemSettings.transporterGroupEnabled)
-        setTransporterGroupLabel(company.systemSettings.transporterGroupLabel)
+        setFleetNumberEnabled(company.systemSettings.fleetNumberEnabled || false)
+        setFleetNumberLabel(company.systemSettings.fleetNumberLabel || "Fleet No.")
+        setTransporterGroupEnabled(company.systemSettings.transporterGroupEnabled || false)
+        setTransporterGroupLabel(company.systemSettings.transporterGroupLabel || "Group")
         setGroupOptions(company.systemSettings.groupOptions || [])
         setInactiveGroups(company.systemSettings.inactiveGroups || [])
+      } else {
+        // If systemSettings doesn't exist, reset to defaults (disabled)
+        setFleetNumberEnabled(false)
+        setFleetNumberLabel("Fleet No.")
+        setTransporterGroupEnabled(false)
+        setTransporterGroupLabel("Group")
+        setGroupOptions([])
+        setInactiveGroups([])
       }
 
       // Security Alerts
@@ -306,7 +314,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     setAdvanceBookingHours(24)
     setDefaultSealRequired(true)
     setDefaultSealQuantity(2)
-    setFleetNumberEnabled(true)
+    setFleetNumberEnabled(false)
     setFleetNumberLabel("Fleet No.")
     setTransporterGroupEnabled(false)
     setTransporterGroupLabel("Group")
