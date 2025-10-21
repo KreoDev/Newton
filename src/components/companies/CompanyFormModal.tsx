@@ -92,6 +92,10 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   const [modalField, setModalField] = useState<"fleetNumber" | "group">("fleetNumber")
   const [modalFieldLabel, setModalFieldLabel] = useState("")
 
+  // Queue system for handling multiple field removals
+  const [pendingRemovals, setPendingRemovals] = useState<("fleetNumber" | "group")[]>([])
+  const [canceledFields, setCanceledFields] = useState<Set<string>>(new Set())
+
   const hasMainContact = mainContactId && mainContactId.trim() !== ""
 
   // Create a map from tempId to actual group ID (for checking site usage)
@@ -419,22 +423,25 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
       const originalFleetEnabled = company.systemSettings?.fleetNumberEnabled || false
       const originalGroupEnabled = company.systemSettings?.transporterGroupEnabled || false
 
-      // Check if fleet number is being disabled with assets in use
+      // Build a queue of fields that need removal dialogs
+      const removalQueue: ("fleetNumber" | "group")[] = []
+
+      // Check fleet number first (process in order: fleet → group)
       if (originalFleetEnabled && !fleetNumberEnabled && assetsWithFleetNumbers.length > 0) {
-        setAffectedAssets(assetsWithFleetNumbers)
-        setModalField("fleetNumber")
-        setModalFieldLabel(fleetNumberLabel || "Fleet Number")
-        setAssetListModalOpen(true)
-        return // Stop here - modal will handle bulk removal and then call performSave
+        removalQueue.push("fleetNumber")
       }
 
-      // Check if group is being disabled with assets in use
+      // Check group second
       if (originalGroupEnabled && !transporterGroupEnabled && assetsWithGroups.length > 0) {
-        setAffectedAssets(assetsWithGroups)
-        setModalField("group")
-        setModalFieldLabel(transporterGroupLabel || "Group")
-        setAssetListModalOpen(true)
-        return // Stop here - modal will handle bulk removal and then call performSave
+        removalQueue.push("group")
+      }
+
+      // If there are fields that need removal, start processing the queue
+      if (removalQueue.length > 0) {
+        setPendingRemovals(removalQueue)
+        setCanceledFields(new Set()) // Reset canceled fields
+        processRemovalQueue(removalQueue, new Set())
+        return // Stop here - queue processing will eventually call performSave
       }
     }
 
@@ -527,6 +534,33 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     setTransporterGroupEnabled(checked)
   }
 
+  // Process the removal queue sequentially
+  const processRemovalQueue = (queue: ("fleetNumber" | "group")[], canceled: Set<string>) => {
+    if (queue.length === 0) {
+      // Queue is empty - save company with final canceled fields
+      setCanceledFields(canceled)
+      performSave()
+      return
+    }
+
+    // Get the first field from the queue
+    const currentField = queue[0]
+
+    // Set up the modal for the current field
+    if (currentField === "fleetNumber") {
+      setAffectedAssets(assetsWithFleetNumbers)
+      setModalField("fleetNumber")
+      setModalFieldLabel(fleetNumberLabel || "Fleet Number")
+    } else {
+      setAffectedAssets(assetsWithGroups)
+      setModalField("group")
+      setModalFieldLabel(transporterGroupLabel || "Group")
+    }
+
+    // Show the modal
+    setAssetListModalOpen(true)
+  }
+
   // Extracted save logic - called after validation or after bulk removal
   const performSave = async () => {
     try {
@@ -576,10 +610,19 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
       // Add Fleet settings for transporters or dual-role logistics coordinators
       const shouldHaveFleetSettings = companyType === "transporter" || (companyType === "logistics_coordinator" && isAlsoTransporter)
       if (shouldHaveFleetSettings) {
+        // Check if fleet or group were canceled - if so, use original values
+        const finalFleetEnabled = canceledFields.has("fleetNumber") && company
+          ? (company.systemSettings?.fleetNumberEnabled || false)
+          : fleetNumberEnabled
+
+        const finalGroupEnabled = canceledFields.has("group") && company
+          ? (company.systemSettings?.transporterGroupEnabled || false)
+          : transporterGroupEnabled
+
         companyData.systemSettings = {
-          fleetNumberEnabled,
+          fleetNumberEnabled: finalFleetEnabled,
           fleetNumberLabel,
-          transporterGroupEnabled,
+          transporterGroupEnabled: finalGroupEnabled,
           transporterGroupLabel,
           groupOptions: groupOptions,
           inactiveGroups: inactiveGroups,
@@ -624,52 +667,57 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     }
   }
 
-  // Bulk removal function for fleet numbers
-  const handleBulkRemoveFleetNumbers = async () => {
+  // Unified bulk removal handler - removes the current field and processes next in queue
+  const handleBulkRemove = async () => {
     try {
-      // Update all affected assets to remove fleet number
-      const promises = assetsWithFleetNumbers.map(asset =>
-        AssetService.update(asset.id, { fleetNumber: null })
-      )
+      const currentField = pendingRemovals[0]
 
-      await Promise.all(promises)
-
-      toast.success(`Removed fleet numbers from ${assetsWithFleetNumbers.length} asset${assetsWithFleetNumbers.length !== 1 ? "s" : ""}`)
+      if (currentField === "fleetNumber") {
+        // Update all affected assets to remove fleet number
+        const promises = assetsWithFleetNumbers.map(asset =>
+          AssetService.update(asset.id, { fleetNumber: null })
+        )
+        await Promise.all(promises)
+        toast.success(`Removed fleet numbers from ${assetsWithFleetNumbers.length} asset${assetsWithFleetNumbers.length !== 1 ? "s" : ""}`)
+      } else {
+        // Update all affected assets to remove group
+        const promises = assetsWithGroups.map(asset =>
+          AssetService.update(asset.id, { groupId: null })
+        )
+        await Promise.all(promises)
+        toast.success(`Removed groups from ${assetsWithGroups.length} asset${assetsWithGroups.length !== 1 ? "s" : ""}`)
+      }
 
       // Close the modal
       setAssetListModalOpen(false)
 
-      // Now save the company with the disabled setting
-      await performSave()
+      // Process the rest of the queue (current field was successfully removed, so don't add to canceled)
+      const remainingQueue = pendingRemovals.slice(1)
+      setPendingRemovals(remainingQueue)
+      processRemovalQueue(remainingQueue, canceledFields)
     } catch (error) {
-      console.error("Error removing fleet numbers:", error)
-      toast.error("Failed to remove fleet numbers from some assets")
+      console.error(`Error removing ${modalField}s:`, error)
+      toast.error(`Failed to remove ${modalField}s from some assets`)
       throw error // Re-throw to let modal handle it
     }
   }
 
-  // Bulk removal function for groups
-  const handleBulkRemoveGroups = async () => {
-    try {
-      // Update all affected assets to remove group
-      const promises = assetsWithGroups.map(asset =>
-        AssetService.update(asset.id, { groupId: null })
-      )
+  // Handle cancel - mark field as canceled and process next in queue
+  const handleCancel = () => {
+    const currentField = pendingRemovals[0]
 
-      await Promise.all(promises)
+    // Add current field to canceled set
+    const updatedCanceled = new Set(canceledFields)
+    updatedCanceled.add(currentField)
+    setCanceledFields(updatedCanceled)
 
-      toast.success(`Removed groups from ${assetsWithGroups.length} asset${assetsWithGroups.length !== 1 ? "s" : ""}`)
+    // Close the modal
+    setAssetListModalOpen(false)
 
-      // Close the modal
-      setAssetListModalOpen(false)
-
-      // Now save the company with the disabled setting
-      await performSave()
-    } catch (error) {
-      console.error("Error removing groups:", error)
-      toast.error("Failed to remove groups from some assets")
-      throw error // Re-throw to let modal handle it
-    }
+    // Process the rest of the queue
+    const remainingQueue = pendingRemovals.slice(1)
+    setPendingRemovals(remainingQueue)
+    processRemovalQueue(remainingQueue, updatedCanceled)
   }
 
   // Determine which tabs to show
@@ -1212,7 +1260,8 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
         assets={affectedAssets}
         field={modalField}
         fieldLabel={modalFieldLabel}
-        onBulkRemove={modalField === "fleetNumber" ? handleBulkRemoveFleetNumbers : handleBulkRemoveGroups}
+        onBulkRemove={handleBulkRemove}
+        onCancel={handleCancel}
       />
     </>
   )

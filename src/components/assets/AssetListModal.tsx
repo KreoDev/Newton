@@ -15,9 +15,10 @@ interface AssetListModalProps {
   field: "fleetNumber" | "group"
   fieldLabel: string
   onBulkRemove: () => Promise<void>
+  onCancel: () => void
 }
 
-export function AssetListModal({ open, onClose, assets, field, fieldLabel, onBulkRemove }: AssetListModalProps) {
+export function AssetListModal({ open, onClose, assets, field, fieldLabel, onBulkRemove, onCancel }: AssetListModalProps) {
   const [loading, setLoading] = useState(false)
 
   const handleBulkRemove = async () => {
@@ -112,7 +113,7 @@ export function AssetListModal({ open, onClose, assets, field, fieldLabel, onBul
           <div className="bg-muted p-4 rounded-lg">
             <p className="text-sm font-medium mb-2">What would you like to do?</p>
             <p className="text-xs text-muted-foreground mb-3">
-              You can either remove {fieldLabel.toLowerCase()} from all assets automatically, or manage them manually.
+              You can either remove {fieldLabel.toLowerCase()} from all assets automatically, or cancel this change.
             </p>
             <div className="flex flex-col gap-2">
               <Button
@@ -123,8 +124,8 @@ export function AssetListModal({ open, onClose, assets, field, fieldLabel, onBul
               >
                 {loading ? "Removing..." : `Remove ${fieldLabel} from all ${assets.length} asset${assets.length !== 1 ? "s" : ""} and disable feature`}
               </Button>
-              <Button variant="outline" onClick={onClose} disabled={loading} className="w-full">
-                I&apos;ll remove them manually
+              <Button variant="outline" onClick={onCancel} disabled={loading} className="w-full">
+                Cancel
               </Button>
             </div>
           </div>
