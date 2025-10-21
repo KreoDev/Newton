@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { CompanyService } from "@/services/company.service"
-import type { Company, User, Group } from "@/types"
+import { AssetService } from "@/services/asset.service"
+import type { Company, User, Group, Asset } from "@/types"
 import { useAlert } from "@/hooks/useAlert"
 import { useAuth } from "@/contexts/AuthContext"
 import { X } from "lucide-react"
@@ -16,8 +17,10 @@ import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { GroupsTreeManager } from "@/components/groups/GroupsTreeManager"
 import { LocalGroupsManager, type PendingGroup } from "@/components/groups/LocalGroupsManager"
+import { AssetListModal } from "@/components/assets/AssetListModal"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
+import { toast } from "sonner"
 
 interface CompanyFormModalProps {
   open: boolean
@@ -83,6 +86,12 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   // Pending groups (saved when company form is submitted)
   const [pendingGroups, setPendingGroups] = useState<PendingGroup[]>([])
 
+  // AssetListModal state
+  const [assetListModalOpen, setAssetListModalOpen] = useState(false)
+  const [affectedAssets, setAffectedAssets] = useState<Asset[]>([])
+  const [modalField, setModalField] = useState<"fleetNumber" | "group">("fleetNumber")
+  const [modalFieldLabel, setModalFieldLabel] = useState("")
+
   const hasMainContact = mainContactId && mainContactId.trim() !== ""
 
   // Create a map from tempId to actual group ID (for checking site usage)
@@ -103,9 +112,9 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   const assets = globalData.assets.value
 
   // Check if fleet numbers are in use by active assets
-  const fleetNumbersInUse = useMemo(() => {
-    if (!isEditing || !company) return false
-    return assets.some(
+  const assetsWithFleetNumbers = useMemo(() => {
+    if (!isEditing || !company) return []
+    return assets.filter(
       asset =>
         asset.companyId === company.id &&
         asset.isActive &&
@@ -114,10 +123,10 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     )
   }, [assets, isEditing, company])
 
-  // Check if groups are in use by active assets
-  const groupsInUse = useMemo(() => {
-    if (!isEditing || !company) return false
-    return assets.some(
+  // Get list of assets using groups
+  const assetsWithGroups = useMemo(() => {
+    if (!isEditing || !company) return []
+    return assets.filter(
       asset =>
         asset.companyId === company.id &&
         asset.isActive &&
@@ -566,12 +575,12 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   }
 
   const handleFleetNumberEnabledChange = (checked: boolean) => {
-    // If trying to disable and fleet numbers are in use, prevent it
-    if (!checked && fleetNumbersInUse) {
-      showError(
-        "Cannot Disable Fleet Numbers",
-        "Fleet numbers are currently assigned to active assets. You cannot disable this feature until all active assets with fleet numbers are marked as inactive."
-      )
+    // If trying to disable and fleet numbers are in use, show modal
+    if (!checked && assetsWithFleetNumbers.length > 0) {
+      setAffectedAssets(assetsWithFleetNumbers)
+      setModalField("fleetNumber")
+      setModalFieldLabel(fleetNumberLabel || "Fleet Number")
+      setAssetListModalOpen(true)
       return
     }
 
@@ -579,16 +588,58 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   }
 
   const handleTransporterGroupEnabledChange = (checked: boolean) => {
-    // If trying to disable and groups are in use, prevent it
-    if (!checked && groupsInUse) {
-      showError(
-        "Cannot Disable Groups",
-        "Groups are currently assigned to active assets. You cannot disable this feature until all active assets with groups are marked as inactive."
-      )
+    // If trying to disable and groups are in use, show modal
+    if (!checked && assetsWithGroups.length > 0) {
+      setAffectedAssets(assetsWithGroups)
+      setModalField("group")
+      setModalFieldLabel(transporterGroupLabel || "Group")
+      setAssetListModalOpen(true)
       return
     }
 
     setTransporterGroupEnabled(checked)
+  }
+
+  // Bulk removal function for fleet numbers
+  const handleBulkRemoveFleetNumbers = async () => {
+    try {
+      // Update all affected assets to remove fleet number
+      const promises = assetsWithFleetNumbers.map(asset =>
+        AssetService.update(asset.id, { fleetNumber: undefined })
+      )
+
+      await Promise.all(promises)
+
+      toast.success(`Removed fleet numbers from ${assetsWithFleetNumbers.length} asset${assetsWithFleetNumbers.length !== 1 ? "s" : ""}`)
+
+      // Now disable the feature
+      setFleetNumberEnabled(false)
+    } catch (error) {
+      console.error("Error removing fleet numbers:", error)
+      toast.error("Failed to remove fleet numbers from some assets")
+      throw error // Re-throw to let modal handle it
+    }
+  }
+
+  // Bulk removal function for groups
+  const handleBulkRemoveGroups = async () => {
+    try {
+      // Update all affected assets to remove group
+      const promises = assetsWithGroups.map(asset =>
+        AssetService.update(asset.id, { groupId: undefined })
+      )
+
+      await Promise.all(promises)
+
+      toast.success(`Removed groups from ${assetsWithGroups.length} asset${assetsWithGroups.length !== 1 ? "s" : ""}`)
+
+      // Now disable the feature
+      setTransporterGroupEnabled(false)
+    } catch (error) {
+      console.error("Error removing groups:", error)
+      toast.error("Failed to remove groups from some assets")
+      throw error // Re-throw to let modal handle it
+    }
   }
 
   // Determine which tabs to show
@@ -597,6 +648,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   const showGroups = companyType === "mine" // Show groups tab for all mine companies (with appropriate message for new companies)
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="!max-w-6xl w-[98vw] sm:!max-w-6xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
@@ -1122,5 +1174,16 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
         </form>
       </DialogContent>
     </Dialog>
+
+      {/* AssetListModal for bulk removal */}
+      <AssetListModal
+        open={assetListModalOpen}
+        onClose={() => setAssetListModalOpen(false)}
+        assets={affectedAssets}
+        field={modalField}
+        fieldLabel={modalFieldLabel}
+        onBulkRemove={modalField === "fleetNumber" ? handleBulkRemoveFleetNumbers : handleBulkRemoveGroups}
+      />
+    </>
   )
 }

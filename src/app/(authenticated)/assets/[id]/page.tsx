@@ -13,6 +13,7 @@ import type { Asset } from "@/types"
 import { useSignals } from "@preact/signals-react/runtime"
 import { data as globalData } from "@/services/data.service"
 import { AssetEditModal } from "@/components/assets/AssetEditModal"
+import { AssetOptionalFieldsEditModal } from "@/components/assets/AssetOptionalFieldsEditModal"
 import { DeleteAssetModal } from "@/components/assets/DeleteAssetModal"
 import { InactivateAssetModal } from "@/components/assets/InactivateAssetModal"
 
@@ -25,6 +26,7 @@ export default function AssetDetailsPage() {
   const [asset, setAsset] = useState<Asset | null>(null)
   const [loading, setLoading] = useState(true)
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [optionalFieldsModalOpen, setOptionalFieldsModalOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [inactivateModalOpen, setInactivateModalOpen] = useState(false)
 
@@ -175,6 +177,12 @@ export default function AssetDetailsPage() {
             <Edit className="mr-2 h-4 w-4" />
             Edit
           </Button>
+          {asset.type === "truck" && (company?.systemSettings?.fleetNumberEnabled || company?.systemSettings?.transporterGroupEnabled) && (
+            <Button variant="outline" onClick={() => setOptionalFieldsModalOpen(true)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Fleet/Group
+            </Button>
+          )}
           {asset.isActive ? (
             <>
               <Button variant="outline" onClick={() => setInactivateModalOpen(true)}>
@@ -539,6 +547,14 @@ export default function AssetDetailsPage() {
         />
       )}
       {inactivateModalOpen && <InactivateAssetModal asset={asset} isOpen={inactivateModalOpen} onClose={() => setInactivateModalOpen(false)} onSuccess={fetchAsset} />}
+      {optionalFieldsModalOpen && asset && (
+        <AssetOptionalFieldsEditModal
+          open={optionalFieldsModalOpen}
+          onClose={() => setOptionalFieldsModalOpen(false)}
+          onSuccess={fetchAsset}
+          asset={asset}
+        />
+      )}
     </div>
   )
 }
