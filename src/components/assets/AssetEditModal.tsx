@@ -130,23 +130,12 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
         return
       }
 
-      // Check if expiry date has changed
+      // Get expiry dates for comparison
       const currentExpiry = asset.expiryDate
       const newExpiry = parsed.data.licence?.expiryDate || parsed.data.person.birthDate
 
-      if (currentExpiry && newExpiry && currentExpiry === newExpiry) {
-        alert.showInfo(
-          "No Change Detected",
-          "The scanned driver's license has the same expiry date as the current one. No update is needed.",
-          () => {
-            setNewBarcode("")
-            setNewBarcodeData(null)
-          }
-        )
-        return
-      }
-
-      // Check if new license is expired
+      // Check if new license is expired FIRST (before checking if changed)
+      let isExpired = false
       if (newExpiry) {
         const expiryParts = newExpiry.split("/")
         if (expiryParts.length === 3) {
@@ -157,24 +146,39 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
           )
           const today = new Date()
           today.setHours(0, 0, 0, 0)
-
-          if (expiryDate < today) {
-            alert.showWarning(
-              "Expired License",
-              "Warning: The scanned driver's license is expired. Are you sure you want to update to an expired license?",
-              () => {
-                // User confirmed, proceed to save
-                setNewBarcode(barcodeData)
-                setNewBarcodeData(parsed)
-                handleSaveBarcodeUpdate(barcodeData, parsed)
-              }
-            )
-            return
-          }
+          isExpired = expiryDate < today
         }
       }
 
-      // Check if new expiry is newer than current
+      // If expired, show error and don't allow update
+      if (isExpired) {
+        alert.showError(
+          "Expired License",
+          `The scanned driver's license expired on ${newExpiry}. You cannot update to an expired license. Please scan a valid, current license.`
+        )
+        return
+      }
+
+      // Check if ANYTHING has changed
+      const hasChanges =
+        currentExpiry !== newExpiry ||
+        asset.name !== parsed.data.person.name ||
+        asset.surname !== parsed.data.person.surname ||
+        asset.initials !== parsed.data.person.initials
+
+      if (!hasChanges) {
+        alert.showInfo(
+          "No Changes Detected",
+          "The scanned driver's license contains the same information as the current record. No update is needed.",
+          () => {
+            setNewBarcode("")
+            setNewBarcodeData(null)
+          }
+        )
+        return
+      }
+
+      // Check if new expiry is newer than current (warning, but allow)
       if (currentExpiry && newExpiry) {
         const currentParts = currentExpiry.split("/")
         const newParts = newExpiry.split("/")
@@ -192,20 +196,32 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
           )
 
           if (newDate <= currentDate) {
-            alert.showWarning(
-              "Older License",
-              `The scanned license expires on ${newExpiry}, which is not newer than the current expiry (${currentExpiry}). Are you sure you want to proceed?`,
+            alert.showConfirm(
+              "Older Expiry Date",
+              `The scanned license expires on ${newExpiry}, which is not newer than the current expiry (${currentExpiry}). Do you want to proceed with this update?`,
               () => {
                 // User confirmed, proceed to save
                 setNewBarcode(barcodeData)
                 setNewBarcodeData(parsed)
                 handleSaveBarcodeUpdate(barcodeData, parsed)
-              }
+              },
+              () => {
+                // User cancelled, reset
+                setNewBarcode("")
+                setNewBarcodeData(null)
+              },
+              "Yes, Update",
+              "Cancel"
             )
             return
           }
         }
       }
+
+      // All validations passed - proceed to save
+      setNewBarcode(barcodeData)
+      setNewBarcodeData(parsed)
+      handleSaveBarcodeUpdate(barcodeData, parsed)
     } else {
       // Vehicle (truck/trailer)
       if (parsed.type !== "vehicle") {
@@ -227,23 +243,12 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
         return
       }
 
-      // Check if expiry date has changed
+      // Get expiry dates for comparison
       const currentExpiry = asset.expiryDate
       const newExpiry = parsed.data.expiryDate
 
-      if (currentExpiry && newExpiry && currentExpiry === newExpiry) {
-        alert.showInfo(
-          "No Change Detected",
-          "The scanned vehicle license disk has the same expiry date as the current one. No update is needed.",
-          () => {
-            setNewBarcode("")
-            setNewBarcodeData(null)
-          }
-        )
-        return
-      }
-
-      // Check if new disk is expired
+      // Check if new disk is expired FIRST (before checking if changed)
+      let isExpired = false
       if (newExpiry) {
         const expiryParts = newExpiry.split("/")
         if (expiryParts.length === 3) {
@@ -254,24 +259,39 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
           )
           const today = new Date()
           today.setHours(0, 0, 0, 0)
-
-          if (expiryDate < today) {
-            alert.showWarning(
-              "Expired License Disk",
-              "Warning: The scanned vehicle license disk is expired. Are you sure you want to update to an expired disk?",
-              () => {
-                // User confirmed, proceed to save
-                setNewBarcode(barcodeData)
-                setNewBarcodeData(parsed)
-                handleSaveBarcodeUpdate(barcodeData, parsed)
-              }
-            )
-            return
-          }
+          isExpired = expiryDate < today
         }
       }
 
-      // Check if new expiry is newer than current
+      // If expired, show error and don't allow update
+      if (isExpired) {
+        alert.showError(
+          "Expired License Disk",
+          `The scanned vehicle license disk expired on ${newExpiry}. You cannot update to an expired disk. Please scan a valid, current disk.`
+        )
+        return
+      }
+
+      // Check if ANYTHING has changed
+      const hasChanges =
+        currentExpiry !== newExpiry ||
+        asset.make !== parsed.data.make ||
+        asset.model !== parsed.data.model ||
+        asset.colour !== parsed.data.colour
+
+      if (!hasChanges) {
+        alert.showInfo(
+          "No Changes Detected",
+          "The scanned vehicle license disk contains the same information as the current record. No update is needed.",
+          () => {
+            setNewBarcode("")
+            setNewBarcodeData(null)
+          }
+        )
+        return
+      }
+
+      // Check if new expiry is newer than current (warning, but allow)
       if (currentExpiry && newExpiry) {
         const currentParts = currentExpiry.split("/")
         const newParts = newExpiry.split("/")
@@ -289,26 +309,33 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
           )
 
           if (newDate <= currentDate) {
-            alert.showWarning(
-              "Older License Disk",
-              `The scanned disk expires on ${newExpiry}, which is not newer than the current expiry (${currentExpiry}). Are you sure you want to proceed?`,
+            alert.showConfirm(
+              "Older Expiry Date",
+              `The scanned disk expires on ${newExpiry}, which is not newer than the current expiry (${currentExpiry}). Do you want to proceed with this update?`,
               () => {
                 // User confirmed, proceed to save
                 setNewBarcode(barcodeData)
                 setNewBarcodeData(parsed)
                 handleSaveBarcodeUpdate(barcodeData, parsed)
-              }
+              },
+              () => {
+                // User cancelled, reset
+                setNewBarcode("")
+                setNewBarcodeData(null)
+              },
+              "Yes, Update",
+              "Cancel"
             )
             return
           }
         }
       }
-    }
 
-    // All validations passed
-    setNewBarcode(barcodeData)
-    setNewBarcodeData(parsed)
-    handleSaveBarcodeUpdate(barcodeData, parsed)
+      // All validations passed - proceed to save
+      setNewBarcode(barcodeData)
+      setNewBarcodeData(parsed)
+      handleSaveBarcodeUpdate(barcodeData, parsed)
+    }
   }
 
   const handleSaveQRUpdate = async (qrCode: string) => {
@@ -349,7 +376,6 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
         updates.initials = parsed.data.person.initials
         updates.gender = parsed.data.person.gender
         updates.birthDate = parsed.data.person.birthDate
-        updates.nationality = parsed.data.person.nationality
         updates.licenceNumber = parsed.data.licence?.licenceNumber
         updates.licenceType = parsed.data.licence?.licenceType
       }
@@ -431,7 +457,7 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
                 <p className="text-sm font-medium mb-1">Looking for:</p>
                 {asset.type === "driver" ? (
                   <p className="text-sm text-muted-foreground">
-                    Driver's License: <span className="font-semibold">{asset.name} {asset.surname}</span>
+                    Driver&apos;s License: <span className="font-semibold">{asset.name} {asset.surname}</span>
                     {asset.idNumber && <span className="block text-xs">ID: {asset.idNumber}</span>}
                   </p>
                 ) : (
