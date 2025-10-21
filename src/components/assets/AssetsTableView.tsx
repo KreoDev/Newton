@@ -150,7 +150,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
 
           <DataTable
             key={`truck-${tableKey}`}
-            tableId="assets-trucks-table"
+            tableId="assets-trucks-table-v2"
             columns={columns}
             data={filteredAssets}
             defaultColumnOrder={[
@@ -186,7 +186,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
 
           <DataTable
             key={`trailer-${tableKey}`}
-            tableId="assets-trailers-table"
+            tableId="assets-trailers-table-v2"
             columns={columns}
             data={filteredAssets}
             defaultColumnOrder={["registration", "makeModel", "expiryDate", "status", "actions"]}
@@ -214,7 +214,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
 
           <DataTable
             key={`driver-${tableKey}`}
-            tableId="assets-drivers-table"
+            tableId="assets-drivers-table-v2"
             columns={columns}
             data={filteredAssets}
             defaultColumnOrder={["photo", "name", "idNumber", "licenceNumber", "licenceType", "group", "expiryDate", "status", "actions"]}
