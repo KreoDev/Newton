@@ -307,9 +307,19 @@ export class AssetFieldMapper {
           person: parsedData.personInfo,
           licence: parsedData.licenceInfo,
         }),
+        // All driver-specific fields from barcode scan (matching Android app structure)
         idNumber: parsedData.personInfo.idNumber, // Android app field
+        name: parsedData.personInfo.name, // Android app field
+        surname: parsedData.personInfo.surname, // Android app field
+        initials: parsedData.personInfo.initials,
+        gender: parsedData.personInfo.gender,
+        birthDate: parsedData.personInfo.birthDate, // Android app field
         licenceNumber: parsedData.licenceInfo.licenceNumber, // Android app field (British spelling)
+        licenceType: parsedData.licenceInfo.licenceType, // Android app field
+        issueDate: parsedData.licenceInfo.issueDate, // Android app field
         licenseExpiryDate: parsedData.licenceInfo.expiryDate,
+        expiryDate: parsedData.licenceInfo.expiryDate, // Android app field (duplicate for compatibility)
+        vehicleCodes: parsedData.licenceInfo.driverRestrictions, // Vehicle codes driver is authorized for
         // Additional expo-sadl driver fields
         driverNationality: parsedData.personInfo.nationality,
         driverCountryOfBirth: parsedData.personInfo.countryOfBirth,
@@ -322,10 +332,18 @@ export class AssetFieldMapper {
       return removeUndefined({
         ...baseData,
         vehicleDiskData: JSON.stringify(parsedData.vehicleInfo),
+        // All vehicle-specific fields from barcode scan (matching Android app structure)
         registration: parsedData.vehicleInfo.registration, // Android app field
+        make: parsedData.vehicleInfo.make, // Android app field
+        model: parsedData.vehicleInfo.model, // Android app field
+        vin: parsedData.vehicleInfo.vin, // Android app field
+        colour: parsedData.vehicleInfo.colour, // Android app field
+        engineNo: parsedData.vehicleInfo.engineNo,
+        licenceDiskNo: parsedData.vehicleInfo.vehicleDiskNo,
         licenseExpiryDate: parsedData.vehicleInfo.expiryDate,
-        // Additional expo-sadl vehicle field
+        dateOfExpiry: parsedData.vehicleInfo.expiryDate, // Duplicate for compatibility
         vehicleDescription: parsedData.vehicleInfo.description,
+        description: parsedData.vehicleInfo.description, // Duplicate for compatibility
       })
     }
 
