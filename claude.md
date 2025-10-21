@@ -348,17 +348,18 @@ export default function MyComponent() {
 ### Critical Rules
 
 1. **ALWAYS BUILD BEFORE DECLARING COMPLETION** - Run `bun run build` after implementing features to verify all TypeScript types are correct and there are no compilation errors. Never say a task is completed without successfully building first.
-2. **Always import required dependencies at the top of files**
-3. **Use existing UI components from `src/components/ui/`**
-4. **Follow TypeScript strictly - add proper types for all functions**
-5. **Use existing services pattern from `src/services/`**
-6. **Apply glass morphism design from `design.json`**
-7. **Use existing auth context from `src/contexts/AuthContext.tsx`**
-8. **Use centralized `data.service.ts` for companies, users, and roles** (don't duplicate queries)
-9. **Use `sonner` toast for user feedback** (firebase-utils already includes this)
-10. **Add proper error handling with try-catch blocks**
-11. **This project uses Bun** - Use `bun` instead of `npm`, and `bunx` instead of `npx`
-12. **Use Preact Signals for reactive state** - Call `useSignals()` in components that access signals
+2. **ALWAYS COMMIT AND PUSH CHANGES** - After making any code changes, run `git add`, `git commit`, and `git push` to save changes to the repository. Follow the Git Workflow Protocol below.
+3. **Always import required dependencies at the top of files**
+4. **Use existing UI components from `src/components/ui/`**
+5. **Follow TypeScript strictly - add proper types for all functions**
+6. **Use existing services pattern from `src/services/`**
+7. **Apply glass morphism design from `design.json`**
+8. **Use existing auth context from `src/contexts/AuthContext.tsx`**
+9. **Use centralized `data.service.ts` for companies, users, and roles** (don't duplicate queries)
+10. **Use `sonner` toast for user feedback** (firebase-utils already includes this)
+11. **Add proper error handling with try-catch blocks**
+12. **This project uses Bun** - Use `bun` instead of `npm`, and `bunx` instead of `npx`
+13. **Use Preact Signals for reactive state** - Call `useSignals()` in components that access signals
 
 ### Build Verification Protocol
 
@@ -374,6 +375,94 @@ export default function MyComponent() {
 5. Only then declare the task as completed
 
 This is non-negotiable and must be followed for every feature implementation, no matter how small.
+
+### Git Workflow Protocol
+
+**MANDATORY**: After making any code changes, you MUST commit and push to GitHub:
+
+1. **Check git status** to see what files have changed:
+   ```bash
+   git status
+   ```
+
+2. **Review the changes** to ensure they are correct:
+   ```bash
+   git diff
+   ```
+
+3. **Check recent commit messages** to follow the repository's commit message style:
+   ```bash
+   git log -5 --oneline
+   ```
+
+4. **Add the changed files** to staging:
+   ```bash
+   git add <file-paths>
+   ```
+
+5. **Create a descriptive commit** following the repository's style:
+   ```bash
+   git commit -m "$(cat <<'EOF'
+   Brief summary of changes (imperative mood, ~50 chars)
+
+   Detailed explanation of what changed and why. Explain the problem
+   being solved and how this change addresses it. Focus on the "why"
+   rather than the "what" (code shows the what).
+
+   🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+   Co-Authored-By: Claude <noreply@anthropic.com>
+   EOF
+   )"
+   ```
+
+6. **Push to the remote repository**:
+   ```bash
+   git push
+   ```
+
+**Commit Message Guidelines:**
+- **First line**: Brief summary in imperative mood (e.g., "Add feature" not "Added feature")
+- **Body**: Explain what changed and why (not how - the code shows that)
+- **Length**: First line ~50 chars, body wrapped at 72 chars
+- **Footer**: Include Claude Code attribution (already in template above)
+
+**When to Commit:**
+- ✅ After implementing a feature or fix
+- ✅ After refactoring code
+- ✅ After fixing bugs or issues
+- ✅ After updating documentation
+- ✅ After any meaningful change that builds successfully
+- ❌ Don't commit broken/non-compiling code
+- ❌ Don't commit without testing first
+
+**Example Commit Messages:**
+```
+Add VIN validation to asset induction wizard
+
+Implements synchronous VIN validation using in-memory assets from
+globalData.assets.value. This replaces the async Firebase query
+approach for consistency with other validation methods and improved
+performance.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+```
+Fix expiry date calculation in asset field mapper
+
+Corrects the date parsing logic to properly handle DD/MM/YYYY format
+and calculate days until expiry. Previous implementation was using
+incorrect month indexing causing off-by-one errors.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+This workflow ensures all changes are saved to version control and pushed to the remote repository for backup and collaboration.
 
 ### Client vs Server Components
 
