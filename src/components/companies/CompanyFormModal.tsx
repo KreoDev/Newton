@@ -95,6 +95,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   // Queue system for handling multiple field removals
   const [pendingRemovals, setPendingRemovals] = useState<("fleetNumber" | "group")[]>([])
   const [canceledFields, setCanceledFields] = useState<Set<string>>(new Set())
+  const [isProcessingQueue, setIsProcessingQueue] = useState(false)
 
   const hasMainContact = mainContactId && mainContactId.trim() !== ""
 
@@ -297,6 +298,40 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     setPendingGroups(pending)
   }, [open, company?.id, editingCurrentCompany, localGroups])
 
+  // Effect to handle queue processing when modal closes
+  useEffect(() => {
+    // Only process queue if we're actively processing and modal just closed
+    if (isProcessingQueue && !assetListModalOpen && pendingRemovals.length > 0) {
+      // Wait a tick to ensure modal is fully closed before opening next one
+      const timer = setTimeout(() => {
+        const currentField = pendingRemovals[0]
+
+        // Set up the modal for the current field
+        if (currentField === "fleetNumber") {
+          setAffectedAssets(assetsWithFleetNumbers)
+          setModalField("fleetNumber")
+          setModalFieldLabel(fleetNumberLabel || "Fleet Number")
+        } else {
+          setAffectedAssets(assetsWithGroups)
+          setModalField("group")
+          setModalFieldLabel(transporterGroupLabel || "Group")
+        }
+
+        // Show the modal
+        setAssetListModalOpen(true)
+      }, 50)
+
+      return () => clearTimeout(timer)
+    }
+
+    // If queue is empty and we're processing, finish up
+    if (isProcessingQueue && !assetListModalOpen && pendingRemovals.length === 0) {
+      setIsProcessingQueue(false)
+      // Save company with final canceled fields
+      performSave()
+    }
+  }, [isProcessingQueue, assetListModalOpen, pendingRemovals, assetsWithFleetNumbers, assetsWithGroups, fleetNumberLabel, transporterGroupLabel])
+
   const resetForm = () => {
     setName("")
     setCompanyType("mine")
@@ -440,7 +475,21 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
       if (removalQueue.length > 0) {
         setPendingRemovals(removalQueue)
         setCanceledFields(new Set()) // Reset canceled fields
-        processRemovalQueue(removalQueue, new Set())
+        setIsProcessingQueue(true)
+
+        // Set up and show the first modal
+        const firstField = removalQueue[0]
+        if (firstField === "fleetNumber") {
+          setAffectedAssets(assetsWithFleetNumbers)
+          setModalField("fleetNumber")
+          setModalFieldLabel(fleetNumberLabel || "Fleet Number")
+        } else {
+          setAffectedAssets(assetsWithGroups)
+          setModalField("group")
+          setModalFieldLabel(transporterGroupLabel || "Group")
+        }
+        setAssetListModalOpen(true)
+
         return // Stop here - queue processing will eventually call performSave
       }
     }
@@ -534,32 +583,6 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     setTransporterGroupEnabled(checked)
   }
 
-  // Process the removal queue sequentially
-  const processRemovalQueue = (queue: ("fleetNumber" | "group")[], canceled: Set<string>) => {
-    if (queue.length === 0) {
-      // Queue is empty - save company with final canceled fields
-      setCanceledFields(canceled)
-      performSave()
-      return
-    }
-
-    // Get the first field from the queue
-    const currentField = queue[0]
-
-    // Set up the modal for the current field
-    if (currentField === "fleetNumber") {
-      setAffectedAssets(assetsWithFleetNumbers)
-      setModalField("fleetNumber")
-      setModalFieldLabel(fleetNumberLabel || "Fleet Number")
-    } else {
-      setAffectedAssets(assetsWithGroups)
-      setModalField("group")
-      setModalFieldLabel(transporterGroupLabel || "Group")
-    }
-
-    // Show the modal
-    setAssetListModalOpen(true)
-  }
 
   // Extracted save logic - called after validation or after bulk removal
   const performSave = async () => {
@@ -667,7 +690,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     }
   }
 
-  // Unified bulk removal handler - removes the current field and processes next in queue
+  // Unified bulk removal handler - removes the current field and updates queue
   const handleBulkRemove = async () => {
     try {
       const currentField = pendingRemovals[0]
@@ -688,13 +711,12 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
         toast.success(`Removed groups from ${assetsWithGroups.length} asset${assetsWithGroups.length !== 1 ? "s" : ""}`)
       }
 
-      // Close the modal
-      setAssetListModalOpen(false)
-
-      // Process the rest of the queue (current field was successfully removed, so don't add to canceled)
+      // Remove this field from the queue
       const remainingQueue = pendingRemovals.slice(1)
       setPendingRemovals(remainingQueue)
-      processRemovalQueue(remainingQueue, canceledFields)
+
+      // Close the modal - useEffect will handle opening the next one
+      setAssetListModalOpen(false)
     } catch (error) {
       console.error(`Error removing ${modalField}s:`, error)
       toast.error(`Failed to remove ${modalField}s from some assets`)
@@ -702,7 +724,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     }
   }
 
-  // Handle cancel - mark field as canceled and process next in queue
+  // Handle cancel - mark field as canceled and move to next in queue
   const handleCancel = () => {
     const currentField = pendingRemovals[0]
 
@@ -711,13 +733,12 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     updatedCanceled.add(currentField)
     setCanceledFields(updatedCanceled)
 
-    // Close the modal
-    setAssetListModalOpen(false)
-
-    // Process the rest of the queue
+    // Remove this field from the queue
     const remainingQueue = pendingRemovals.slice(1)
     setPendingRemovals(remainingQueue)
-    processRemovalQueue(remainingQueue, updatedCanceled)
+
+    // Close the modal - useEffect will handle opening the next one
+    setAssetListModalOpen(false)
   }
 
   // Determine which tabs to show
