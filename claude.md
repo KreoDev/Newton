@@ -368,8 +368,12 @@ export default function MyComponent() {
 2. Fix any TypeScript errors that appear
 3. Ensure the build completes successfully
 4. **Stop and restart the dev server** after running the build
-   - Kill the current dev server process
-   - Run `bun dev --turbopack` to start a fresh server
+   - **CRITICAL**: Dev server MUST ALWAYS run on port 3000 (never 3002 or any other port)
+   - Kill ALL processes using port 3000: `lsof -i :3000` then `kill -9 <PID>`
+   - Kill all other dev server processes: `pkill -9 -f "bun dev"`
+   - Verify port 3000 is free: `lsof -i :3000` (should return no results)
+   - Run `bun dev --turbopack` to start a fresh server on port 3000
+   - Verify it started on port 3000 (not 3002 or any other port)
    - This ensures all code changes are properly loaded
    - Failure to restart can cause 500 Internal Server Errors
 5. Only then declare the task as completed
