@@ -1012,6 +1012,56 @@
           "color": "primary",
           "border": "effects.border_styles.light.hover"
         }
+      },
+      "list_actions": {
+        "description": "Consistent action icon pattern for list items",
+        "layout": "Icon + Details (left) | Action Buttons + Status Badge (right)",
+        "action_buttons": {
+          "variant": "ghost",
+          "size": "sm",
+          "icons": {
+            "view": {
+              "icon": "FileText",
+              "purpose": "Navigate to details page",
+              "usage": "Used for viewing full details/information of a list item",
+              "note": "FileText icon avoids confusion with Eye icon which is reserved for visibility toggles (e.g., showing/hiding items per company in roles)"
+            },
+            "edit": {
+              "icon": "Edit",
+              "purpose": "Open edit modal or navigate to edit page",
+              "usage": "Used for in-place editing or navigating to dedicated edit interface",
+              "note": "Not used in assets list - editing happens on details page"
+            },
+            "delete": {
+              "icon": "Trash2",
+              "purpose": "Delete or remove item",
+              "styling": "text-destructive",
+              "usage": "Opens confirmation dialog before deletion"
+            },
+            "toggle_active": {
+              "icon": "ToggleRight (active) / ToggleLeft (inactive)",
+              "purpose": "Toggle active/inactive status",
+              "styling": "text-green-600 (active) / text-gray-400 (inactive)",
+              "usage": "Used in companies, roles, users for quick status changes"
+            },
+            "visibility_toggle": {
+              "icon": "Eye (visible) / EyeOff (hidden)",
+              "purpose": "Toggle visibility for specific companies",
+              "usage": "Used in roles page to show/hide roles per company",
+              "note": "This is why Eye icon should NOT be used for view actions"
+            }
+          }
+        },
+        "status_badges": {
+          "placement": "Right-most element after action buttons",
+          "common_variants": ["success (Active)", "secondary (Inactive)", "destructive (Expired/Deleted)"]
+        },
+        "examples": {
+          "companies_list": "ToggleRight/Left + Edit + Delete + Active/Inactive badge",
+          "roles_list": "Eye/EyeOff (visibility) + Edit + Delete + Active/Inactive badge",
+          "assets_list": "FileText (view) + Delete + Active/Inactive/Expired badge",
+          "users_list": "FileText (view) + Edit + Delete + Active/Inactive badge"
+        }
       }
     }
   },

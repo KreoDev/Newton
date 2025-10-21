@@ -912,6 +912,77 @@ function helperFunction() {
 }
 ```
 
+### List Action Icons Pattern
+Newton uses a consistent icon pattern across all list pages (companies, roles, users, assets, etc.):
+
+**Layout Structure:**
+- **Left**: Icon + Item details
+- **Right**: Action buttons + Status badge
+
+**Standard Action Icons (Lucide React):**
+- **FileText** - View details (navigate to details page)
+  - **Why FileText**: Avoids confusion with Eye icon which is reserved for visibility toggles
+  - Used in: Assets, Users
+- **Edit** - Edit item (open modal or navigate to edit page)
+  - Used in: Companies, Roles, Users
+  - **Not used in Assets** - editing happens on details page
+- **Trash2** - Delete item (with text-destructive styling)
+  - Always opens confirmation dialog before deletion
+  - Used in: All list pages
+- **ToggleRight/ToggleLeft** - Toggle active/inactive status
+  - ToggleRight (green) for active, ToggleLeft (gray) for inactive
+  - Used in: Companies, Roles, Users
+- **Eye/EyeOff** - Toggle visibility (company-specific)
+  - Eye (visible), EyeOff (hidden)
+  - **Used exclusively** in Roles page for showing/hiding roles per company
+  - **This is why Eye should NOT be used for view actions**
+
+**Button Styling:**
+- Variant: `ghost`
+- Size: `sm`
+- Icon size: `h-4 w-4`
+- Destructive icons: Add `text-destructive` class
+
+**Status Badge:**
+- Placement: Right-most element after all action buttons
+- Common variants: `success` (Active), `secondary` (Inactive), `destructive` (Expired/Deleted)
+
+**Examples:**
+```typescript
+// Assets list
+<Button variant="ghost" size="sm" onClick={() => router.push(`/assets/${asset.id}`)}>
+  <FileText className="h-4 w-4" />
+</Button>
+<Button variant="ghost" size="sm" onClick={handleDelete}>
+  <Trash2 className="h-4 w-4 text-destructive" />
+</Button>
+<Badge variant="success">Active</Badge>
+
+// Companies list
+<Button variant="ghost" size="sm" onClick={toggleStatus}>
+  <ToggleRight className="h-5 w-5 text-green-600" />
+</Button>
+<Button variant="ghost" size="sm" onClick={handleEdit}>
+  <Edit className="h-4 w-4" />
+</Button>
+<Button variant="ghost" size="sm" onClick={handleDelete}>
+  <Trash2 className="h-4 w-4 text-destructive" />
+</Button>
+<Badge variant="success">Active</Badge>
+
+// Roles list (with visibility toggle)
+<Button variant="ghost" size="sm" onClick={toggleVisibility}>
+  <Eye className="h-5 w-5" />
+</Button>
+<Button variant="ghost" size="sm" onClick={handleEdit}>
+  <Edit className="h-4 w-4" />
+</Button>
+<Button variant="ghost" size="sm" onClick={handleDelete}>
+  <Trash2 className="h-4 w-4 text-destructive" />
+</Button>
+<Badge variant="success">Active</Badge>
+```
+
 ---
 
 ## Testing Approach

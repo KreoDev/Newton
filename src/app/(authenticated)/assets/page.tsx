@@ -255,9 +255,6 @@ export default function AssetsPage() {
                     <Button variant="ghost" size="sm" onClick={() => router.push(`/assets/${asset.id}`)} title="View asset details">
                       <FileText className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => router.push(`/assets/${asset.id}`)} title="Edit asset">
-                      <Edit className="h-4 w-4" />
-                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => {}} title="Delete asset">
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
