@@ -77,8 +77,42 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
       const vehicleResult = AssetFieldMapper.parseVehicleDisk(barcodeData.trim())
 
       if (!("error" in vehicleResult)) {
-        // Successfully parsed as vehicle - now check for duplicates (checks in-memory assets)
-        console.log("Step4: Parsed as vehicle, registration:", vehicleResult.registration)
+        // Successfully parsed as vehicle - now validate it's a truck or trailer
+        console.log("Step4: Parsed as vehicle, registration:", vehicleResult.registration, "description:", vehicleResult.description)
+
+        // Check if vehicle type is acceptable (truck or trailer)
+        const vehicleType = (vehicleResult.description || "").toLowerCase()
+        const acceptedTypes = [
+          "truck",
+          "trailer",
+          "semi-trailer",
+          "semi trailer",
+          "heavy vehicle",
+          "goods vehicle",
+          "ldv", // Light Delivery Vehicle
+          "mdv", // Medium Delivery Vehicle
+          "hdv", // Heavy Delivery Vehicle
+          "light delivery vehicle",
+          "medium delivery vehicle",
+          "heavy delivery vehicle",
+        ]
+
+        const isAcceptedType = acceptedTypes.some(type => vehicleType.includes(type))
+
+        if (!isAcceptedType) {
+          console.log("Step4: Invalid vehicle type detected:", vehicleResult.description)
+          setError(`Invalid vehicle type: ${vehicleResult.description}`)
+          alert.showError(
+            "Invalid Vehicle Type",
+            `This barcode is for a ${vehicleResult.description || "passenger vehicle"}. Please scan a barcode for a truck, trailer, or driver's license only.`
+          )
+          setParsedData(null)
+          setIsProcessing(false)
+          return
+        }
+
+        // Check for duplicates (checks in-memory assets)
+        console.log("Step4: Valid vehicle type, checking for duplicates")
         const validation = AssetService.validateRegistration(vehicleResult.registration)
         console.log("Step4: Validation result:", validation)
 
