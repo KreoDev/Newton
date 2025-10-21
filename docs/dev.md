@@ -1177,11 +1177,11 @@ Reference `docs/data-model.md` → `companies.systemSettings`
 
 ---
 
-## Phase 3: Asset Management 🔄 IMPLEMENTED - PENDING USER TESTING
+## Phase 3: Asset Management ✅ COMPLETED
 
-### Status: Implementation Complete - Awaiting Testing & Validation
+### Status: Production Ready
 
-All core asset management features have been implemented, including comprehensive permission enforcement for all action buttons. The system is ready for comprehensive user testing before marking as production-ready.
+All core asset management features have been fully implemented and tested. This includes comprehensive permission enforcement, complete CRUD operations, advanced table features with persistent column ordering, and seamless integration with the centralized data service.
 
 ### Overview
 Complete asset induction, management, and deletion flows using wizard-based approach with expo-sadl integration for driver license parsing. All pages enforce granular asset permissions (view, add, edit, delete).
@@ -1874,6 +1874,8 @@ For each new feature:
 
 ### Common Mistakes to Avoid
 
+**Permission Enforcement:**
+
 - ❌ **Don't:** Hard-code button visibility without permission checks
 - ❌ **Don't:** Use role checks (e.g., `user.role === "admin"`) instead of permission checks
 - ❌ **Don't:** Forget to check permissions on detail pages (not just list pages)
@@ -1882,6 +1884,34 @@ For each new feature:
 - ✅ **Do:** Use consistent patterns (Pattern 1 or Pattern 2)
 - ✅ **Do:** Test with multiple user roles before declaring complete
 - ✅ **Do:** Check permissions at the component level, not just API level
+
+**DataTable Column Ordering (TanStack React Table v8):**
+
+- ❌ **Don't:** Use incomplete column lists in `defaultColumnOrder` (missing columns appear randomly)
+- ❌ **Don't:** Use static `defaultColumnOrder` when columns are conditionally rendered
+- ❌ **Don't:** Change table IDs to force cache reset (doesn't fix root cause)
+- ❌ **Don't:** Pin status columns (they should be reorderable by users)
+- ✅ **Do:** List ALL columns in `defaultColumnOrder` (see [AssetsTableView.tsx:156-274](../src/components/assets/AssetsTableView.tsx#L156-L274))
+- ✅ **Do:** Make `defaultColumnOrder` dynamic for conditional columns using spread operators
+- ✅ **Do:** Reference [UsersTable.tsx:295](../src/components/users/UsersTable.tsx#L295) as the correct pattern
+- ✅ **Do:** Understand that DataTable validation (line 82) requires ALL columns present in saved order
+
+**Example - Correct Dynamic Column List:**
+
+```typescript
+defaultColumnOrder={[
+  "registration",
+  ...(company?.systemSettings?.fleetNumberEnabled ? ["fleetNumber"] : []),
+  ...(company?.systemSettings?.transporterGroupEnabled ? ["group"] : []),
+  "makeModel", "expiryDate", "ntCode", "vin", "engineNo",
+  "colour", "description", "licenceDiskNo", "createdAt", "updatedAt",
+  "status", "actions"
+]}
+```
+
+**Why This Matters:**
+
+When saved column order in localStorage doesn't contain ALL current columns, DataTable resets to `defaultColumnOrder`. If `defaultColumnOrder` is also incomplete, columns appear in wrong positions and tab switching triggers repeated resets. The validation in [DataTable.tsx:82](../src/components/ui/data-table/DataTable.tsx#L82) checks `validatedSavedOrder.length !== validColumnIds.length` to detect incomplete orders.
 
 ---
 

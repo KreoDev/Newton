@@ -987,6 +987,106 @@ Newton uses a consistent icon pattern across all list pages (companies, roles, u
 <Badge variant="success">Active</Badge>
 ```
 
+### DataTable Column Ordering Best Practices
+
+Newton uses TanStack React Table v8 with persistent column ordering stored in localStorage via Zustand. Follow these critical patterns to avoid column ordering issues:
+
+**CRITICAL RULES:**
+
+1. **Always Include Complete Column Lists in defaultColumnOrder**
+   - List ALL columns that exist in the table, not just a subset
+   - Missing columns will appear in random positions
+   - Example from users table (correct):
+     ```typescript
+     defaultColumnOrder={["name", "email", "userType", "role", "company", "status", "actions"]}
+     ```
+
+2. **Match defaultColumnOrder to Actual Rendered Columns**
+   - If columns are conditionally rendered, make defaultColumnOrder dynamic too
+   - Use spread operators for conditional columns:
+     ```typescript
+     defaultColumnOrder={[
+       "registration",
+       ...(company?.systemSettings?.fleetNumberEnabled ? ["fleetNumber"] : []),
+       ...(company?.systemSettings?.transporterGroupEnabled ? ["group"] : []),
+       "makeModel",
+       // ... rest of columns
+       "status",
+       "actions"
+     ]}
+     ```
+
+3. **Validation Requires ALL Columns Present**
+   - DataTable component validates saved column order against current columns
+   - If saved order is incomplete (missing columns), it resets to defaultColumnOrder
+   - Validation check in [DataTable.tsx:82](src/components/ui/data-table/DataTable.tsx#L82):
+     ```typescript
+     validatedSavedOrder.length !== validColumnIds.length  // Ensures ALL columns present
+     ```
+
+4. **Avoid pinnedColumns Unless Absolutely Necessary**
+   - Pinned columns always appear at edges regardless of user preference
+   - Only pin columns that must always be visible (e.g., actions)
+   - Status column should NOT be pinned - let it be reorderable
+   - Users table example (correct pattern):
+     ```typescript
+     <DataTable
+       defaultColumnOrder={["name", "email", "role", "status", "actions"]}
+       // NO pinnedColumns prop - everything reorderable except what table enforces
+     />
+     ```
+
+5. **Never Change Table IDs to Force Cache Reset**
+   - Changing tableId creates new localStorage key but doesn't fix root cause
+   - User must manually clear localStorage if needed
+   - Focus on fixing defaultColumnOrder instead
+
+**Common Column Ordering Issues:**
+
+❌ **WRONG - Incomplete Column List:**
+```typescript
+// Only 3 columns listed, but table has 15 columns
+defaultColumnOrder={["registration", "status", "actions"]}
+// Result: Other 12 columns appear in random order
+```
+
+✅ **CORRECT - Complete Column List:**
+```typescript
+// All 15 columns listed in desired order
+defaultColumnOrder={[
+  "registration", "fleetNumber", "group", "makeModel",
+  "expiryDate", "ntCode", "vin", "engineNo", "colour",
+  "description", "licenceDiskNo", "createdAt", "updatedAt",
+  "status", "actions"
+]}
+```
+
+❌ **WRONG - Static List with Conditional Columns:**
+```typescript
+// fleetNumber might not exist if setting disabled
+defaultColumnOrder={["registration", "fleetNumber", "group", "status", "actions"]}
+```
+
+✅ **CORRECT - Dynamic List for Conditional Columns:**
+```typescript
+defaultColumnOrder={[
+  "registration",
+  ...(company?.systemSettings?.fleetNumberEnabled ? ["fleetNumber"] : []),
+  ...(company?.systemSettings?.transporterGroupEnabled ? ["group"] : []),
+  "status",
+  "actions"
+]}
+```
+
+**Why This Matters:**
+
+When column order is saved to localStorage but doesn't contain ALL current columns, the DataTable validation detects the mismatch and resets to defaultColumnOrder. If defaultColumnOrder is also incomplete, columns appear in wrong positions and tab switching triggers repeated resets.
+
+**Files to Reference:**
+- [DataTable.tsx](src/components/ui/data-table/DataTable.tsx) - Core validation logic
+- [AssetsTableView.tsx](src/components/assets/AssetsTableView.tsx) - Complete implementation with conditional columns
+- [UsersTable.tsx](src/components/users/UsersTable.tsx) - Simple reference implementation
+
 ---
 
 ## Testing Approach
