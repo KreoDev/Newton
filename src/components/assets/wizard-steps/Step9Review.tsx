@@ -235,7 +235,7 @@ export function Step9Review({ state, onComplete, onPrev }: Step9Props) {
             {state.groupId && (
               <div className="grid grid-cols-2 gap-2">
                 <span className="text-muted-foreground">{selectedCompany?.systemSettings?.transporterGroupLabel || "Group"}:</span>
-                <span>{state.groupId}</span>
+                <span>{selectedGroup?.name || state.groupId}</span>
               </div>
             )}
           </div>
