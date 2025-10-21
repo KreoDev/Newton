@@ -72,10 +72,14 @@ export function DataTable<TData, TValue>({
 
   // Initialize column order:
   // - Use default if versions don't match (migration scenario)
+  // - Use default if saved order doesn't have ALL columns (incomplete data)
   // - Otherwise use validated saved order if it exists and is valid
   // - Fall back to default or all column IDs
   const initialColumnOrder =
-    !isVersionMatch || !validatedSavedOrder || validatedSavedOrder.length === 0
+    !isVersionMatch ||
+    !validatedSavedOrder ||
+    validatedSavedOrder.length === 0 ||
+    validatedSavedOrder.length !== validColumnIds.length  // ← NEW: Ensure ALL columns are present
       ? (defaultColumnOrder ?? validColumnIds)
       : validatedSavedOrder
 

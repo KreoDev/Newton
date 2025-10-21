@@ -280,10 +280,10 @@ export class AssetService {
       const thresholdDate = new Date(now.getTime() + daysThreshold * 24 * 60 * 60 * 1000)
 
       return assets.filter(asset => {
-        if (!asset.licenseExpiryDate) return false
+        if (!asset.expiryDate) return false
 
         // Parse DD/MM/YYYY format
-        const parts = asset.licenseExpiryDate.split("/")
+        const parts = asset.expiryDate.split("/")
         if (parts.length !== 3) return false
 
         const expiryDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]))
@@ -306,10 +306,10 @@ export class AssetService {
       const now = new Date()
 
       return assets.filter(asset => {
-        if (!asset.licenseExpiryDate) return false
+        if (!asset.expiryDate) return false
 
         // Parse DD/MM/YYYY format
-        const parts = asset.licenseExpiryDate.split("/")
+        const parts = asset.expiryDate.split("/")
         if (parts.length !== 3) return false
 
         const expiryDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]))

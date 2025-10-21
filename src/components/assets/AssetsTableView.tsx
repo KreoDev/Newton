@@ -159,17 +159,23 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
               ...(company?.systemSettings?.transporterGroupEnabled ? ["group"] : []),
               "makeModel",
               "expiryDate",
+              "ntCode",
+              "vin",
+              "engineNo",
+              "colour",
+              "description",
+              "licenceDiskNo",
+              "createdAt",
+              "updatedAt",
               "status",
               "actions"
             ]}
-            columnOrderVersion={2}
             defaultPageSize={20}
             searchPlaceholder="Search trucks by registration, fleet number, VIN..."
             enablePagination={true}
             enableRowSelection={true}
             enableColumnResizing={true}
             enableExport={true}
-            pinnedColumns={{ right: ["actions"] }}
             onRowSelectionChange={(selectedRows) => {
               setSelectedAssets(selectedRows)
             }}
@@ -188,17 +194,28 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
           <DataTable
             key={`trailer-${tableKey}`}
             tableId="assets-trailers-table"
-            columnOrderVersion={2}
             columns={columns}
             data={filteredAssets}
-            defaultColumnOrder={["registration", "makeModel", "expiryDate", "status", "actions"]}
+            defaultColumnOrder={[
+              "registration",
+              "makeModel",
+              "expiryDate",
+              "ntCode",
+              "vin",
+              "colour",
+              "description",
+              "licenceDiskNo",
+              "createdAt",
+              "updatedAt",
+              "status",
+              "actions"
+            ]}
             defaultPageSize={20}
             searchPlaceholder="Search trailers by registration, VIN..."
             enablePagination={true}
             enableRowSelection={true}
             enableColumnResizing={true}
             enableExport={true}
-            pinnedColumns={{ right: ["actions"] }}
             onRowSelectionChange={(selectedRows) => {
               setSelectedAssets(selectedRows)
             }}
@@ -217,17 +234,45 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
           <DataTable
             key={`driver-${tableKey}`}
             tableId="assets-drivers-table"
-            columnOrderVersion={2}
             columns={columns}
             data={filteredAssets}
-            defaultColumnOrder={["photo", "name", "idNumber", "licenceNumber", "licenceType", "group", "expiryDate", "status", "actions"]}
+            defaultColumnOrder={[
+              "photo",
+              "name",
+              "idNumber",
+              "licenceNumber",
+              "licenceType",
+              "group",
+              "expiryDate",
+              "ntCode",
+              "gender",
+              "birthDate",
+              "age",
+              "sadcCountry",
+              "issueDate",
+              "vehicleCodes",
+              "vehicleClassCodes",
+              "endorsement",
+              "prdpCode",
+              "prdpCategory",
+              "prdpValidUntil",
+              "driverRestrictions",
+              "vehicleRestrictions",
+              "restrictions",
+              "issuedPlace",
+              "idType",
+              "licenceIssueNumber",
+              "createdAt",
+              "updatedAt",
+              "status",
+              "actions"
+            ]}
             defaultPageSize={20}
             searchPlaceholder="Search drivers by name, ID number, license number..."
             enablePagination={true}
             enableRowSelection={true}
             enableColumnResizing={true}
             enableExport={true}
-            pinnedColumns={{ right: ["actions"] }}
             onRowSelectionChange={(selectedRows) => {
               setSelectedAssets(selectedRows)
             }}
