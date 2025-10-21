@@ -103,7 +103,18 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
           setError(`Invalid vehicle type: ${vehicleResult.description}`)
           alert.showError(
             "Invalid Vehicle Type",
-            `This barcode is for a ${vehicleResult.description || "passenger vehicle"}. Please scan a barcode for a truck, trailer, or driver's license only.`
+            `This barcode is for a ${vehicleResult.description || "passenger vehicle"}. Please scan a barcode for a truck, trailer, or driver's license only.`,
+            () => {
+              // Auto-clear when user clicks OK on the alert
+              console.log("Step4: User acknowledged error, clearing barcode for new scan")
+              setBarcodeData("")
+              setError("")
+              setParsedData(null)
+              setIsProcessing(false)
+              setTimeout(() => {
+                inputRef.current?.focus()
+              }, 100)
+            }
           )
           setParsedData(null)
           setIsProcessing(false)
@@ -118,7 +129,17 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
         if (!validation.isValid) {
           console.log("Step4: Duplicate vehicle detected, showing error")
           setError(validation.error || "Duplicate vehicle registration")
-          alert.showError("Duplicate Vehicle", validation.error || "This vehicle registration is already registered in the system.")
+          alert.showError("Duplicate Vehicle", validation.error || "This vehicle registration is already registered in the system.", () => {
+            // Auto-clear when user clicks OK on the alert
+            console.log("Step4: User acknowledged error, clearing barcode for new scan")
+            setBarcodeData("")
+            setError("")
+            setParsedData(null)
+            setIsProcessing(false)
+            setTimeout(() => {
+              inputRef.current?.focus()
+            }, 100)
+          })
           setParsedData(null)
           setIsProcessing(false)
           return
@@ -148,7 +169,17 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
         if (!validation.isValid) {
           console.log("Step4: Duplicate driver detected, showing error")
           setError(validation.error || "Duplicate driver ID number")
-          alert.showError("Duplicate Driver", validation.error || "This driver ID number is already registered in the system.")
+          alert.showError("Duplicate Driver", validation.error || "This driver ID number is already registered in the system.", () => {
+            // Auto-clear when user clicks OK on the alert
+            console.log("Step4: User acknowledged error, clearing barcode for new scan")
+            setBarcodeData("")
+            setError("")
+            setParsedData(null)
+            setIsProcessing(false)
+            setTimeout(() => {
+              inputRef.current?.focus()
+            }, 100)
+          })
           setParsedData(null)
           setIsProcessing(false)
           return
@@ -168,13 +199,33 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
 
       // Both parsers failed
       setError("Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk or driver license.")
-      alert.showError("Barcode Parsing Failed", "Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk or driver license.")
+      alert.showError("Barcode Parsing Failed", "Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk or driver license.", () => {
+        // Auto-clear when user clicks OK on the alert
+        console.log("Step4: User acknowledged error, clearing barcode for new scan")
+        setBarcodeData("")
+        setError("")
+        setParsedData(null)
+        setIsProcessing(false)
+        setTimeout(() => {
+          inputRef.current?.focus()
+        }, 100)
+      })
       setParsedData(null)
       setIsProcessing(false)
     } catch (error) {
       console.error("Error parsing/validating barcode:", error)
       setError("Failed to validate barcode. Please try again.")
-      alert.showError("Validation Failed", "Failed to validate barcode. Please try again.")
+      alert.showError("Validation Failed", "Failed to validate barcode. Please try again.", () => {
+        // Auto-clear when user clicks OK on the alert
+        console.log("Step4: User acknowledged error, clearing barcode for new scan")
+        setBarcodeData("")
+        setError("")
+        setParsedData(null)
+        setIsProcessing(false)
+        setTimeout(() => {
+          inputRef.current?.focus()
+        }, 100)
+      })
       setParsedData(null)
       setIsProcessing(false)
     }

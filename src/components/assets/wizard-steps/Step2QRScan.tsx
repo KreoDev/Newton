@@ -77,7 +77,16 @@ export function Step2QRScan({ state, updateState, onNext, onPrev }: Step2Props) 
       if (!validation.isValid) {
         console.log("Step2: Duplicate or invalid NT code detected, showing error")
         setError(validation.error || "Invalid QR code")
-        alert.showError("Invalid QR Code", validation.error || "Invalid QR code")
+        alert.showError("Invalid QR Code", validation.error || "Invalid QR code", () => {
+          // Auto-clear when user clicks OK on the alert
+          console.log("Step2: User acknowledged error, clearing QR code for new scan")
+          setQrCode("")
+          setError("")
+          setIsValidating(false)
+          setTimeout(() => {
+            inputRef.current?.focus()
+          }, 100)
+        })
         setIsValidating(false)
         return
       }
@@ -91,7 +100,16 @@ export function Step2QRScan({ state, updateState, onNext, onPrev }: Step2Props) 
     } catch (error) {
       console.error("Step2: Error validating QR code:", error)
       setError("Failed to validate QR code. Please try again.")
-      alert.showError("Validation Failed", "Failed to validate QR code. Please try again.")
+      alert.showError("Validation Failed", "Failed to validate QR code. Please try again.", () => {
+        // Auto-clear when user clicks OK on the alert
+        console.log("Step2: User acknowledged error, clearing QR code for new scan")
+        setQrCode("")
+        setError("")
+        setIsValidating(false)
+        setTimeout(() => {
+          inputRef.current?.focus()
+        }, 100)
+      })
       setIsValidating(false)
     }
   }
