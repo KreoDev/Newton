@@ -26,10 +26,20 @@ export default function AssetsPage() {
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive" | "expired">("all")
 
   // Helper function to get group name from groupId
-  const getGroupName = (groupId?: string | null) => {
+  // For transporter companies: groupId is the group name itself (string from groupOptions)
+  // For mine companies: groupId is a reference to a Groups document
+  const getGroupName = (asset: Asset) => {
+    const groupId = asset.groupId
     if (!groupId) return null
+
+    // First, try to find in Groups collection (for mine companies)
     const group = groups.find(g => g.id === groupId)
-    return group?.name || null
+    if (group) return group.name
+
+    // If not found in Groups collection, it's likely a transporter company
+    // where groupId is the group name itself (from systemSettings.groupOptions)
+    // Just return the groupId as the group name
+    return groupId
   }
 
   // Filter and search assets
@@ -237,7 +247,7 @@ export default function AssetsPage() {
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{getAssetIdentifier(asset)}</span>
                       {asset.fleetNumber && <Badge variant="secondary">Fleet: {asset.fleetNumber}</Badge>}
-                      {getGroupName(asset.groupId) && <Badge variant="outline">Group: {getGroupName(asset.groupId)}</Badge>}
+                      {getGroupName(asset) && <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30">Group: {getGroupName(asset)}</Badge>}
                       {!asset.isActive && <Badge variant="destructive">Inactive</Badge>}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
