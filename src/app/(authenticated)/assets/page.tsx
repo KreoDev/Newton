@@ -247,7 +247,7 @@ export default function AssetsPage() {
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{getAssetIdentifier(asset)}</span>
                       {asset.fleetNumber && <Badge variant="secondary">Fleet: {asset.fleetNumber}</Badge>}
-                      {getGroupName(asset) && <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30">Group: {getGroupName(asset)}</Badge>}
+                      {getGroupName(asset) && <Badge variant="purple">Group: {getGroupName(asset)}</Badge>}
                       {!asset.isActive && <Badge variant="destructive">Inactive</Badge>}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">

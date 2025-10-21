@@ -17,6 +17,12 @@ const badgeVariants = cva("inline-flex items-center rounded-full border px-2.5 p
       purple: "border-[color:oklch(0.72_0.16_290/_0.55)] bg-[oklch(0.9_0.12_290/_0.82)] text-[color:oklch(0.4_0.16_290)] shadow-[var(--glass-shadow-xs)] dark:border-purple-400/60 dark:bg-purple-500/20 dark:text-purple-100",
       orange: "border-[color:oklch(0.74_0.16_50/_0.55)] bg-[oklch(0.92_0.14_50/_0.82)] text-[color:oklch(0.42_0.16_50)] shadow-[var(--glass-shadow-xs)] dark:border-orange-400/60 dark:bg-orange-500/20 dark:text-orange-100",
       lime: "border-[color:oklch(0.76_0.16_130/_0.55)] bg-[oklch(0.92_0.14_130/_0.82)] text-[color:oklch(0.42_0.16_130)] shadow-[var(--glass-shadow-xs)] dark:border-lime-400/60 dark:bg-lime-500/20 dark:text-lime-100",
+      pink: "border-[color:oklch(0.74_0.16_350/_0.55)] bg-[oklch(0.92_0.14_350/_0.82)] text-[color:oklch(0.42_0.16_350)] shadow-[var(--glass-shadow-xs)] dark:border-pink-400/60 dark:bg-pink-500/20 dark:text-pink-100",
+      rose: "border-[color:oklch(0.72_0.16_10/_0.55)] bg-[oklch(0.91_0.14_10/_0.82)] text-[color:oklch(0.42_0.16_10)] shadow-[var(--glass-shadow-xs)] dark:border-rose-400/60 dark:bg-rose-500/20 dark:text-rose-100",
+      fuchsia: "border-[color:oklch(0.72_0.18_320/_0.55)] bg-[oklch(0.9_0.15_320/_0.82)] text-[color:oklch(0.4_0.18_320)] shadow-[var(--glass-shadow-xs)] dark:border-fuchsia-400/60 dark:bg-fuchsia-500/20 dark:text-fuchsia-100",
+      teal: "border-[color:oklch(0.74_0.14_190/_0.55)] bg-[oklch(0.92_0.12_190/_0.82)] text-[color:oklch(0.42_0.14_190)] shadow-[var(--glass-shadow-xs)] dark:border-teal-400/60 dark:bg-teal-500/20 dark:text-teal-100",
+      cyan: "border-[color:oklch(0.76_0.14_210/_0.55)] bg-[oklch(0.93_0.12_210/_0.82)] text-[color:oklch(0.42_0.14_210)] shadow-[var(--glass-shadow-xs)] dark:border-cyan-400/60 dark:bg-cyan-500/20 dark:text-cyan-100",
+      indigo: "border-[color:oklch(0.7_0.16_270/_0.55)] bg-[oklch(0.88_0.14_270/_0.82)] text-[color:oklch(0.38_0.16_270)] shadow-[var(--glass-shadow-xs)] dark:border-indigo-400/60 dark:bg-indigo-500/20 dark:text-indigo-100",
     },
   },
   defaultVariants: {
