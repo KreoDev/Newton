@@ -29,8 +29,9 @@ export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step
     return companies.find(c => c.id === state.companyId)
   }, [companies, state.companyId])
 
-  const fleetNumberEnabled = selectedCompany?.systemSettings?.fleetNumberEnabled ?? false
-  const groupEnabled = selectedCompany?.systemSettings?.transporterGroupEnabled ?? false
+  // Fleet number and transporter group are only applicable for trucks, not trailers or drivers
+  const fleetNumberEnabled = (selectedCompany?.systemSettings?.fleetNumberEnabled ?? false) && state.type === "truck"
+  const groupEnabled = (selectedCompany?.systemSettings?.transporterGroupEnabled ?? false) && state.type === "truck"
 
   // Get group options from company systemSettings
   const groupOptions = useMemo(() => {

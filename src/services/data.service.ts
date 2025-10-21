@@ -48,8 +48,6 @@ class Data {
     const companiesListener = createCollectionListener<Company>("companies", this.companies, {
       companyScoped: false,
       onFirstLoad: () => {
-        console.log("📊 Companies loaded:", this.companies.value.length, "companies")
-        console.log("Companies data:", this.companies.value.map(c => ({ id: c.id, name: c.name, type: c.companyType })))
         this.markCollectionLoaded("companies")
       },
     })
@@ -106,16 +104,7 @@ class Data {
     const unsubClients = clientsListener(companyId)
     const unsubAssets = assetsListener(companyId)
 
-    this.unsubscribers = [
-      unsubCompanies,
-      unsubRoles,
-      unsubUsers,
-      unsubProducts,
-      unsubGroups,
-      unsubSites,
-      unsubClients,
-      unsubAssets,
-    ]
+    this.unsubscribers = [unsubCompanies, unsubRoles, unsubUsers, unsubProducts, unsubGroups, unsubSites, unsubClients, unsubAssets]
 
     return () => this.cleanup()
   }
