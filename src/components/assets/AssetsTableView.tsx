@@ -158,8 +158,8 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
               ...(company?.systemSettings?.fleetNumberEnabled ? ["fleetNumber"] : []),
               ...(company?.systemSettings?.transporterGroupEnabled ? ["group"] : []),
               "makeModel",
-              "status",
               "expiryDate",
+              "status",
               "actions"
             ]}
             defaultPageSize={20}
@@ -189,7 +189,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
             tableId="assets-trailers-table"
             columns={columns}
             data={filteredAssets}
-            defaultColumnOrder={["registration", "makeModel", "status", "expiryDate", "actions"]}
+            defaultColumnOrder={["registration", "makeModel", "expiryDate", "status", "actions"]}
             defaultPageSize={20}
             searchPlaceholder="Search trailers by registration, VIN..."
             enablePagination={true}
@@ -217,7 +217,7 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
             tableId="assets-drivers-table"
             columns={columns}
             data={filteredAssets}
-            defaultColumnOrder={["photo", "name", "idNumber", "licenceNumber", "licenceType", "group", "status", "expiryDate", "actions"]}
+            defaultColumnOrder={["photo", "name", "idNumber", "licenceNumber", "licenceType", "group", "expiryDate", "status", "actions"]}
             defaultPageSize={20}
             searchPlaceholder="Search drivers by name, ID number, license number..."
             enablePagination={true}

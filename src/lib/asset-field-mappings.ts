@@ -332,7 +332,7 @@ export class AssetFieldMapper {
         model: parsedData.vehicleInfo.model, // Android app field
         vin: parsedData.vehicleInfo.vin, // Android app field
         colour: parsedData.vehicleInfo.colour, // Android app field
-        engineNo: parsedData.vehicleInfo.engineNo, // Trucks only - trailers don't have engines
+        engineNo: parsedData.type === "truck" ? parsedData.vehicleInfo.engineNo : undefined, // Trucks only - trailers don't have engines
         licenceDiskNo: parsedData.vehicleInfo.vehicleDiskNo,
         dateOfExpiry: parsedData.vehicleInfo.expiryDate, // Android app field
         description: parsedData.vehicleInfo.description, // Android app field
