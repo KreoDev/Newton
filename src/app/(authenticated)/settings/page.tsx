@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { useSignals } from "@preact/signals-react/runtime"
-import { Save, User, Shield, Palette, Moon, Sun, Layout, LayoutGrid, Bell } from "lucide-react"
+import { Save, User, Shield, Palette, Moon, Sun, Layout, LayoutGrid, Bell, Table } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useLayout } from "@/hooks/useLayout"
+import { useAssetViewPreference } from "@/hooks/useAssetViewPreference"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,6 +25,7 @@ export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
   const { theme, setTheme } = useTheme()
   const { layout, setLayout } = useLayout()
+  const { view: assetView, updateView: updateAssetView } = useAssetViewPreference()
   const { showSuccess, showError } = useAlert()
   const [mounted, setMounted] = useState(false)
   const [profile, setProfile] = useState({
@@ -136,6 +138,32 @@ export default function SettingsPage() {
       default:
         return "Sidebar"
     }
+  }
+
+  const getAssetViewIcon = (viewOption: string) => {
+    switch (viewOption) {
+      case "card":
+        return <LayoutGrid className="h-4 w-4" />
+      case "table":
+        return <Table className="h-4 w-4" />
+      default:
+        return <LayoutGrid className="h-4 w-4" />
+    }
+  }
+
+  const getAssetViewLabel = (viewOption: string) => {
+    switch (viewOption) {
+      case "card":
+        return "Card View"
+      case "table":
+        return "Table View"
+      default:
+        return "Card View"
+    }
+  }
+
+  const handleAssetViewChange = async (newView: "card" | "table") => {
+    await updateAssetView(newView)
   }
 
   // Don't render theme-dependent content until mounted
@@ -291,6 +319,39 @@ export default function SettingsPage() {
                           <div className="flex items-center space-x-2">
                             <LayoutGrid className="h-4 w-4" />
                             <span>Top</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <h4 className="font-medium">Assets Page Default View</h4>
+                      <p className="text-sm text-muted-foreground">Choose your preferred view for the assets page.</p>
+                    </div>
+                    <Select value={assetView} onValueChange={handleAssetViewChange}>
+                      <SelectTrigger className="w-36">
+                        <SelectValue>
+                          <div className="flex items-center space-x-2">
+                            {getAssetViewIcon(assetView)}
+                            <span>{getAssetViewLabel(assetView)}</span>
+                          </div>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="card">
+                          <div className="flex items-center space-x-2">
+                            <LayoutGrid className="h-4 w-4" />
+                            <span>Card View</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="table">
+                          <div className="flex items-center space-x-2">
+                            <Table className="h-4 w-4" />
+                            <span>Table View</span>
                           </div>
                         </SelectItem>
                       </SelectContent>

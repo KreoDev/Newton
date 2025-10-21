@@ -73,6 +73,7 @@ export interface User extends Timestamped, CompanyScoped {
   profilePicture?: string // Optional profile image URL (data-model.md:30)
   preferredEmail?: string // Alternative email for notifications (data-model.md:32)
   notificationPreferences: NotificationPreferences
+  preferredAssetView?: "card" | "table" // User preference for assets page view (defaults to "card")
   isActive: boolean
   isGlobal: boolean
   canLogin?: boolean // If false, user is contact-only (no Firebase Auth account). Defaults to true.

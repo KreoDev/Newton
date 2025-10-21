@@ -22,12 +22,16 @@ interface InactivateAssetModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  bulkAssets?: Asset[] // Optional array for bulk operations
 }
 
-export function InactivateAssetModal({ asset, isOpen, onClose, onSuccess }: InactivateAssetModalProps) {
+export function InactivateAssetModal({ asset, isOpen, onClose, onSuccess, bulkAssets }: InactivateAssetModalProps) {
   const alert = useAlert()
   const [reason, setReason] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+
+  const isBulkOperation = bulkAssets && bulkAssets.length > 0
+  const assetsToInactivate = isBulkOperation ? bulkAssets : [asset]
 
   useEffect(() => {
     if (isOpen) {
@@ -37,20 +41,28 @@ export function InactivateAssetModal({ asset, isOpen, onClose, onSuccess }: Inac
 
   const handleInactivate = async () => {
     if (!reason.trim()) {
-      alert.showError("Reason Required", "Please provide a reason for marking this asset inactive. This will be displayed on the asset details page.")
+      alert.showError("Reason Required", `Please provide a reason for marking ${isBulkOperation ? "these assets" : "this asset"} inactive. This will be displayed on the asset details page.`)
       return
     }
 
     setIsProcessing(true)
 
     try {
-      await AssetService.inactivate(asset.id, reason.trim())
-      toast.success("Asset marked as inactive")
+      // Inactivate all assets with the same reason
+      await Promise.all(
+        assetsToInactivate.map(a => AssetService.inactivate(a.id, reason.trim()))
+      )
+
+      toast.success(
+        isBulkOperation
+          ? `${assetsToInactivate.length} assets marked as inactive`
+          : "Asset marked as inactive"
+      )
       onSuccess()
       onClose()
     } catch (error) {
-      console.error("Error inactivating asset:", error)
-      toast.error("Failed to mark asset as inactive")
+      console.error("Error inactivating assets:", error)
+      toast.error(`Failed to mark ${isBulkOperation ? "assets" : "asset"} as inactive`)
     } finally {
       setIsProcessing(false)
     }
@@ -60,23 +72,46 @@ export function InactivateAssetModal({ asset, isOpen, onClose, onSuccess }: Inac
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Mark Asset as Inactive</AlertDialogTitle>
+          <AlertDialogTitle>
+            {isBulkOperation ? `Mark ${assetsToInactivate.length} Assets as Inactive` : "Mark Asset as Inactive"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            This will hide the asset from operational dropdowns but preserve all transaction history.
+            {isBulkOperation
+              ? "This will hide these assets from operational dropdowns but preserve all transaction history."
+              : "This will hide the asset from operational dropdowns but preserve all transaction history."}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="space-y-4">
           <div className="p-4 bg-muted rounded-lg">
-            <p className="text-sm font-medium">Asset:</p>
-            <p className="text-sm text-muted-foreground capitalize">
-              {asset.type}: {asset.registration || asset.licenceNumber || "Unknown"}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">QR: {asset.ntCode}</p>
+            {isBulkOperation ? (
+              <>
+                <p className="text-sm font-medium">{assetsToInactivate.length} Assets Selected:</p>
+                <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                  {assetsToInactivate.map((a, idx) => (
+                    <p key={idx} className="text-sm text-muted-foreground capitalize">
+                      {a.type}: {a.registration || a.licenceNumber || "Unknown"}
+                    </p>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium">Asset:</p>
+                <p className="text-sm text-muted-foreground capitalize">
+                  {asset.type}: {asset.registration || asset.licenceNumber || "Unknown"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">QR: {asset.ntCode}</p>
+              </>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="inactive-reason">Why are you marking this asset inactive? *</Label>
+            <Label htmlFor="inactive-reason">
+              {isBulkOperation
+                ? "Why are you marking these assets inactive? *"
+                : "Why are you marking this asset inactive? *"}
+            </Label>
             <Textarea
               id="inactive-reason"
               placeholder="e.g., License expired, Vehicle sold, Driver resigned, No longer in service..."
@@ -84,7 +119,11 @@ export function InactivateAssetModal({ asset, isOpen, onClose, onSuccess }: Inac
               onChange={e => setReason(e.target.value)}
               rows={3}
             />
-            <p className="text-xs text-muted-foreground">This reason will be displayed on the asset details page</p>
+            <p className="text-xs text-muted-foreground">
+              {isBulkOperation
+                ? "This reason will be applied to all selected assets"
+                : "This reason will be displayed on the asset details page"}
+            </p>
           </div>
 
           <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
@@ -95,7 +134,7 @@ export function InactivateAssetModal({ asset, isOpen, onClose, onSuccess }: Inac
                 <ul className="list-disc list-inside mt-1 space-y-1">
                   <li>Inactive assets won&apos;t appear in order allocation or weighbridge operations</li>
                   <li>All historical transactions will be preserved</li>
-                  <li>You can reactivate this asset later if needed</li>
+                  <li>You can reactivate {isBulkOperation ? "these assets" : "this asset"} later if needed</li>
                 </ul>
               </div>
             </div>
