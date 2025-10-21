@@ -25,7 +25,21 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
 }
 
 function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
-  return <tr data-slot="table-row" className={cn("hover:bg-[oklch(1_0_0_/_0.18)] data-[state=selected]:bg-[oklch(1_0_0_/_0.24)] border-b transition-colors", className)} {...props} />
+  return (
+    <tr
+      data-slot="table-row"
+      className={cn(
+        "hover:bg-[oklch(1_0_0_/_0.18)] border-b transition-all duration-200",
+        // Selected row styling - reusable across all tables
+        "data-[state=selected]:bg-[oklch(0.7_0.1_240_/_0.12)]", // Subtle blue tint with 12% opacity
+        "data-[state=selected]:border-l-2",
+        "data-[state=selected]:border-l-primary/40",
+        "data-[state=selected]:shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.2)]", // Inner border glow
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 function TableHead({ className, ...props }: React.ComponentProps<"th">) {

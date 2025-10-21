@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { type ColumnDef } from "@tanstack/react-table"
 import type { User as UserType, Company, Role } from "@/types"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +16,7 @@ import { updateDoc, doc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
+import { BulkActionsToolbar } from "./BulkActionsToolbar"
 
 interface UsersTableProps {
   users: UserType[]
@@ -34,6 +36,8 @@ export function UsersTable({ users, canViewAllCompanies, canManage, canManagePer
   useSignals()
   const { showSuccess, showError } = useAlert()
   const { user: currentUser } = useAuth()
+  const [selectedUsers, setSelectedUsers] = useState<UserType[]>([])
+  const [tableKey, setTableKey] = useState(0) // Key to force re-render and clear selection
 
   const toggleUserStatus = async (user: UserType) => {
     // Prevent user from deactivating themselves
@@ -268,21 +272,43 @@ export function UsersTable({ users, canViewAllCompanies, canManage, canManagePer
       : []),
   ]
 
+  const handleClearSelection = () => {
+    setSelectedUsers([])
+    setTableKey((prev) => prev + 1) // Force re-render to clear table selection
+  }
+
+  const handleBulkActionSuccess = () => {
+    handleClearSelection()
+    // Data will refresh automatically via real-time listeners
+  }
+
   return (
-    <DataTable
-      tableId="users-table"
-      columns={columns}
-      data={users}
-      defaultColumnOrder={["name", "email", "userType", "role", "company", "status", "actions"]}
-      defaultPageSize={20}
-      searchPlaceholder="Search users by name, email, or role..."
-      enablePagination={true}
-      enableRowSelection={true}
-      enableColumnResizing={true}
-      enableExport={true}
-      onRowSelectionChange={selectedRows => {
-        console.log("Selected users:", selectedRows)
-      }}
-    />
+    <>
+      <BulkActionsToolbar
+        selectedUsers={selectedUsers}
+        currentUserId={currentUser?.id || ""}
+        canManage={canManage}
+        canViewAllCompanies={canViewAllCompanies}
+        onClearSelection={handleClearSelection}
+        onSuccess={handleBulkActionSuccess}
+      />
+
+      <DataTable
+        key={tableKey}
+        tableId="users-table"
+        columns={columns}
+        data={users}
+        defaultColumnOrder={["name", "email", "userType", "role", "company", "status", "actions"]}
+        defaultPageSize={20}
+        searchPlaceholder="Search users by name, email, or role..."
+        enablePagination={true}
+        enableRowSelection={true}
+        enableColumnResizing={true}
+        enableExport={true}
+        onRowSelectionChange={(selectedRows) => {
+          setSelectedUsers(selectedRows)
+        }}
+      />
+    </>
   )
 }
