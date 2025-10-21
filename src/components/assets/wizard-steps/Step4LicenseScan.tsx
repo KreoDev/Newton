@@ -84,6 +84,11 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
         const acceptedTypes = [
           "truck",
           "trailer",
+          "tipper", // Tipper trailers (common in mining)
+          "wipbak", // Afrikaans for tipper
+          "truck tractor", // Prime movers / cab units
+          "trucktractor", // Without space variant
+          "voorspanmotor", // Afrikaans for truck tractor
           "semi-trailer",
           "semi trailer",
           "heavy vehicle",
