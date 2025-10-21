@@ -1181,10 +1181,10 @@ Reference `docs/data-model.md` → `companies.systemSettings`
 
 ### Status: Implementation Complete - Awaiting Testing & Validation
 
-All core asset management features have been implemented. The system is ready for comprehensive user testing before marking as production-ready.
+All core asset management features have been implemented, including comprehensive permission enforcement for all action buttons. The system is ready for comprehensive user testing before marking as production-ready.
 
 ### Overview
-Complete asset induction, management, and deletion flows using wizard-based approach with expo-sadl integration for driver license parsing.
+Complete asset induction, management, and deletion flows using wizard-based approach with expo-sadl integration for driver license parsing. All pages enforce granular asset permissions (view, add, edit, delete).
 
 #### Important: Android App Schema Compatibility
 
@@ -1224,6 +1224,34 @@ The Asset data model uses field names that match the Android app's data structur
   - **Validation errors** (user input issues) use `alert.showError()` from `useAlert()` hook - prominent full-screen dialog
   - **Operational errors** (backend/network failures) use `toast.error()` - less intrusive notification
   - All wizard steps use alert dialogs for validation to ensure users never miss critical errors
+
+#### Permission Enforcement (✅ COMPLETE)
+
+All asset management pages enforce granular permission checks to ensure users only see action buttons they have permissions for.
+
+**Implemented Files:**
+
+- `src/app/(authenticated)/assets/page.tsx` - Asset list with permission checks
+- `src/app/(authenticated)/assets/[id]/page.tsx` - Asset details with permission checks
+
+**Permission Hooks Used:**
+
+- `usePermission(PERMISSIONS.ASSETS_VIEW)` - View assets
+- `usePermission(PERMISSIONS.ASSETS_ADD)` - Add/induct new assets
+- `usePermission(PERMISSIONS.ASSETS_EDIT)` - Edit, mark inactive, reactivate
+- `usePermission(PERMISSIONS.ASSETS_DELETE)` - Delete assets
+
+**Action Button Visibility:**
+
+- **"Induct Asset" button**: Only visible with `assets.add` permission
+- **"Edit" button**: Only visible with `assets.edit` permission
+- **"Edit Fleet/Group" button**: Only visible with `assets.edit` permission
+- **"Mark Inactive" button**: Only visible with `assets.edit` permission
+- **"Reactivate" button**: Only visible with `assets.edit` permission
+- **"Delete" button**: Only visible with `assets.delete` permission
+- **"View" button**: Always visible (anyone with page access can view details)
+
+**Result**: Users with view-only permissions only see the view/details button. Edit and delete actions are completely hidden for unauthorized users.
 
 ---
 
@@ -1621,6 +1649,239 @@ Reference `docs/data-model.md` → `assets` collection fields: `isActive`, `inac
 - ✅ Inactivation stores reason, date, and sets isActive = false
 - ✅ Reactivate button available on inactive asset details page
 - ✅ Inactive assets filtered from main listing (unless "inactive" status filter selected)
+
+---
+
+## Permission Enforcement Guidelines for Future Phases
+
+### Overview
+
+**MANDATORY**: All list pages, detail pages, and action buttons in future phases MUST implement permission checks to ensure users only see actions they are authorized to perform. This section provides templates and patterns to follow for consistent permission enforcement across all upcoming features.
+
+### Permission Patterns
+
+#### Pattern 1: Admin Pages (Dual Permission)
+
+Use for admin/configuration pages where users can have either view-only or full management permissions.
+
+```typescript
+import { useViewPermission } from "@/hooks/useViewPermission"
+import { PERMISSIONS } from "@/lib/permissions"
+
+const { canView, canManage, isViewOnly, loading: permissionLoading } = useViewPermission(
+  PERMISSIONS.MODULE_VIEW,  // View-only permission
+  PERMISSIONS.MODULE        // Full management permission
+)
+
+// Action buttons
+{canManage ? (
+  <>
+    <Button onClick={handleToggle}>
+      <ToggleRight />
+    </Button>
+    <Button onClick={handleEdit}>
+      <Edit />
+    </Button>
+    <Button onClick={handleDelete}>
+      <Trash2 />
+    </Button>
+  </>
+) : isViewOnly ? (
+  <Button onClick={handleView}>
+    <FileText />
+  </Button>
+) : null}
+```
+
+#### Pattern 2: Operational Pages (Granular Permissions)
+
+Use for operational pages where actions are more granular (view, add, edit, delete).
+
+```typescript
+import { usePermission } from "@/hooks/usePermission"
+import { PERMISSIONS } from "@/lib/permissions"
+
+const { hasPermission: canView } = usePermission(PERMISSIONS.MODULE_VIEW)
+const { hasPermission: canAdd } = usePermission(PERMISSIONS.MODULE_ADD)
+const { hasPermission: canEdit } = usePermission(PERMISSIONS.MODULE_EDIT)
+const { hasPermission: canDelete } = usePermission(PERMISSIONS.MODULE_DELETE)
+
+// Add button
+{canAdd && (
+  <Button onClick={handleAdd}>
+    <Plus /> Add
+  </Button>
+)}
+
+// Edit button
+{canEdit && (
+  <Button onClick={handleEdit}>
+    <Edit /> Edit
+  </Button>
+)}
+
+// Delete button
+{canDelete && (
+  <Button onClick={handleDelete}>
+    <Trash2 /> Delete
+  </Button>
+)}
+
+// View button (always shown)
+<Button onClick={handleView}>
+  <FileText /> View
+</Button>
+```
+
+### Phase 4: Order Management - Permission Requirements
+
+When implementing Order Management, the following permission checks MUST be implemented:
+
+**Required Permissions:**
+
+- `orders.view` - View order list and details
+- `orders.add` - Create new orders
+- `orders.edit` - Edit existing orders, update status
+- `orders.delete` - Delete orders (with transaction check)
+- `orders.allocate` - Allocate assets to orders
+
+**Files to Implement:**
+
+1. **Order List Page** (`src/app/(authenticated)/orders/page.tsx`)
+   - Use Pattern 2 (Granular Permissions)
+   - "Create Order" button: Requires `orders.add`
+   - "Edit" button: Requires `orders.edit`
+   - "Delete" button: Requires `orders.delete`
+   - "View" button: Always visible
+   - "Allocate Assets" button: Requires `orders.allocate`
+
+2. **Order Details Page** (`src/app/(authenticated)/orders/[id]/page.tsx`)
+   - "Edit" button: Requires `orders.edit`
+   - "Update Status" button: Requires `orders.edit`
+   - "Allocate Assets" button: Requires `orders.allocate`
+   - "Delete" button: Requires `orders.delete`
+
+3. **Order Creation Wizard** (`src/components/orders/OrderCreationWizard.tsx`)
+   - Entire wizard: Requires `orders.add`
+   - Redirect if permission missing
+
+### Phase 5: Pre-Booking System - Permission Requirements
+
+**Required Permissions:**
+
+- `prebooking.view` - View pre-booking list and details
+- `prebooking.add` - Create new pre-bookings
+- `prebooking.edit` - Edit existing pre-bookings
+- `prebooking.delete` - Delete pre-bookings
+- `prebooking.approve` - Approve/reject pre-booking requests
+
+**Files to Implement:**
+
+1. **Pre-Booking List Page**
+   - "Create Pre-Booking" button: Requires `prebooking.add`
+   - "Edit" button: Requires `prebooking.edit`
+   - "Approve/Reject" buttons: Requires `prebooking.approve`
+   - "Delete" button: Requires `prebooking.delete`
+   - "View" button: Always visible
+
+2. **Pre-Booking Details Page**
+   - "Edit" button: Requires `prebooking.edit`
+   - "Approve" button: Requires `prebooking.approve`
+   - "Reject" button: Requires `prebooking.approve`
+   - "Delete" button: Requires `prebooking.delete`
+
+### Phase 6: Weighbridge Operations - Permission Requirements
+
+**Required Permissions:**
+
+- `weighbridge.view` - View weighbridge records
+- `weighbridge.tare` - Capture tare weight
+- `weighbridge.gross` - Capture gross weight
+- `weighbridge.edit` - Edit weighbridge records
+- `weighbridge.void` - Void transactions
+- `weighbridge.override` - Override validation rules
+
+**Files to Implement:**
+
+1. **Weighbridge List Page**
+   - "Start Tare" button: Requires `weighbridge.tare`
+   - "Edit" button: Requires `weighbridge.edit`
+   - "Void" button: Requires `weighbridge.void`
+   - "View" button: Always visible
+
+2. **Weighbridge Operation Page**
+   - Tare weight capture: Requires `weighbridge.tare`
+   - Gross weight capture: Requires `weighbridge.gross`
+   - Override validations: Requires `weighbridge.override`
+
+### Phase 7: Security Checkpoints - Permission Requirements
+
+**Required Permissions:**
+
+- `security.view` - View security check records
+- `security.checkin` - Process entry checks
+- `security.checkout` - Process exit checks
+- `security.override` - Override validation rules
+
+**Files to Implement:**
+
+1. **Security Dashboard**
+   - "Check In" button: Requires `security.checkin`
+   - "Check Out" button: Requires `security.checkout`
+   - Override options: Requires `security.override`
+   - "View" button: Always visible
+
+2. **Security Check Details Page**
+   - "Override" button: Requires `security.override`
+
+### Phase 8: Reporting - Permission Requirements
+
+**Required Permissions:**
+
+- `reports.view` - View existing reports
+- `reports.generate` - Generate new reports
+- `reports.export` - Export reports to PDF/Excel
+- `reports.schedule` - Schedule automated reports
+
+**Files to Implement:**
+
+1. **Reports Dashboard**
+   - "Generate Report" button: Requires `reports.generate`
+   - "Export" button: Requires `reports.export`
+   - "Schedule" button: Requires `reports.schedule`
+
+### Implementation Checklist
+
+For each new page or feature in future phases, ensure:
+
+- [ ] Permission hooks imported and used at component level
+- [ ] All action buttons wrapped in permission checks
+- [ ] View-only users can see details but not action buttons
+- [ ] Loading states handled during permission checks
+- [ ] No TypeScript errors with permission types
+- [ ] Tested with different user roles (admin, manager, operator, viewer)
+- [ ] Documentation updated in CLAUDE.md with new permissions
+
+### Testing Permission Enforcement
+
+For each new feature:
+
+1. **Test with Admin Role**: All buttons should be visible
+2. **Test with Manager Role**: Edit/delete buttons visible, not admin functions
+3. **Test with Operator Role**: Can add/edit, cannot delete
+4. **Test with Viewer Role**: Only view buttons visible, no edit/delete/add
+5. **Test with No Permission**: Page should redirect or show "Access Denied"
+
+### Common Mistakes to Avoid
+
+- ❌ **Don't:** Hard-code button visibility without permission checks
+- ❌ **Don't:** Use role checks (e.g., `user.role === "admin"`) instead of permission checks
+- ❌ **Don't:** Forget to check permissions on detail pages (not just list pages)
+- ❌ **Don't:** Show action buttons that will fail on click due to missing permissions
+- ✅ **Do:** Use permission hooks for all action visibility
+- ✅ **Do:** Use consistent patterns (Pattern 1 or Pattern 2)
+- ✅ **Do:** Test with multiple user roles before declaring complete
+- ✅ **Do:** Check permissions at the component level, not just API level
 
 ---
 
