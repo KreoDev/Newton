@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCompany } from "@/contexts/CompanyContext"
+import { usePermission } from "@/hooks/usePermission"
+import { PERMISSIONS } from "@/lib/permissions"
 import { useSignals } from "@preact/signals-react/runtime"
 import { data as globalData } from "@/services/data.service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -26,6 +28,12 @@ export default function AssetsPage() {
   const assets = globalData.assets.value
   const groups = globalData.groups.value
   const loading = globalData.loading.value
+
+  // Permission checks for assets
+  const { hasPermission: canViewAssets } = usePermission(PERMISSIONS.ASSETS_VIEW)
+  const { hasPermission: canAddAssets } = usePermission(PERMISSIONS.ASSETS_ADD)
+  const { hasPermission: canEditAssets } = usePermission(PERMISSIONS.ASSETS_EDIT)
+  const { hasPermission: canDeleteAssets } = usePermission(PERMISSIONS.ASSETS_DELETE)
 
   // Redirect if company cannot access assets
   useEffect(() => {
@@ -178,12 +186,14 @@ export default function AssetsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Assets</h1>
           <p className="text-muted-foreground">Manage trucks, trailers, and drivers</p>
         </div>
-        <Link href="/assets/induct">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Induct Asset
-          </Button>
-        </Link>
+        {canAddAssets && (
+          <Link href="/assets/induct">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Induct Asset
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Filters */}
@@ -245,7 +255,7 @@ export default function AssetsPage() {
                 <p className="font-medium">No assets found</p>
                 <p className="text-sm text-muted-foreground">{searchTerm || filterType !== "all" || filterStatus !== "all" ? "Try adjusting your filters" : "Get started by inducting your first asset"}</p>
               </div>
-              {!searchTerm && filterType === "all" && filterStatus === "all" && (
+              {!searchTerm && filterType === "all" && filterStatus === "all" && canAddAssets && (
                 <Link href="/assets/induct">
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
@@ -275,16 +285,18 @@ export default function AssetsPage() {
                     <Button variant="ghost" size="sm" onClick={() => router.push(`/assets/${asset.id}`)} title="View asset details">
                       <FileText className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setAssetToDelete(asset)
-                        setDeleteModalOpen(true)
-                      }}
-                      title="Delete asset">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {canDeleteAssets && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setAssetToDelete(asset)
+                          setDeleteModalOpen(true)
+                        }}
+                        title="Delete asset">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
                     {getStatusBadge(asset)}
                   </div>
                 </div>

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useCompany } from "@/contexts/CompanyContext"
+import { usePermission } from "@/hooks/usePermission"
+import { PERMISSIONS } from "@/lib/permissions"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +26,10 @@ export default function AssetDetailsPage() {
   const router = useRouter()
   const { company: currentCompany } = useCompany()
   const assetId = params.id as string
+
+  // Permission checks for assets
+  const { hasPermission: canEditAssets } = usePermission(PERMISSIONS.ASSETS_EDIT)
+  const { hasPermission: canDeleteAssets } = usePermission(PERMISSIONS.ASSETS_DELETE)
 
   const [asset, setAsset] = useState<Asset | null>(null)
   const [loading, setLoading] = useState(true)
@@ -188,11 +194,13 @@ export default function AssetDetailsPage() {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setEditModalOpen(true)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          {asset.type === "truck" && (company?.systemSettings?.fleetNumberEnabled || company?.systemSettings?.transporterGroupEnabled) && (
+          {canEditAssets && (
+            <Button variant="outline" onClick={() => setEditModalOpen(true)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          )}
+          {canEditAssets && asset.type === "truck" && (company?.systemSettings?.fleetNumberEnabled || company?.systemSettings?.transporterGroupEnabled) && (
             <Button variant="outline" onClick={() => setOptionalFieldsModalOpen(true)}>
               <Edit className="mr-2 h-4 w-4" />
               Edit Fleet/Group
@@ -200,16 +208,20 @@ export default function AssetDetailsPage() {
           )}
           {asset.isActive ? (
             <>
-              <Button variant="outline" onClick={() => setInactivateModalOpen(true)}>
-                <AlertTriangle className="mr-2 h-4 w-4" />
-                Mark Inactive
-              </Button>
-              <Button variant="destructive" onClick={() => setDeleteModalOpen(true)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </Button>
+              {canEditAssets && (
+                <Button variant="outline" onClick={() => setInactivateModalOpen(true)}>
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  Mark Inactive
+                </Button>
+              )}
+              {canDeleteAssets && (
+                <Button variant="destructive" onClick={() => setDeleteModalOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              )}
             </>
-          ) : (
+          ) : canEditAssets ? (
             <Button
               variant="outline"
               onClick={async () => {
@@ -218,7 +230,7 @@ export default function AssetDetailsPage() {
               }}>
               Reactivate
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
 
