@@ -1247,13 +1247,21 @@ Per South African driver's license standard:
 - Vehicle disk parsing not yet implemented (placeholder for future)
 
 **Implemented Methods:**
-- `AssetFieldMapper.toAssetDocument(parsedData, companyId, additionalFields)` - Convert parsed data to Asset document
+- `AssetFieldMapper.toAssetDocument(parsedData, companyId, additionalFields)` - Convert parsed data to Asset document with **ALL barcode fields saved as top-level properties**
 - `AssetFieldMapper.getExpiryInfo(expiryDate)` - Returns expiry status, color, days until expiry
 - `AssetFieldMapper.formatExpiryDate(timestamp)` - Format dates from expo-sadl
+
+**Barcode Field Saving (✅ COMPLETE - Matches Android App):**
+- **Vehicle fields saved**: registration, make, model, vin, colour, engineNo, licenceDiskNo, vehicleDescription, description, dateOfExpiry
+- **Driver fields saved**: idNumber, name, surname, initials, birthDate, gender, licenceNumber, licenceType, issueDate, expiryDate, vehicleCodes
+- **All fields** extracted from barcode scans are now saved as top-level document properties for consistent display across the app
+- Fixes "undefined undefined" display issues caused by missing fields
 
 **Acceptance Criteria:**
 - ✅ expo-sadl successfully decodes driver licenses
 - ✅ All driver fields mapped to Asset type
+- ✅ **All vehicle fields saved** (make, model, vin, colour, engineNo, licenceDiskNo, etc.)
+- ✅ **All driver fields saved** (name, surname, birthDate, licenceType, issueDate, etc.)
 - ✅ Expiry validation with color-coded statuses (green/yellow/orange/red)
 - ✅ Base64 driver photos stored in img field
 
@@ -1363,10 +1371,11 @@ Per South African driver's license standard:
 - Submit button (creates asset and sends notifications)
 
 **On Successful Submit:**
-- Call `AssetService.create(assetData)`
+- Call `AssetService.create(assetData)` - Saves ALL barcode fields as top-level properties
 - Send notification to users with "asset.added" enabled
-- Show success message
-- Option to "Add Another" or "View Asset List"
+- **Show success alert dialog** with asset type and identifier (requires user acknowledgment before closing wizard)
+- Success message format: "{AssetType} ({Identifier}) has been successfully inducted and added to the system."
+- After user clicks "OK", wizard closes and returns to asset listing
 
 **Implemented Methods:**
 - `AssetService.create(parsedData, companyId, additionalFields)` - Create asset
@@ -1388,6 +1397,8 @@ Reference `docs/data-model.md` → `assets` collection
 - ✅ **Fleet number/group fields ONLY for trucks** (trailers and drivers skip Step 8)
 - ✅ Fleet number/group fields conditional on company settings (auto-skip if both disabled)
 - ✅ **Validation errors use alert dialogs** (not toast notifications - impossible to miss)
+- ✅ **ALL barcode fields saved** (make, model, vin, colour for vehicles; name, surname, birthDate for drivers)
+- ✅ **Success alert dialog shown** on completion (requires user acknowledgment before closing)
 - 🔄 Notifications implementation pending (Phase 2.6)
 - ✅ Duplicate QR codes prevented (NT code validation in Step 2, alert dialog shown)
 
@@ -1448,14 +1459,15 @@ Reference `docs/data-model.md` → `assets` collection
 
 **User Flow**: Implicit (view/edit existing asset)
 
-**Goal**: View full asset details and edit non-barcode fields.
+**Goal**: View full asset details and edit QR codes or barcode data (license/disk renewal).
 
 **Implemented Files:**
 - `src/app/(authenticated)/assets/[id]/page.tsx` - Comprehensive asset details page
+- `src/components/assets/AssetEditModal.tsx` - QR code and barcode update modal with success alerts
 
 **Implemented Methods:**
 - `AssetService.getById(id)` - Fetch single asset
-- `AssetService.update(id, data)` - Update asset
+- `AssetService.update(id, data)` - Update asset (saves ALL barcode fields when updating)
 - `AssetService.reactivate(id)` - Reactivate inactive assets
 
 **Implemented Features:**
@@ -1499,14 +1511,36 @@ Reference `docs/data-model.md` → `assets` collection
   - Driver/Vehicle/General Restrictions
   - Status badge (Expired/Valid)
 
+**Asset Edit Modal Features:**
+- **Two update options:**
+  1. **Update QR Code**: For damaged/replaced Newton QR codes
+     - Verify existing barcode (match asset)
+     - Scan new QR code
+     - Success alert: "QR code for {identifier} has been successfully updated."
+
+  2. **Update Barcode**: For renewed licenses/disks
+     - Verify existing QR code (match asset)
+     - Scan new barcode (license/disk)
+     - Validate: Registration/ID must match existing asset
+     - Prevent expired license/disk updates (shows error, blocks save)
+     - Allow older expiry dates with confirmation (user can override)
+     - **Saves ALL barcode fields** (make, model, vin, colour, engineNo, licenceDiskNo, vehicleDescription, description for vehicles)
+     - Success alert: "{UpdateType} for {identifier} has been successfully updated with the new barcode data."
+
+- All updates require user acknowledgment via success alert dialog before closing modal
+
 **Acceptance Criteria:**
 - ✅ Asset details display correctly based on asset type (truck/trailer/driver)
-- ✅ All vehicle fields shown for trucks/trailers
+- ✅ All vehicle fields shown for trucks/trailers (make, model, vin, colour, etc.)
 - ✅ All driver personal info and license details shown for drivers
 - ✅ Driver photos displayed in personal information section
 - ✅ Expiry dates shown with color-coded badges
 - ✅ Action buttons for edit, inactivate, delete
-- 🔄 Edit modal implementation pending user testing
+- ✅ **Asset edit modal complete** with QR and barcode update options
+- ✅ **ALL barcode fields saved** when updating vehicle/driver data
+- ✅ **Success alerts shown** for QR code updates and barcode updates
+- ✅ Expired licenses/disks blocked from being saved (validation with error alert)
+- ✅ Older expiry dates allowed with user confirmation
 - 🔄 Notification triggers pending (Phase 2.6)
 
 ---
