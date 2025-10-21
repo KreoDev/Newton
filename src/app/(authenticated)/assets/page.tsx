@@ -51,15 +51,7 @@ export default function AssetsPage() {
     // Search
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase()
-      filtered = filtered.filter(
-        asset =>
-          asset.registration?.toLowerCase().includes(term) ||
-          asset.licenceNumber?.toLowerCase().includes(term) ||
-          asset.ntCode?.toLowerCase().includes(term) ||
-          asset.fleetNumber?.toLowerCase().includes(term) ||
-          asset.name?.toLowerCase().includes(term) ||
-          asset.surname?.toLowerCase().includes(term)
-      )
+      filtered = filtered.filter(asset => asset.registration?.toLowerCase().includes(term) || asset.licenceNumber?.toLowerCase().includes(term) || asset.ntCode?.toLowerCase().includes(term) || asset.fleetNumber?.toLowerCase().includes(term) || asset.name?.toLowerCase().includes(term) || asset.surname?.toLowerCase().includes(term))
     }
 
     return filtered
@@ -166,12 +158,7 @@ export default function AssetsPage() {
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by registration, license, QR code, or fleet number..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+            <Input placeholder="Search by registration, license, newton QR code, or fleet number..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
             {searchTerm && (
               <button onClick={() => setSearchTerm("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
@@ -219,9 +206,7 @@ export default function AssetsPage() {
               <Truck className="h-12 w-12 text-muted-foreground" />
               <div className="text-center">
                 <p className="font-medium">No assets found</p>
-                <p className="text-sm text-muted-foreground">
-                  {searchTerm || filterType !== "all" || filterStatus !== "all" ? "Try adjusting your filters" : "Get started by inducting your first asset"}
-                </p>
+                <p className="text-sm text-muted-foreground">{searchTerm || filterType !== "all" || filterStatus !== "all" ? "Try adjusting your filters" : "Get started by inducting your first asset"}</p>
               </div>
               {!searchTerm && filterType === "all" && filterStatus === "all" && (
                 <Link href="/assets/induct">
