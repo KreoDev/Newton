@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Truck, X, User, Eye, Edit, Trash2 } from "lucide-react"
+import { Plus, Search, Truck, X, User, FileText, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -252,8 +252,8 @@ export default function AssetsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => router.push(`/assets/${asset.id}`)} title="View asset">
-                      <Eye className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" onClick={() => router.push(`/assets/${asset.id}`)} title="View asset details">
+                      <FileText className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => router.push(`/assets/${asset.id}`)} title="Edit asset">
                       <Edit className="h-4 w-4" />
