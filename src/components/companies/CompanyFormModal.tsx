@@ -605,7 +605,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     try {
       // Update all affected assets to remove fleet number
       const promises = assetsWithFleetNumbers.map(asset =>
-        AssetService.update(asset.id, { fleetNumber: undefined })
+        AssetService.update(asset.id, { fleetNumber: null })
       )
 
       await Promise.all(promises)
@@ -626,7 +626,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     try {
       // Update all affected assets to remove group
       const promises = assetsWithGroups.map(asset =>
-        AssetService.update(asset.id, { groupId: undefined })
+        AssetService.update(asset.id, { groupId: null })
       )
 
       await Promise.all(promises)

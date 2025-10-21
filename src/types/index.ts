@@ -194,8 +194,8 @@ export interface Asset extends Timestamped, CompanyScoped {
   registration?: string // Vehicle registration (for trucks/trailers) - Android app field name
   licenceNumber?: string // Driver license number (for drivers) - Android app field name (British spelling)
   licenseExpiryDate?: string // Expiry date for license/disk
-  fleetNumber?: string // Optional fleet number
-  groupId?: string // Optional group assignment
+  fleetNumber?: string | null // Optional fleet number (null when removed)
+  groupId?: string | null // Optional group assignment (null when removed)
 
   // Driver-specific fields (from expo-sadl DecodedLicenseInfo)
   idNumber?: string // SA ID number - Android app field name
