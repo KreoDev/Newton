@@ -108,7 +108,7 @@ export function AssetBulkActionsToolbar({
             "ID Number": asset.idNumber || "",
             "License Number": asset.licenceNumber || "",
             "License Type": asset.licenceType || "",
-            "License Expiry": asset.licenseExpiryDate || asset.expiryDate || "",
+            "License Expiry": asset.expiryDate || "",
             "Gender": asset.gender || "",
             "Date of Birth": asset.birthDate || "",
             "Age": asset.age || "",
@@ -123,7 +123,7 @@ export function AssetBulkActionsToolbar({
             "Engine No": asset.engineNo || "",
             "Colour": asset.colour || "",
             "License Disk No": asset.licenceDiskNo || "",
-            "Expiry Date": asset.licenseExpiryDate || "",
+            "Expiry Date": asset.dateOfExpiry || "",
           }
         }
       })

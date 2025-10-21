@@ -158,21 +158,6 @@ export default function AssetDetailsPage() {
     )
   }
 
-  // Parse stored JSON data
-  let parsedVehicleData: any = null
-  let parsedDriverData: any = null
-
-  try {
-    if (asset.vehicleDiskData) {
-      parsedVehicleData = JSON.parse(asset.vehicleDiskData)
-    }
-    if (asset.driverLicenseData) {
-      parsedDriverData = JSON.parse(asset.driverLicenseData)
-    }
-  } catch (error) {
-    console.error("Error parsing asset data:", error)
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -251,8 +236,8 @@ export default function AssetDetailsPage() {
       )}
 
       {/* Expiry Warning */}
-      {asset.licenseExpiryDate && (
-        <div>{getExpiryBadge(asset.licenseExpiryDate)}</div>
+      {(asset.type === "driver" ? asset.expiryDate : asset.dateOfExpiry) && (
+        <div>{getExpiryBadge(asset.type === "driver" ? asset.expiryDate : asset.dateOfExpiry)}</div>
       )}
 
       {/* Basic Info */}
@@ -314,12 +299,6 @@ export default function AssetDetailsPage() {
               )}
               {asset.description && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Vehicle Type</p>
-                  <p className="font-medium">{asset.description}</p>
-                </div>
-              )}
-              {asset.description && (
-                <div className="col-span-2">
                   <p className="text-sm text-muted-foreground">Description</p>
                   <p className="font-medium">{asset.description}</p>
                 </div>
@@ -336,16 +315,16 @@ export default function AssetDetailsPage() {
                   <p className="font-mono">{asset.licenceDiskNo || asset.licenceNo}</p>
                 </div>
               )}
-              {(asset.licenseExpiryDate || asset.dateOfExpiry || asset.expiryDate) && (
+              {asset.dateOfExpiry && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Expiry Date</p>
+                  <p className="text-sm text-muted-foreground">Disk Expiry Date</p>
                   <div className="font-medium flex items-center gap-2">
-                    {asset.licenseExpiryDate || asset.dateOfExpiry || asset.expiryDate}
-                    {getExpiryBadge(asset.licenseExpiryDate || asset.dateOfExpiry || asset.expiryDate)}
+                    {asset.dateOfExpiry}
+                    {getExpiryBadge(asset.dateOfExpiry)}
                   </div>
                 </div>
               )}
-              {asset.engineNo && (
+              {asset.engineNo && asset.type === "truck" && (
                 <div>
                   <p className="text-sm text-muted-foreground">Engine Number</p>
                   <p className="font-mono">{asset.engineNo}</p>
@@ -450,12 +429,12 @@ export default function AssetDetailsPage() {
                       <p className="font-medium">{asset.licenceType}</p>
                     </div>
                   )}
-                  {(asset.licenseExpiryDate || asset.expiryDate) && (
+                  {asset.expiryDate && (
                     <div>
                       <p className="text-sm text-muted-foreground">Expiry Date</p>
                       <div className="font-medium flex items-center gap-2">
-                        {asset.licenseExpiryDate || asset.expiryDate}
-                        {getExpiryBadge(asset.licenseExpiryDate || asset.expiryDate)}
+                        {asset.expiryDate}
+                        {getExpiryBadge(asset.expiryDate)}
                       </div>
                     </div>
                   )}

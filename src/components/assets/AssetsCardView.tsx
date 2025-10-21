@@ -63,9 +63,12 @@ export function AssetsCardView({ assets, loading }: AssetsCardViewProps) {
         if (filterStatus === "active") return asset.isActive
         if (filterStatus === "inactive") return !asset.isActive
 
-        if (filterStatus === "expired" && asset.licenseExpiryDate) {
-          const expiryInfo = AssetFieldMapper.getExpiryInfo(asset.licenseExpiryDate)
-          return expiryInfo.status === "expired"
+        if (filterStatus === "expired") {
+          const expiryDate = asset.type === "driver" ? asset.expiryDate : asset.dateOfExpiry
+          if (expiryDate) {
+            const expiryInfo = AssetFieldMapper.getExpiryInfo(expiryDate)
+            return expiryInfo.status === "expired"
+          }
         }
 
         return true
@@ -93,8 +96,9 @@ export function AssetsCardView({ assets, loading }: AssetsCardViewProps) {
       return <Badge variant="secondary">Inactive</Badge>
     }
 
-    if (asset.licenseExpiryDate) {
-      const expiryInfo = AssetFieldMapper.getExpiryInfo(asset.licenseExpiryDate)
+    const expiryDate = asset.type === "driver" ? asset.expiryDate : asset.dateOfExpiry
+    if (expiryDate) {
+      const expiryInfo = AssetFieldMapper.getExpiryInfo(expiryDate)
 
       if (expiryInfo.status === "expired") {
         return <Badge variant="destructive">Expired</Badge>

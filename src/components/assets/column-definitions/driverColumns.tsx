@@ -118,8 +118,8 @@ export const getDriverColumns = (
         if (!asset.isActive) {
           return <Badge variant="secondary">Inactive</Badge>
         }
-        if (asset.licenseExpiryDate || asset.expiryDate) {
-          const expiryDate = asset.licenseExpiryDate || asset.expiryDate
+        if (asset.expiryDate) {
+          const expiryDate = asset.expiryDate
           if (expiryDate) {
             const expiryInfo = AssetFieldMapper.getExpiryInfo(expiryDate)
             if (expiryInfo.status === "expired") {
@@ -132,10 +132,10 @@ export const getDriverColumns = (
     },
     {
       id: "expiryDate",
-      accessorFn: (row) => row.licenseExpiryDate || row.expiryDate,
+      accessorFn: (row) => row.expiryDate,
       header: "License Expiry",
       cell: ({ row }) => {
-        const expiryDate = row.original.licenseExpiryDate || row.original.expiryDate
+        const expiryDate = row.original.expiryDate
         if (!expiryDate) return <span className="text-sm text-muted-foreground">-</span>
 
         const expiryInfo = AssetFieldMapper.getExpiryInfo(expiryDate)

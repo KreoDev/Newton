@@ -73,8 +73,8 @@ export const getTrailerColumns = (
         if (!asset.isActive) {
           return <Badge variant="secondary">Inactive</Badge>
         }
-        if (asset.licenseExpiryDate) {
-          const expiryInfo = AssetFieldMapper.getExpiryInfo(asset.licenseExpiryDate)
+        if (asset.dateOfExpiry) {
+          const expiryInfo = AssetFieldMapper.getExpiryInfo(asset.dateOfExpiry)
           if (expiryInfo.status === "expired") {
             return <Badge variant="destructive">Expired</Badge>
           }
@@ -84,10 +84,10 @@ export const getTrailerColumns = (
     },
     {
       id: "expiryDate",
-      accessorKey: "licenseExpiryDate",
+      accessorKey: "dateOfExpiry",
       header: "Expiry Date",
       cell: ({ row }) => {
-        const expiryDate = row.original.licenseExpiryDate
+        const expiryDate = row.original.dateOfExpiry
         if (!expiryDate) return <span className="text-sm text-muted-foreground">-</span>
 
         const expiryInfo = AssetFieldMapper.getExpiryInfo(expiryDate)
@@ -124,13 +124,6 @@ export const getTrailerColumns = (
       enableHiding: true,
     },
     {
-      id: "engineNo",
-      accessorKey: "engineNo",
-      header: "Engine No",
-      cell: ({ row }) => <span className="text-sm font-mono">{row.original.engineNo || "-"}</span>,
-      enableHiding: true,
-    },
-    {
       id: "colour",
       accessorKey: "colour",
       header: "Colour",
@@ -140,7 +133,7 @@ export const getTrailerColumns = (
     {
       id: "description",
       accessorKey: "description",
-      header: "Vehicle Type",
+      header: "Description",
       cell: ({ row }) => <span className="text-sm">{row.original.description || "-"}</span>,
       enableHiding: true,
     },

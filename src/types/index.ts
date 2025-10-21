@@ -187,16 +187,11 @@ export interface Asset extends Timestamped, CompanyScoped {
   secondQRCode?: string // Second QR scan for verification
   ntCode?: string // NaTIS transaction code (Newton QR) - set to firstQRCode after match verification
 
-  // Barcode data (stored as JSON strings - parsed at runtime)
-  vehicleDiskData?: string // JSON string containing full vehicle disk barcode data
-  driverLicenseData?: string // JSON string containing full driver license barcode data
-
   // Common fields (used for display and filtering)
   registration?: string // Vehicle registration (for trucks/trailers) - Android app field name
   licenceNumber?: string // Driver license number (for drivers) - Android app field name (British spelling)
-  licenseExpiryDate?: string // Expiry date for license/disk
-  fleetNumber?: string | null // Optional fleet number (null when removed)
-  groupId?: string | null // Optional group assignment (null when removed)
+  fleetNumber?: string | null // Optional fleet number (null when removed) - trucks only
+  groupId?: string | null // Optional group assignment (null when removed) - trucks only
 
   // Driver-specific fields (from expo-sadl DecodedLicenseInfo)
   idNumber?: string // SA ID number - Android app field name
@@ -226,17 +221,16 @@ export interface Asset extends Timestamped, CompanyScoped {
   age?: number // Calculated age
   expired?: boolean // Whether license is expired
 
-  // Vehicle-specific fields (from barcode scan)
-  description?: string // Vehicle type description (e.g., "Sedan (Closed Top)", "Truck")
+  // Vehicle-specific fields (from barcode scan - trucks and trailers)
+  description?: string // Vehicle type description (e.g., "Truck tractor / Voorspanmotor", "Tipper / Wipbak")
   make?: string // Vehicle make
   model?: string // Vehicle model
   licenceNo?: string // License number from disk
   licenceDiskNo?: string // License disk number
   vin?: string // Vehicle Identification Number
-  engineNo?: string // Engine number
+  engineNo?: string // Engine number (trucks only - trailers don't have engines)
   colour?: string // Vehicle colour
   dateOfExpiry?: string // Expiry date from disk
-  description?: string // Full vehicle description
 
   // Status
   isActive: boolean

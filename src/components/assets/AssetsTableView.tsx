@@ -14,6 +14,7 @@ import { getTrailerColumns } from "./column-definitions/trailerColumns"
 import { getDriverColumns } from "./column-definitions/driverColumns"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
+import { useCompany } from "@/contexts/CompanyContext"
 
 interface AssetsTableViewProps {
   assets: Asset[]
@@ -22,6 +23,7 @@ interface AssetsTableViewProps {
 
 export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
   const router = useRouter()
+  const { company } = useCompany()
   const [selectedType, setSelectedType] = useState<"truck" | "trailer" | "driver">("truck")
   const [selectedAssets, setSelectedAssets] = useState<Asset[]>([])
   const [tableKey, setTableKey] = useState(0) // Key to force re-render and clear selection
@@ -62,17 +64,30 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
     setInactivateModalOpen(true)
   }
 
-  // Get columns based on selected type
+  // Get columns based on selected type and company settings
   const columns = useMemo(() => {
+    let baseColumns
     switch (selectedType) {
       case "truck":
-        return getTruckColumns(canEdit, canDelete, handleView, handleEdit, handleDelete, handleInactivate)
+        baseColumns = getTruckColumns(canEdit, canDelete, handleView, handleEdit, handleDelete, handleInactivate)
+        // Filter truck columns based on company settings
+        return baseColumns.filter((col) => {
+          if (col.id === "fleetNumber" && !company?.systemSettings?.fleetNumberEnabled) {
+            return false
+          }
+          if (col.id === "group" && !company?.systemSettings?.transporterGroupEnabled) {
+            return false
+          }
+          return true
+        })
       case "trailer":
-        return getTrailerColumns(canEdit, canDelete, handleView, handleEdit, handleDelete, handleInactivate)
+        baseColumns = getTrailerColumns(canEdit, canDelete, handleView, handleEdit, handleDelete, handleInactivate)
+        // Remove group and fleetNumber columns for trailers (they never have these)
+        return baseColumns.filter((col) => col.id !== "group" && col.id !== "fleetNumber")
       case "driver":
         return getDriverColumns(canEdit, canDelete, handleView, handleEdit, handleDelete, handleInactivate)
     }
-  }, [selectedType, canEdit, canDelete])
+  }, [selectedType, canEdit, canDelete, company])
 
   const handleClearSelection = () => {
     setSelectedAssets([])
@@ -138,7 +153,15 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
             tableId="assets-trucks-table"
             columns={columns}
             data={filteredAssets}
-            defaultColumnOrder={["registration", "fleetNumber", "group", "makeModel", "status", "expiryDate", "actions"]}
+            defaultColumnOrder={[
+              "registration",
+              ...(company?.systemSettings?.fleetNumberEnabled ? ["fleetNumber"] : []),
+              ...(company?.systemSettings?.transporterGroupEnabled ? ["group"] : []),
+              "makeModel",
+              "status",
+              "expiryDate",
+              "actions"
+            ]}
             defaultPageSize={20}
             searchPlaceholder="Search trucks by registration, fleet number, VIN..."
             enablePagination={true}
@@ -166,9 +189,9 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
             tableId="assets-trailers-table"
             columns={columns}
             data={filteredAssets}
-            defaultColumnOrder={["registration", "fleetNumber", "group", "makeModel", "status", "expiryDate", "actions"]}
+            defaultColumnOrder={["registration", "makeModel", "status", "expiryDate", "actions"]}
             defaultPageSize={20}
-            searchPlaceholder="Search trailers by registration, fleet number, VIN..."
+            searchPlaceholder="Search trailers by registration, VIN..."
             enablePagination={true}
             enableRowSelection={true}
             enableColumnResizing={true}
