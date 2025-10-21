@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { useCompany } from "@/contexts/CompanyContext"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +22,7 @@ export default function AssetDetailsPage() {
   useSignals()
   const params = useParams()
   const router = useRouter()
+  const { company: currentCompany } = useCompany()
   const assetId = params.id as string
 
   const [asset, setAsset] = useState<Asset | null>(null)
@@ -32,6 +34,19 @@ export default function AssetDetailsPage() {
 
   const companies = globalData.companies.value
   const groups = globalData.groups.value
+
+  // Redirect if company cannot access assets
+  useEffect(() => {
+    if (!currentCompany) return
+
+    const canAccessAssets =
+      currentCompany.companyType === "transporter" ||
+      (currentCompany.companyType === "logistics_coordinator" && currentCompany.isAlsoTransporter === true)
+
+    if (!canAccessAssets) {
+      router.replace("/")
+    }
+  }, [currentCompany, router])
 
   useEffect(() => {
     fetchAsset()

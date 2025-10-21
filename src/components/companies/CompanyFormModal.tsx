@@ -151,6 +151,12 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     )
   }
 
+  // Check if Logistics Coordinator has assets (prevents disabling transporter role)
+  const logisticsCoordinatorHasAssets = useMemo(() => {
+    if (!isEditing || !company || company.companyType !== "logistics_coordinator") return false
+    return assets.some(asset => asset.companyId === company.id)
+  }, [assets, isEditing, company])
+
   // Use centralized data when editing current company, otherwise fetch locally
   useEffect(() => {
     if (!open || !isEditing || !company || editingCurrentCompany) {
@@ -806,11 +812,23 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
               )}
 
               {companyType === "logistics_coordinator" && (
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="isAlsoTransporter" checked={isAlsoTransporter} onCheckedChange={checked => setIsAlsoTransporter(checked as boolean)} />
-                  <Label htmlFor="isAlsoTransporter" className="cursor-pointer">
-                    Is also a Transporter
-                  </Label>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isAlsoTransporter"
+                      checked={isAlsoTransporter}
+                      onCheckedChange={checked => setIsAlsoTransporter(checked as boolean)}
+                      disabled={logisticsCoordinatorHasAssets}
+                    />
+                    <Label htmlFor="isAlsoTransporter" className={logisticsCoordinatorHasAssets ? "cursor-not-allowed opacity-60" : "cursor-pointer"}>
+                      Is also a Transporter
+                    </Label>
+                  </div>
+                  {logisticsCoordinatorHasAssets && (
+                    <p className="text-xs text-muted-foreground ml-6">
+                      Cannot be disabled because this company has assets. Assets can only belong to transporters.
+                    </p>
+                  )}
                 </div>
               )}
 

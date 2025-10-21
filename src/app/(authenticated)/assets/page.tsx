@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
+import { useCompany } from "@/contexts/CompanyContext"
 import { useSignals } from "@preact/signals-react/runtime"
 import { data as globalData } from "@/services/data.service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,10 +19,24 @@ import type { Asset } from "@/types"
 export default function AssetsPage() {
   useSignals()
   const { user } = useAuth()
+  const { company } = useCompany()
   const router = useRouter()
   const assets = globalData.assets.value
   const groups = globalData.groups.value
   const loading = globalData.loading.value
+
+  // Redirect if company cannot access assets
+  useEffect(() => {
+    if (!company) return
+
+    const canAccessAssets =
+      company.companyType === "transporter" ||
+      (company.companyType === "logistics_coordinator" && company.isAlsoTransporter === true)
+
+    if (!canAccessAssets) {
+      router.replace("/")
+    }
+  }, [company, router])
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<"all" | "truck" | "trailer" | "driver">("all")

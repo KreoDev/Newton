@@ -110,8 +110,18 @@ class Data {
   }
 
   private cleanup() {
+    // Unsubscribe all listeners
     this.unsubscribers.forEach(unsub => unsub())
     this.unsubscribers = []
+
+    // Clear all signal values to prevent stale data
+    this.users.value = []
+    this.products.value = []
+    this.groups.value = []
+    this.sites.value = []
+    this.clients.value = []
+    this.assets.value = []
+    // Note: Don't clear companies and roles as they're global
   }
 }
 

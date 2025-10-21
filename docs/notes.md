@@ -543,6 +543,94 @@ Both features can be toggled on/off. When disabling a feature that's in use by a
 
 ---
 
+### Test Scenarios - Assets Restricted to Transporters
+
+#### 12.1 Mine Company - Assets Hidden
+- [ ] Log in as a mine company user
+- [ ] Verify Assets menu item is NOT visible in navigation
+- [ ] Attempt to navigate directly to `/assets`
+- [ ] Verify redirect to home page `/`
+- [ ] Attempt to navigate directly to `/assets/induct`
+- [ ] Verify redirect to home page `/`
+- [ ] Attempt to navigate directly to `/assets/[id]` with valid asset ID
+- [ ] Verify redirect to home page `/`
+
+#### 12.2 Transporter Company - Assets Visible
+- [ ] Log in as a transporter company user
+- [ ] Verify Assets menu item IS visible in navigation
+- [ ] Navigate to `/assets` page
+- [ ] Verify page loads successfully with asset list
+- [ ] Navigate to `/assets/induct` page
+- [ ] Verify induction wizard loads successfully
+- [ ] Navigate to `/assets/[id]` with valid asset ID
+- [ ] Verify asset detail page loads successfully
+
+#### 12.3 Logistics Coordinator (Not Transporter) - Assets Hidden
+- [ ] Log in as a logistics coordinator company with `isAlsoTransporter = false`
+- [ ] Verify Assets menu item is NOT visible in navigation
+- [ ] Attempt to navigate directly to `/assets`
+- [ ] Verify redirect to home page `/`
+- [ ] Attempt to navigate directly to `/assets/induct`
+- [ ] Verify redirect to home page `/`
+- [ ] Attempt to navigate directly to `/assets/[id]` with valid asset ID
+- [ ] Verify redirect to home page `/`
+
+#### 12.4 Logistics Coordinator (Is Transporter) - Assets Visible
+- [ ] Log in as a logistics coordinator company with `isAlsoTransporter = true`
+- [ ] Verify Assets menu item IS visible in navigation
+- [ ] Navigate to `/assets` page
+- [ ] Verify page loads successfully with asset list
+- [ ] Navigate to `/assets/induct` page
+- [ ] Verify induction wizard loads successfully
+- [ ] Navigate to `/assets/[id]` with valid asset ID
+- [ ] Verify asset detail page loads successfully
+
+#### 12.5 Logistics Coordinator Cannot Disable Transporter Role (Has Assets)
+- [ ] Create logistics coordinator company with `isAlsoTransporter = true`
+- [ ] Induct at least one asset (truck, trailer, or driver)
+- [ ] Open Company Form Modal to edit company
+- [ ] Verify "Is also a Transporter" checkbox is DISABLED
+- [ ] Verify checkbox is visually styled as disabled (opacity reduced, cursor not-allowed)
+- [ ] Verify helper text displays: "Cannot be disabled because this company has assets. Assets can only belong to transporters."
+- [ ] Verify cannot toggle checkbox
+- [ ] Attempt to save company (should work but checkbox remains checked)
+
+#### 12.6 Logistics Coordinator Can Disable Transporter Role (No Assets)
+- [ ] Create logistics coordinator company with `isAlsoTransporter = true`
+- [ ] Do NOT add any assets
+- [ ] Open Company Form Modal to edit company
+- [ ] Verify "Is also a Transporter" checkbox is ENABLED
+- [ ] Verify no helper text shown
+- [ ] Toggle checkbox to unchecked
+- [ ] Save company
+- [ ] Verify `isAlsoTransporter` is now `false`
+- [ ] Verify Assets menu disappears from navigation
+
+#### 12.7 Company Switch Clears Asset Data
+- [ ] Log in as user with access to multiple companies
+- [ ] Switch to a transporter company (Company A)
+- [ ] Navigate to Assets page
+- [ ] Note the assets displayed for Company A
+- [ ] Switch to different transporter company (Company B)
+- [ ] Verify assets from Company A are no longer visible
+- [ ] Verify assets from Company B load correctly
+- [ ] Verify no stale data from Company A appears
+- [ ] Verify other company-scoped data (users, products, groups, sites, clients) also clears correctly
+
+#### 12.8 Company Switch - Assets Menu Visibility Changes
+- [ ] Log in as user with access to multiple companies of different types
+- [ ] Switch from transporter to mine company
+- [ ] Verify Assets menu disappears immediately
+- [ ] Switch from mine to transporter company
+- [ ] Verify Assets menu appears immediately
+- [ ] Switch from LC (not transporter) to LC (is transporter)
+- [ ] Verify Assets menu appears immediately
+- [ ] Switch from LC (is transporter) to LC (not transporter)
+- [ ] Verify Assets menu disappears immediately
+- [ ] Verify navigation updates without requiring page refresh
+
+---
+
 ## Additional Notes
 
 ### Dialog Timing

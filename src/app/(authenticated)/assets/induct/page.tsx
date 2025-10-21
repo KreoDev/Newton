@@ -1,11 +1,29 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useCompany } from "@/contexts/CompanyContext"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { InductionWizard } from "@/components/assets/InductionWizard"
 
 export default function AssetInductPage() {
+  const router = useRouter()
+  const { company } = useCompany()
+
+  // Redirect if company cannot access assets
+  useEffect(() => {
+    if (!company) return
+
+    const canAccessAssets =
+      company.companyType === "transporter" ||
+      (company.companyType === "logistics_coordinator" && company.isAlsoTransporter === true)
+
+    if (!canAccessAssets) {
+      router.replace("/")
+    }
+  }, [company, router])
   return (
     <div className="space-y-6">
       {/* Header */}

@@ -121,6 +121,7 @@ const baseNavigation = [
     name: "Assets",
     href: "/assets",
     icon: Truck,
+    requiresTransporter: true,
     requiredPermissions: [PERMISSIONS.ASSETS_VIEW, PERMISSIONS.ASSETS_ADD, PERMISSIONS.ASSETS_EDIT]
   },
   {
@@ -149,6 +150,7 @@ interface NavigationItem {
   href: string
   icon: LucideIcon
   requiresMine?: boolean
+  requiresTransporter?: boolean
   requiredPermissions?: PermissionKey[]
 }
 
@@ -232,6 +234,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
       // Filter out mine-only items for non-mine companies
       if (item.requiresMine && company.companyType !== "mine") {
         return false
+      }
+
+      // Filter out transporter-only items for non-transporters
+      if (item.requiresTransporter) {
+        const isTransporter = company.companyType === "transporter"
+        const isLogisticsCoordinatorAsTransporter =
+          company.companyType === "logistics_coordinator" && company.isAlsoTransporter === true
+
+        if (!isTransporter && !isLogisticsCoordinatorAsTransporter) {
+          return false
+        }
       }
 
       // Filter based on permissions
