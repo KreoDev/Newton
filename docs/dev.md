@@ -1220,6 +1220,10 @@ The Asset data model uses field names that match the Android app's data structur
 - **No companyId parameter needed** - data already filtered by company in `globalData.assets.value`
 - **No Firebase queries** - all validation done against in-memory data for performance
 - **Returns**: `{ isValid: boolean, error?: string }`
+- **Error Handling**:
+  - **Validation errors** (user input issues) use `alert.showError()` from `useAlert()` hook - prominent full-screen dialog
+  - **Operational errors** (backend/network failures) use `toast.error()` - less intrusive notification
+  - All wizard steps use alert dialogs for validation to ensure users never miss critical errors
 
 ---
 
@@ -1338,11 +1342,14 @@ Per South African driver's license standard:
 - If valid but <7 days: Orange warning banner (allows continue)
 - Next button (disabled if expired)
 
-**Step 8: Optional Fields**
-- Fleet Number (text input) - only if `systemSettings.fleetNumberEnabled`
-- Group (dropdown from active groups) - only if `systemSettings.transporterGroupEnabled`
+**Step 8: Optional Fields (Trucks Only)**
+- **IMPORTANT**: This step only shows for **trucks**. Trailers and drivers skip this step automatically.
+- Fleet Number (text input) - only if `systemSettings.fleetNumberEnabled` AND asset type is "truck"
+- Group (dropdown from active groups) - only if `systemSettings.transporterGroupEnabled` AND asset type is "truck"
 - Skip button / Next button
-- Auto-skips if both fields disabled
+- Auto-skips if:
+  - Asset type is trailer or driver (these fields don't apply)
+  - Both fields disabled in company settings
 
 **Step 9: Review & Submit**
 - Summary cards showing:
@@ -1376,11 +1383,13 @@ Reference `docs/data-model.md` → `assets` collection
 - ✅ QR code validated with NT prefix requirement
 - ✅ License/disk scanned twice and verified (text input with desktop scanner)
 - ✅ Asset type auto-detected correctly (driver via expo-sadl, vehicle manual selection)
-- ✅ Expired licenses block save completely (disabled Next button)
+- ✅ Expired licenses block save completely (disabled Next button, alert dialog shown)
 - ✅ Valid licenses allow save with color-coded warnings (<7 days orange, <30 days yellow, >30 days green)
+- ✅ **Fleet number/group fields ONLY for trucks** (trailers and drivers skip Step 8)
 - ✅ Fleet number/group fields conditional on company settings (auto-skip if both disabled)
+- ✅ **Validation errors use alert dialogs** (not toast notifications - impossible to miss)
 - 🔄 Notifications implementation pending (Phase 2.6)
-- ✅ Duplicate QR codes prevented (NT code validation in Step 2)
+- ✅ Duplicate QR codes prevented (NT code validation in Step 2, alert dialog shown)
 
 ---
 
@@ -1509,7 +1518,7 @@ Reference `docs/data-model.md` → `assets` collection
 **Goal**: Delete assets with no transactions, or inactivate if transactions exist.
 
 **Implemented Files:**
-- `src/components/assets/DeleteAssetModal.tsx` - QR verification + deletion with transaction checks
+- `src/components/assets/DeleteAssetModal.tsx` - Deletion with transaction checks (NO QR verification)
 - `src/components/assets/InactivateAssetModal.tsx` - Asset inactivation with reason
 
 **Implemented Methods:**
@@ -1520,15 +1529,15 @@ Reference `docs/data-model.md` → `assets` collection
 
 **UI Requirements:**
 
-**Delete Flow (per Flow 3):**
+**Delete Flow (Simplified - NO QR Verification):**
 - User clicks "Delete" on asset
-- Scan QR code to confirm (modal with text input for desktop scanner)
-- If QR matches:
-  - System checks for transactions:
-    - Query `weighing_records` where `assetId` = id
-    - Query `security_checks` where `assetId`, `driverId`, `trailer1Id`, or `trailer2Id` = id
+- Modal opens → **Immediately checks for transactions** (automatic):
+  - Query `weighing_records` where `assetId` = id
+  - Query `security_checks` where `assetId`, `driverId`, `trailer1Id`, or `trailer2Id` = id
+- Shows loading state: "Checking if this asset is in use..."
 
   **If No Transactions:**
+  - Show green success banner: "No Transactions Found - This asset can be safely deleted"
   - Show reason input modal:
     - "Why are you deleting this asset?" (textarea, required)
     - Delete button (red, destructive)
@@ -1540,11 +1549,13 @@ Reference `docs/data-model.md` → `assets` collection
     - Redirect to asset list
 
   **If Transactions Exist:**
-  - Show error modal:
-    - Title: "Cannot Delete - Asset Has Transactions"
-    - Message: "This asset has {count} transaction(s) and cannot be deleted."
-    - Option: "Mark as Inactive Instead" button (closes delete modal and opens inactivate modal)
-    - Cancel button
+  - Show red error banner: "Cannot Delete Asset"
+  - Message: "This asset has {count} transaction(s) and cannot be deleted."
+  - Explanation: "Instead of deleting, you can mark this asset as inactive. This will hide it from operational dropdowns while preserving all transaction history."
+  - **NO delete button shown** (deletion completely blocked)
+  - Available buttons:
+    - "Cancel" button (closes modal)
+    - "Mark as Inactive Instead" button (closes delete modal and opens inactivate modal)
   - If user clicks "Mark as Inactive":
     - Close delete modal
     - Open inactivate modal (see below)
@@ -1564,11 +1575,13 @@ Reference `docs/data-model.md` → `assets` collection
 Reference `docs/data-model.md` → `assets` collection fields: `isActive`, `inactiveReason`, `inactiveDate`, `deletedReason`
 
 **Acceptance Criteria:**
-- ✅ QR scan required to delete (text input for desktop scanner)
+- ✅ **NO QR scan required** (simplified UX - automatic transaction check)
 - ✅ Transaction check prevents deletion (queries weighing_records and security_checks)
+- ✅ **Assets with transactions CANNOT be deleted** (delete button not shown)
 - ✅ Hard delete only if no transactions
 - ✅ Inactivation available as alternative (seamless modal switch)
-- ✅ Reason required for both actions (textarea input)
+- ✅ Reason required for both actions (textarea input, alert dialog for validation)
+- ✅ Validation errors use alert dialogs (not toast notifications)
 - 🔄 Notifications pending (Phase 2.6)
 - ✅ Deletion reason stored before hard delete (deletedReason field)
 - ✅ Inactivation stores reason, date, and sets isActive = false
