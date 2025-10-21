@@ -405,98 +405,33 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
       return
     }
 
-    try {
-      setLoading(true)
+    // Check if user is disabling fleet numbers or groups with affected assets
+    // This check only applies when editing an existing company
+    if (isEditing && company && shouldHaveFleetSettings) {
+      const originalFleetEnabled = company.systemSettings?.fleetNumberEnabled || false
+      const originalGroupEnabled = company.systemSettings?.transporterGroupEnabled || false
 
-      const companyData: any = {
-        name,
-        companyType,
-        physicalAddress,
-        secondaryContactIds,
-        isActive: true,
+      // Check if fleet number is being disabled with assets in use
+      if (originalFleetEnabled && !fleetNumberEnabled && assetsWithFleetNumbers.length > 0) {
+        setAffectedAssets(assetsWithFleetNumbers)
+        setModalField("fleetNumber")
+        setModalFieldLabel(fleetNumberLabel || "Fleet Number")
+        setAssetListModalOpen(true)
+        return // Stop here - modal will handle bulk removal and then call performSave
       }
 
-      // Add optional fields only if they have values
-      if (registrationNumber) companyData.registrationNumber = registrationNumber
-      if (vatNumber) companyData.vatNumber = vatNumber
-      if (mainContactId) companyData.mainContactId = mainContactId
-
-      // Add dual-role flags only for relevant company types
-      if (companyType === "transporter" && isAlsoLogisticsCoordinator) {
-        companyData.isAlsoLogisticsCoordinator = isAlsoLogisticsCoordinator
+      // Check if group is being disabled with assets in use
+      if (originalGroupEnabled && !transporterGroupEnabled && assetsWithGroups.length > 0) {
+        setAffectedAssets(assetsWithGroups)
+        setModalField("group")
+        setModalFieldLabel(transporterGroupLabel || "Group")
+        setAssetListModalOpen(true)
+        return // Stop here - modal will handle bulk removal and then call performSave
       }
-      if (companyType === "logistics_coordinator" && isAlsoTransporter) {
-        companyData.isAlsoTransporter = isAlsoTransporter
-      }
-
-      // Add Order Config only for mine companies
-      if (companyType === "mine") {
-        companyData.orderConfig = {
-          orderNumberMode,
-          defaultDailyTruckLimit,
-          defaultDailyWeightLimit,
-          defaultMonthlyLimit,
-          defaultTripLimit,
-          defaultWeightPerTruck,
-          preBookingMode,
-          advanceBookingHours,
-          defaultSealRequired,
-          defaultSealQuantity,
-        }
-        // Add optional orderNumberPrefix only if it has a value
-        if (orderNumberPrefix) {
-          companyData.orderConfig.orderNumberPrefix = orderNumberPrefix
-        }
-      }
-
-      // Add Fleet settings for transporters or dual-role logistics coordinators (reuse validation check)
-      if (shouldHaveFleetSettings) {
-        companyData.systemSettings = {
-          fleetNumberEnabled,
-          fleetNumberLabel,
-          transporterGroupEnabled,
-          transporterGroupLabel,
-          groupOptions: groupOptions,
-          inactiveGroups: inactiveGroups,
-        }
-      }
-
-      // Add escalation settings
-      companyData.securityAlerts = {
-        primaryContactId: primaryContactId || "",
-        secondaryContactIds: [], // Not used in UI for now
-        escalationMinutes,
-        qrMismatchContacts: [], // Not used in UI for now
-        documentFailureContacts: [], // Not used in UI for now
-        sealDiscrepancyContacts: [], // Not used in UI for now
-        requiredResponseMinutes,
-      }
-
-      let companyId: string
-
-      if (isEditing && company) {
-        await CompanyService.update(company.id, companyData)
-        companyId = company.id
-        showSuccess("Company Updated", `${name} has been successfully updated!`)
-      } else {
-        companyId = await CompanyService.create(companyData)
-        showSuccess("Company Created", `${name} has been successfully created!`)
-      }
-
-      // Save groups if this is a mine company
-      if (companyType === "mine" && pendingGroups.length > 0) {
-        await saveGroups(companyId)
-      }
-
-      onSuccess()
-      onClose()
-      resetForm()
-    } catch (error) {
-      console.error("Error saving company:", error)
-      showError(`Failed to ${isEditing ? "Update" : "Create"} Company`, error instanceof Error ? error.message : "An unexpected error occurred.")
-    } finally {
-      setLoading(false)
     }
+
+    // If no bulk removal needed, proceed with save
+    await performSave()
   }
 
   const addSecondaryContact = () => {
@@ -575,29 +510,110 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   }
 
   const handleFleetNumberEnabledChange = (checked: boolean) => {
-    // If trying to disable and fleet numbers are in use, show modal
-    if (!checked && assetsWithFleetNumbers.length > 0) {
-      setAffectedAssets(assetsWithFleetNumbers)
-      setModalField("fleetNumber")
-      setModalFieldLabel(fleetNumberLabel || "Fleet Number")
-      setAssetListModalOpen(true)
-      return
-    }
-
+    // Just update the state - validation happens on submit
     setFleetNumberEnabled(checked)
   }
 
   const handleTransporterGroupEnabledChange = (checked: boolean) => {
-    // If trying to disable and groups are in use, show modal
-    if (!checked && assetsWithGroups.length > 0) {
-      setAffectedAssets(assetsWithGroups)
-      setModalField("group")
-      setModalFieldLabel(transporterGroupLabel || "Group")
-      setAssetListModalOpen(true)
-      return
-    }
-
+    // Just update the state - validation happens on submit
     setTransporterGroupEnabled(checked)
+  }
+
+  // Extracted save logic - called after validation or after bulk removal
+  const performSave = async () => {
+    try {
+      setLoading(true)
+
+      const companyData: any = {
+        name,
+        companyType,
+        physicalAddress,
+        secondaryContactIds,
+        isActive: true,
+      }
+
+      // Add optional fields only if they have values
+      if (registrationNumber) companyData.registrationNumber = registrationNumber
+      if (vatNumber) companyData.vatNumber = vatNumber
+      if (mainContactId) companyData.mainContactId = mainContactId
+
+      // Add dual-role flags only for relevant company types
+      if (companyType === "transporter" && isAlsoLogisticsCoordinator) {
+        companyData.isAlsoLogisticsCoordinator = isAlsoLogisticsCoordinator
+      }
+      if (companyType === "logistics_coordinator" && isAlsoTransporter) {
+        companyData.isAlsoTransporter = isAlsoTransporter
+      }
+
+      // Add Order Config only for mine companies
+      if (companyType === "mine") {
+        companyData.orderConfig = {
+          orderNumberMode,
+          defaultDailyTruckLimit,
+          defaultDailyWeightLimit,
+          defaultMonthlyLimit,
+          defaultTripLimit,
+          defaultWeightPerTruck,
+          preBookingMode,
+          advanceBookingHours,
+          defaultSealRequired,
+          defaultSealQuantity,
+        }
+        // Add optional orderNumberPrefix only if it has a value
+        if (orderNumberPrefix) {
+          companyData.orderConfig.orderNumberPrefix = orderNumberPrefix
+        }
+      }
+
+      // Add Fleet settings for transporters or dual-role logistics coordinators
+      const shouldHaveFleetSettings = companyType === "transporter" || (companyType === "logistics_coordinator" && isAlsoTransporter)
+      if (shouldHaveFleetSettings) {
+        companyData.systemSettings = {
+          fleetNumberEnabled,
+          fleetNumberLabel,
+          transporterGroupEnabled,
+          transporterGroupLabel,
+          groupOptions: groupOptions,
+          inactiveGroups: inactiveGroups,
+        }
+      }
+
+      // Add escalation settings
+      companyData.securityAlerts = {
+        primaryContactId: primaryContactId || "",
+        secondaryContactIds: [],
+        escalationMinutes,
+        qrMismatchContacts: [],
+        documentFailureContacts: [],
+        sealDiscrepancyContacts: [],
+        requiredResponseMinutes,
+      }
+
+      let companyId: string
+
+      if (isEditing && company) {
+        await CompanyService.update(company.id, companyData)
+        companyId = company.id
+        showSuccess("Company Updated", `${name} has been successfully updated!`)
+      } else {
+        companyId = await CompanyService.create(companyData)
+        showSuccess("Company Created", `${name} has been successfully created!`)
+      }
+
+      // Save groups if this is a mine company
+      if (companyType === "mine" && pendingGroups.length > 0) {
+        await saveGroups(companyId)
+      }
+
+      onSuccess()
+      onClose()
+      resetForm()
+    } catch (error) {
+      console.error("Error saving company:", error)
+      showError(`Failed to ${isEditing ? "Update" : "Create"} Company`, error instanceof Error ? error.message : "An unexpected error occurred.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Bulk removal function for fleet numbers
@@ -612,8 +628,11 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
 
       toast.success(`Removed fleet numbers from ${assetsWithFleetNumbers.length} asset${assetsWithFleetNumbers.length !== 1 ? "s" : ""}`)
 
-      // Now disable the feature
-      setFleetNumberEnabled(false)
+      // Close the modal
+      setAssetListModalOpen(false)
+
+      // Now save the company with the disabled setting
+      await performSave()
     } catch (error) {
       console.error("Error removing fleet numbers:", error)
       toast.error("Failed to remove fleet numbers from some assets")
@@ -633,8 +652,11 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
 
       toast.success(`Removed groups from ${assetsWithGroups.length} asset${assetsWithGroups.length !== 1 ? "s" : ""}`)
 
-      // Now disable the feature
-      setTransporterGroupEnabled(false)
+      // Close the modal
+      setAssetListModalOpen(false)
+
+      // Now save the company with the disabled setting
+      await performSave()
     } catch (error) {
       console.error("Error removing groups:", error)
       toast.error("Failed to remove groups from some assets")
