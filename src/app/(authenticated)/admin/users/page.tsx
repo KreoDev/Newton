@@ -22,7 +22,6 @@ import { ChangePasswordModal } from "@/components/users/ChangePasswordModal"
 import { ChangeEmailModal } from "@/components/users/ChangeEmailModal"
 import { MoveUserModal } from "@/components/users/MoveUserModal"
 import { PermissionOverrideEditor } from "@/components/users/PermissionOverrideEditor"
-import { RoleManager } from "@/components/users/RoleManager"
 
 export default function UsersPage() {
   useSignals()
@@ -46,7 +45,6 @@ export default function UsersPage() {
   const [emailUser, setEmailUser] = useState<UserType | null>(null)
   const [moveUser, setMoveUser] = useState<UserType | null>(null)
   const [permissionUser, setPermissionUser] = useState<UserType | null>(null)
-  const [roleUser, setRoleUser] = useState<UserType | null>(null)
 
   // Determine if we're viewing current company (can use centralized data)
   const viewingCurrentCompany = selectedCompanyId === user?.companyId
@@ -153,7 +151,6 @@ export default function UsersPage() {
           canManagePermissions={canManagePermissions}
           isViewOnly={isViewOnly}
           onEdit={(user) => setEditingUser(user)}
-          onManageRoles={(user) => setRoleUser(user)}
           onEditPermissions={(user) => setPermissionUser(user)}
           onChangePassword={(user) => setPasswordUser(user)}
           onChangeEmail={(user) => setEmailUser(user)}
@@ -207,19 +204,6 @@ export default function UsersPage() {
             // Data will refresh automatically via real-time listener
           }}
           user={permissionUser}
-          viewOnly={isViewOnly}
-        />
-      )}
-
-      {roleUser && (
-        <RoleManager
-          open={!!roleUser}
-          onClose={() => setRoleUser(null)}
-          onSuccess={() => {
-            setRoleUser(null)
-            // Data will refresh automatically via real-time listener
-          }}
-          user={roleUser}
           viewOnly={isViewOnly}
         />
       )}

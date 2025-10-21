@@ -38,6 +38,7 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
     phoneNumber: "",
     roleId: "",
     isGlobal: false,
+    isActive: true,
   })
   const [isEmailValid, setIsEmailValid] = useState(true)
   const [showReauthModal, setShowReauthModal] = useState(false)
@@ -55,6 +56,7 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
         phoneNumber: user.phoneNumber || "",
         roleId: user.roleId || "",
         isGlobal: user.isGlobal || false,
+        isActive: user.isActive !== undefined ? user.isActive : true,
       })
       setIsEmailValid(true)
     }
@@ -155,6 +157,7 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
         phoneNumber: formData.phoneNumber,
         roleId: formData.roleId,
         isGlobal: formData.isGlobal,
+        isActive: formData.isActive,
       }
 
       // If role changed, clear permission overrides to ensure clean inheritance from new role
@@ -271,6 +274,22 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-3 border-t pt-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isActive_edit"
+                checked={formData.isActive}
+                onCheckedChange={checked => handleInputChange("isActive", String(checked))}
+              />
+              <div className="flex-1">
+                <Label htmlFor="isActive_edit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Active User
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">Allow this user to access the system</p>
+              </div>
+            </div>
           </div>
 
           {hasPermission && (

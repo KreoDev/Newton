@@ -5,12 +5,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import type { User as UserType, Role } from "@/types"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
 import { bulkUpdateUsers } from "@/services/user-bulk.service"
 import { useAlert } from "@/hooks/useAlert"
-import { Shield } from "lucide-react"
+import { Shield, AlertCircle } from "lucide-react"
 
 interface BulkChangeRoleModalProps {
   open: boolean
@@ -25,6 +26,9 @@ export function BulkChangeRoleModal({ open, onClose, users, onSuccess }: BulkCha
   const [selectedRoleId, setSelectedRoleId] = useState<string>("")
   const [loading, setLoading] = useState(false)
 
+  // Filter out contact-only users (they need login details created first)
+  const loginUsers = users.filter((u) => u.canLogin !== false)
+  const contactUsers = users.filter((u) => u.canLogin === false)
   const roles = globalData.roles.value.filter((r: Role) => r.isActive)
 
   const handleSubmit = async () => {
@@ -33,11 +37,17 @@ export function BulkChangeRoleModal({ open, onClose, users, onSuccess }: BulkCha
       return
     }
 
+    if (loginUsers.length === 0) {
+      showError("No Login Users", "Cannot change roles for contact-only users. They need login credentials created first.")
+      return
+    }
+
     try {
       setLoading(true)
 
+      // Only update login users (contact-only users are excluded)
       await bulkUpdateUsers(
-        users.map((u) => u.id),
+        loginUsers.map((u) => u.id),
         { roleId: selectedRoleId }
       )
 
@@ -45,7 +55,7 @@ export function BulkChangeRoleModal({ open, onClose, users, onSuccess }: BulkCha
 
       showSuccess(
         "Roles Updated",
-        `Successfully assigned "${roleName}" role to ${users.length} user${users.length > 1 ? "s" : ""}.`
+        `Successfully assigned "${roleName}" role to ${loginUsers.length} user${loginUsers.length > 1 ? "s" : ""}.`
       )
       onSuccess()
     } catch (error) {
@@ -65,22 +75,46 @@ export function BulkChangeRoleModal({ open, onClose, users, onSuccess }: BulkCha
             Change User Roles
           </DialogTitle>
           <DialogDescription>
-            Assign a role to {users.length} user{users.length > 1 ? "s" : ""}
+            {loginUsers.length > 0 && `Assign a role to ${loginUsers.length} login user${loginUsers.length > 1 ? "s" : ""}`}
+            {contactUsers.length > 0 && loginUsers.length > 0 && " - "}
+            {contactUsers.length > 0 && `${contactUsers.length} contact-only user${contactUsers.length > 1 ? "s" : ""} excluded`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Users list */}
-          <div className="space-y-2">
-            <Label>Selected Users ({users.length})</Label>
-            <div className="max-h-32 overflow-y-auto space-y-1 p-3 glass-surface rounded-lg">
-              {users.map((user) => (
-                <div key={user.id} className="text-sm">
-                  {user.firstName} {user.lastName}
-                </div>
-              ))}
+          {/* Login users list */}
+          {loginUsers.length > 0 && (
+            <div className="space-y-2">
+              <Label>Login Users ({loginUsers.length})</Label>
+              <div className="max-h-32 overflow-y-auto space-y-1 p-3 glass-surface rounded-lg">
+                {loginUsers.map((user) => (
+                  <div key={user.id} className="text-sm">
+                    {user.firstName} {user.lastName}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Contact users warning */}
+          {contactUsers.length > 0 && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+                Contact-Only Users Excluded ({contactUsers.length})
+              </Label>
+              <div className="max-h-32 overflow-y-auto space-y-1 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
+                {contactUsers.map((user) => (
+                  <div key={user.id} className="text-sm text-amber-800 dark:text-amber-200">
+                    {user.firstName} {user.lastName}
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-amber-800 dark:text-amber-200">
+                Contact-only users cannot have their roles changed. To change their role, first convert them to login users by editing them individually.
+              </p>
+            </div>
+          )}
 
           {/* Role select */}
           <div className="space-y-2">
@@ -107,8 +141,8 @@ export function BulkChangeRoleModal({ open, onClose, users, onSuccess }: BulkCha
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={loading || !selectedRoleId}>
-            {loading ? "Updating..." : `Update ${users.length} User${users.length > 1 ? "s" : ""}`}
+          <Button onClick={handleSubmit} disabled={loading || !selectedRoleId || loginUsers.length === 0}>
+            {loading ? "Updating..." : `Update ${loginUsers.length} User${loginUsers.length > 1 ? "s" : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>

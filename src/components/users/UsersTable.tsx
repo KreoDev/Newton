@@ -25,14 +25,13 @@ interface UsersTableProps {
   canManagePermissions?: boolean
   isViewOnly?: boolean
   onEdit?: (user: UserType) => void
-  onManageRoles?: (user: UserType) => void
   onEditPermissions?: (user: UserType) => void
   onChangePassword?: (user: UserType) => void
   onChangeEmail?: (user: UserType) => void
   onMoveCompany?: (user: UserType) => void
 }
 
-export function UsersTable({ users, canViewAllCompanies, canManage, canManagePermissions = false, isViewOnly = false, onEdit, onManageRoles, onEditPermissions, onChangePassword, onChangeEmail, onMoveCompany }: UsersTableProps) {
+export function UsersTable({ users, canViewAllCompanies, canManage, canManagePermissions = false, isViewOnly = false, onEdit, onEditPermissions, onChangePassword, onChangeEmail, onMoveCompany }: UsersTableProps) {
   useSignals()
   const { showSuccess, showError } = useAlert()
   const { user: currentUser } = useAuth()
@@ -215,7 +214,6 @@ export function UsersTable({ users, canViewAllCompanies, canManage, canManagePer
                         <DropdownMenuItem onClick={() => onChangePassword?.(user)}>Change Password</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onChangeEmail?.(user)}>Change Email</DropdownMenuItem>
                         {canViewAllCompanies && <DropdownMenuItem onClick={() => onMoveCompany?.(user)}>Move to Another Company</DropdownMenuItem>}
-                        <DropdownMenuItem onClick={() => onManageRoles?.(user)}>Manage Roles</DropdownMenuItem>
                         {canManagePermissions && <DropdownMenuItem onClick={() => onEditPermissions?.(user)}>Edit Permissions</DropdownMenuItem>}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -248,10 +246,6 @@ export function UsersTable({ users, canViewAllCompanies, canManage, canManagePer
                         <DropdownMenuItem onClick={() => onEdit?.(user)}>
                           <FileText className="mr-2 h-4 w-4" />
                           View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onManageRoles?.(user)}>
-                          <Shield className="mr-2 h-4 w-4" />
-                          View Roles
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onEditPermissions?.(user)}>
                           <Lock className="mr-2 h-4 w-4" />
