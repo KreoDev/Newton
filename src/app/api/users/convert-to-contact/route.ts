@@ -35,9 +35,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update Firestore to mark user as contact-only
+    // Update Firestore to mark user as contact-only and assign Contact role
     await adminDb.collection("users").doc(userId).update({
       canLogin: false,
+      roleId: "r_contact", // Automatically assign Contact role
       updatedAt: Date.now(),
     })
 
