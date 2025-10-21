@@ -4,6 +4,7 @@ import type { SortingState, VisibilityState, PaginationState, ColumnSizingState 
 
 export interface TableConfig {
   columnOrder: string[]
+  columnOrderVersion?: number // Track version of column order to handle migrations
   columnVisibility: VisibilityState
   sorting: SortingState
   pagination?: PaginationState

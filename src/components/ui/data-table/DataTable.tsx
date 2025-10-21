@@ -28,6 +28,7 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   defaultColumnOrder?: string[]
+  columnOrderVersion?: number // Version number for column order migrations
   defaultPageSize?: number
   searchable?: boolean
   searchPlaceholder?: string
@@ -45,6 +46,7 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   defaultColumnOrder,
+  columnOrderVersion,
   defaultPageSize = 10,
   searchable = true,
   searchPlaceholder = "Search...",
@@ -62,14 +64,20 @@ export function DataTable<TData, TValue>({
   // Get valid column IDs from the current columns
   const validColumnIds = columns.map((col) => (col as any).id || (col as any).accessorKey)
 
+  // Check if saved column order version matches current version
+  const isVersionMatch = savedConfig?.columnOrderVersion === columnOrderVersion
+
   // Validate saved column order - filter out any columns that no longer exist
   const validatedSavedOrder = savedConfig?.columnOrder?.filter((colId) => validColumnIds.includes(colId))
 
-  // Initialize column order - use validated saved order if it exists and is valid, otherwise use default
+  // Initialize column order:
+  // - Use default if versions don't match (migration scenario)
+  // - Otherwise use validated saved order if it exists and is valid
+  // - Fall back to default or all column IDs
   const initialColumnOrder =
-    validatedSavedOrder && validatedSavedOrder.length > 0
-      ? validatedSavedOrder
-      : defaultColumnOrder ?? validColumnIds
+    !isVersionMatch || !validatedSavedOrder || validatedSavedOrder.length === 0
+      ? (defaultColumnOrder ?? validColumnIds)
+      : validatedSavedOrder
 
   // State
   const [sorting, setSorting] = useState<SortingState>(savedConfig?.sorting ?? [])
@@ -117,12 +125,13 @@ export function DataTable<TData, TValue>({
   useEffect(() => {
     setConfig(tableId, {
       columnOrder,
+      columnOrderVersion, // Save version along with column order
       columnVisibility,
       sorting,
       pagination,
       columnSizing,
     })
-  }, [tableId, columnOrder, columnVisibility, sorting, pagination, columnSizing, setConfig])
+  }, [tableId, columnOrder, columnOrderVersion, columnVisibility, sorting, pagination, columnSizing, setConfig])
 
   // Notify parent of row selection changes
   useEffect(() => {
