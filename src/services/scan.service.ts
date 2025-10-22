@@ -206,9 +206,44 @@ class Scan {
 
         colour = toSentenceCase(colour)
 
-        // Description – return raw value unchanged (matches Android app behavior)
-        // Keep full bilingual description e.g. "Truck tractor / Voorspanmotor"
-        const description = licenceArray[8] || ""
+        // Description – normalize concatenated bilingual description
+        // Raw: "TrucktractorVoorspanmotor" → "Truck tractor / Voorspanmotor"
+        // Raw: "TipperWipbak" → "Tipper / Wipbak"
+        const descriptionRaw = licenceArray[8] || ""
+        let description = descriptionRaw
+
+        if (descriptionRaw) {
+          // Step 1: Add spaces between lowercase followed by uppercase
+          // "TrucktractorVoorspanmotor" → "Trucktractor Voorspanmotor"
+          const spaced = descriptionRaw.replace(/([a-z])([A-Z])/g, "$1 $2")
+
+          // Step 2: Split on spaces or slashes to get individual words
+          const words = spaced.split(/[\s/]+/).filter(Boolean)
+
+          if (words.length >= 2) {
+            // Step 3: Process each word - add internal spaces and capitalize properly
+            const processedWords = words.map(word => {
+              // Add spaces within compound words: "Trucktractor" → "Truck tractor"
+              const wordSpaced = word.replace(/([a-z])([A-Z])/g, "$1 $2")
+              // Capitalize: "Truck tractor" (proper case)
+              return wordSpaced
+                .split(/\s+/)
+                .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                .join(" ")
+            })
+
+            // Step 4: Split into English (first half) and Afrikaans (second half)
+            const midPoint = Math.ceil(processedWords.length / 2)
+            const englishPart = processedWords.slice(0, midPoint).join(" ")
+            const afrikaansPart = processedWords.slice(midPoint).join(" ")
+
+            // Step 5: Join with " / " separator
+            description = afrikaansPart ? `${englishPart} / ${afrikaansPart}` : englishPart
+          } else {
+            // Single word - just capitalize properly
+            description = toSentenceCase(descriptionRaw)
+          }
+        }
 
         const result = {
           colour,
