@@ -16,7 +16,6 @@ import {
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import { AssetService } from "@/services/asset.service"
 import { useAlert } from "@/hooks/useAlert"
-import onScan from "onscan.js"
 
 interface Step2Props {
   state: Partial<AssetInductionState>
@@ -104,27 +103,58 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
     [phase]
   )
 
-  // Attach onScan listener
+  // Custom scanner handler - captures ALL keyboard input including spaces and slashes
   useEffect(() => {
-    onScan.attachTo(document, {
-      onScan: handleScannerScan,
-      suffixKeyCodes: [13],
-      avgTimeByChar: 20,
-      minLength: 6,
-      reactToPaste: false,
-      // Capture more keys including space, slash, etc
-      onKeyDetect: function(_iKeyCode) {
-        // Return true to capture this key
-        // By default onscan.js only captures alphanumeric keys
-        // We need to also capture space (32), slash (47, 191), dash (45), etc
-        return true // Capture ALL keys
-      },
-    })
+    let scanBuffer = ""
+    let scanTimeout: NodeJS.Timeout | null = null
+    let lastKeyTime = 0
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const currentTime = Date.now()
+      const timeDiff = currentTime - lastKeyTime
+
+      // Enter key = end of scan
+      if (event.key === "Enter") {
+        if (scanBuffer.length >= 6) {
+          console.log("🔴 CUSTOM SCANNER - Final buffer:", scanBuffer)
+          console.log("🔴 CUSTOM SCANNER - Length:", scanBuffer.length)
+          console.log("🔴 CUSTOM SCANNER - Has spaces?", scanBuffer.includes(" "))
+          console.log("🔴 CUSTOM SCANNER - Has slashes?", scanBuffer.includes("/"))
+          handleScannerScan(scanBuffer)
+          scanBuffer = ""
+        }
+        if (scanTimeout) clearTimeout(scanTimeout)
+        event.preventDefault()
+        return
+      }
+
+      // Reset buffer if too much time passed (not part of a scan)
+      if (timeDiff > 100 && scanBuffer.length > 0) {
+        scanBuffer = ""
+      }
+
+      // Add character to buffer (capture EVERYTHING except control keys)
+      if (event.key.length === 1) {
+        scanBuffer += event.key
+        lastKeyTime = currentTime
+
+        // Set timeout to auto-complete scan if no Enter key
+        if (scanTimeout) clearTimeout(scanTimeout)
+        scanTimeout = setTimeout(() => {
+          if (scanBuffer.length >= 6) {
+            console.log("🔴 CUSTOM SCANNER - Timeout triggered, final buffer:", scanBuffer)
+            handleScannerScan(scanBuffer)
+          }
+          scanBuffer = ""
+        }, 100)
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
 
     return () => {
-      try {
-        onScan.detachFrom(document)
-      } catch {}
+      document.removeEventListener("keydown", handleKeyDown)
+      if (scanTimeout) clearTimeout(scanTimeout)
     }
   }, [handleScannerScan])
 
