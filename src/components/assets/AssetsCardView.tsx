@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Truck, Search, X, User, FileText, Trash2 } from "lucide-react"
+import { Truck, Search, X, User, FileText, Trash2, ToggleRight, ToggleLeft } from "lucide-react"
 import Image from "next/image"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import { DeleteAssetModal } from "./DeleteAssetModal"
@@ -16,6 +16,8 @@ import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
+import { useAlert } from "@/hooks/useAlert"
+import { AssetService } from "@/services/asset.service"
 
 interface AssetsCardViewProps {
   assets: Asset[]
@@ -26,6 +28,7 @@ export function AssetsCardView({ assets, loading }: AssetsCardViewProps) {
   useSignals()
   const router = useRouter()
   const groups = globalData.groups.value
+  const { showSuccess, showError } = useAlert()
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<"all" | "truck" | "trailer" | "driver">("all")
@@ -36,6 +39,21 @@ export function AssetsCardView({ assets, loading }: AssetsCardViewProps) {
 
   // Permission checks
   const { hasPermission: canDelete } = usePermission(PERMISSIONS.ASSETS_DELETE)
+
+  // Toggle asset active/inactive status
+  const toggleAssetStatus = async (asset: Asset) => {
+    try {
+      await AssetService.update(asset.id, { isActive: !asset.isActive })
+      showSuccess(
+        `Asset ${asset.isActive ? "Deactivated" : "Activated"}`,
+        `${getAssetIdentifier(asset)} has been ${asset.isActive ? "deactivated" : "activated"} successfully.`
+      )
+      // Real-time listener will automatically update the list
+    } catch (error) {
+      console.error("Error toggling asset status:", error)
+      showError("Failed to Update Asset", error instanceof Error ? error.message : "An unexpected error occurred.")
+    }
+  }
 
   // Helper function to get group name from groupId
   const getGroupName = (asset: Asset) => {
@@ -266,6 +284,18 @@ export function AssetsCardView({ assets, loading }: AssetsCardViewProps) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleAssetStatus(asset)}
+                      title={asset.isActive ? "Deactivate asset" : "Activate asset"}
+                    >
+                      {asset.isActive ? (
+                        <ToggleRight className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <ToggleLeft className="h-5 w-5 text-gray-400" />
+                      )}
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
