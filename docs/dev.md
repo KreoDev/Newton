@@ -265,7 +265,13 @@ if (existingAsset) {
   - Resize columns by dragging borders
   - Toggle column visibility
   - Sort by clicking headers (asc/desc/none)
-- **Export**: CSV and Excel (.xlsx) using xlsx library
+- **Export**: CSV, Excel (.xlsx), PDF, and Print using xlsx, jsPDF, and jspdf-autotable libraries
+  - **Context-Aware**: Export functions automatically adapt to table state:
+    - When rows are selected → exports only selected rows
+    - When columns are hidden → exports only visible columns
+    - When no rows selected → exports all filtered data
+  - **Implementation**: `DataTableToolbar.tsx` checks `table.getSelectedRowModel().rows.length > 0` before falling back to `table.getFilteredRowModel().rows`
+  - **Best Practice**: Do NOT add separate export buttons to bulk actions toolbars - the existing export controls handle both cases intelligently
 - **Search**: Global filter across all columns with debouncing
 - **State Persistence**: All preferences saved to localStorage per table:
   - Column order
