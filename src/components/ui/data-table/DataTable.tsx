@@ -1,0 +1,203 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+  type VisibilityState,
+  type ColumnOrderState,
+  type PaginationState,
+  type RowSelectionState,
+  type ColumnSizingState,
+  type ColumnPinningState,
+} from "@tanstack/react-table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useTableConfigStore } from "@/stores/table-config.store"
+import { DataTableToolbar } from "./DataTableToolbar"
+import { DataTableHeader } from "./DataTableHeader"
+import { DataTablePagination } from "./DataTablePagination"
+
+interface DataTableProps<TData, TValue> {
+  tableId: string
+  columns: ColumnDef<TData, TValue>[]
+  data: TData[]
+  defaultColumnOrder?: string[]
+  columnOrderVersion?: number // Version number for column order migrations
+  defaultPageSize?: number
+  searchable?: boolean
+  searchPlaceholder?: string
+  toolbar?: React.ReactNode
+  enablePagination?: boolean
+  enableRowSelection?: boolean
+  enableColumnResizing?: boolean
+  enableExport?: boolean
+  pinnedColumns?: ColumnPinningState
+  onRowSelectionChange?: (selectedRows: TData[]) => void
+}
+
+export function DataTable<TData, TValue>({
+  tableId,
+  columns,
+  data,
+  defaultColumnOrder,
+  columnOrderVersion,
+  defaultPageSize = 10,
+  searchable = true,
+  searchPlaceholder = "Search...",
+  toolbar,
+  enablePagination = true,
+  enableRowSelection = true,
+  enableColumnResizing = true,
+  enableExport = true,
+  pinnedColumns,
+  onRowSelectionChange,
+}: DataTableProps<TData, TValue>) {
+  const { getConfig, setConfig } = useTableConfigStore()
+  const savedConfig = getConfig(tableId)
+
+  // Get valid column IDs from the current columns
+  const validColumnIds = columns.map((col) => (col as any).id || (col as any).accessorKey)
+
+  // Check if saved column order version matches current version
+  const isVersionMatch = savedConfig?.columnOrderVersion === columnOrderVersion
+
+  // Validate saved column order - filter out any columns that no longer exist
+  const validatedSavedOrder = savedConfig?.columnOrder?.filter((colId) => validColumnIds.includes(colId))
+
+  // Initialize column order:
+  // - Use default if versions don't match (migration scenario)
+  // - Use default if saved order doesn't have ALL columns (incomplete data)
+  // - Otherwise use validated saved order if it exists and is valid
+  // - Fall back to default or all column IDs
+  const initialColumnOrder =
+    !isVersionMatch ||
+    !validatedSavedOrder ||
+    validatedSavedOrder.length === 0 ||
+    validatedSavedOrder.length !== validColumnIds.length  // ← NEW: Ensure ALL columns are present
+      ? (defaultColumnOrder ?? validColumnIds)
+      : validatedSavedOrder
+
+  // State
+  const [sorting, setSorting] = useState<SortingState>(savedConfig?.sorting ?? [])
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(savedConfig?.columnVisibility ?? {})
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(initialColumnOrder)
+  const [globalFilter, setGlobalFilter] = useState("")
+  const [pagination, setPagination] = useState<PaginationState>(savedConfig?.pagination ?? { pageIndex: 0, pageSize: defaultPageSize })
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(savedConfig?.columnSizing ?? {})
+  const [columnPinning, setColumnPinning] = useState<ColumnPinningState>(pinnedColumns ?? {})
+
+  // Initialize table
+  const table = useReactTable({
+    data,
+    columns,
+    state: {
+      sorting,
+      columnVisibility,
+      columnOrder,
+      globalFilter,
+      pagination,
+      rowSelection,
+      columnSizing,
+      columnPinning,
+    },
+    enableRowSelection,
+    enableColumnResizing,
+    columnResizeMode: "onChange",
+    enablePinning: true,
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
+    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
+    onRowSelectionChange: setRowSelection,
+    onColumnSizingChange: setColumnSizing,
+    onColumnPinningChange: setColumnPinning,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  })
+
+  // Save preferences whenever they change
+  useEffect(() => {
+    setConfig(tableId, {
+      columnOrder,
+      columnOrderVersion, // Save version along with column order
+      columnVisibility,
+      sorting,
+      pagination,
+      columnSizing,
+    })
+  }, [tableId, columnOrder, columnOrderVersion, columnVisibility, sorting, pagination, columnSizing, setConfig])
+
+  // Notify parent of row selection changes
+  useEffect(() => {
+    if (onRowSelectionChange) {
+      const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original)
+      onRowSelectionChange(selectedRows)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowSelection])
+
+  return (
+    <div className="space-y-4">
+      <DataTableToolbar
+        table={table}
+        searchable={searchable}
+        searchPlaceholder={searchPlaceholder}
+        globalFilter={globalFilter}
+        onGlobalFilterChange={setGlobalFilter}
+        enableExport={enableExport}
+      >
+        {toolbar}
+      </DataTableToolbar>
+
+      <div className="rounded-md border glass-surface">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <DataTableHeader
+                    key={header.id}
+                    header={header}
+                    table={table}
+                    enableResizing={enableColumnResizing}
+                  />
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {enablePagination && <DataTablePagination table={table} />}
+    </div>
+  )
+}

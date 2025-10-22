@@ -9,8 +9,9 @@
 - Client times reflect when the action happened; server times reflect when Firestore accepted the write.
 - QR codes and vehicle disks are stored as plain strings.
 - All deletion operations are soft deletes using `isActive` flag except for immediate induction errors.
-- Unless explicitly stated otherwise, **every document is scoped to a company via `companyId`**. This field references the owning company’s document id (e.g. `c_dev`). Multi-tenant isolation must be enforced with Firestore security rules using this value. Users marked as global can temporarily switch their active `companyId`, but still only interact with one company at a time.
-- Users with `isGlobal = true` may use the company switcher UI to change which company they are acting on. Switching updates the user’s `companyId` document field before further reads/writes so security rules continue to evaluate in a single-tenant context.
+- Unless explicitly stated otherwise, **every document is scoped to a company via `companyId`**. This field references the owning company's document id (e.g. `c_dev`). Multi-tenant isolation must be enforced with Firestore security rules using this value. Users marked as global can temporarily switch their active `companyId`, but still only interact with one company at a time.
+- Users with `isGlobal = true` may use the company switcher UI to change which company they are acting on. Switching updates the user's `companyId` document field before further reads/writes so security rules continue to evaluate in a single-tenant context.
+- **Exception: Roles are global** and shared across all companies. The `roles` collection does NOT have a `companyId` field. All companies use the same set of roles.
 
 ## Core Collections
 
@@ -24,9 +25,9 @@
 | displayName             | string               | yes      | Friendly name                                             | John Smith                                         |
 | firstName               | string               | yes      | First name                                                | John                                               |
 | lastName                | string               | yes      | Last name                                                 | Smith                                              |
-| phoneNumber             | string               | yes      | Contact number for notifications                          | +27821234567                                       |
+| phoneNumber             | string               | no       | Contact number for notifications (optional)               | +27821234567                                       |
 | roleId                  | string               | yes      | Role reference                                            | r_weighbridge_operator                             |
-| permissionOverrides     | map<string, boolean> | no       | Per-user permission adjustments (overrides role defaults) | { "assets.delete": false, "reports.export": true } |
+| permissionOverrides     | map<string, boolean> | no       | Per-user permission adjustments (overrides role defaults). For view-only access, set both `.view` and base permissions. Example: `{ "admin.users.view": true, "admin.users": false }` grants view-only access. | { "assets.delete": false, "admin.users.view": true, "admin.users": false } |
 | profilePicture          | string               | no       | Profile image URL                                         | `https://...`                                      |
 | notificationPreferences | map                  | yes      | Per-user notification settings                            | See below                                          |
 | preferredEmail          | string               | no       | Alternative email for notifications                       | `john.work@example.com`                            |
@@ -36,6 +37,7 @@
 | dbUpdatedAt             | timestamp            | yes      | Last server update time                                   | serverTimestamp                                    |
 | isGlobal                | boolean              | yes      | Can view/switch between multiple companies                | false                                              |
 | isActive                | boolean              | yes      | Account active status                                     | true                                               |
+| canLogin                | boolean              | no       | Can log in to system (false for contact-only users)      | true (default)                                     |
 
 #### notificationPreferences structure
 
@@ -72,18 +74,22 @@
 
 ### roles (documents)
 
-| Field          | Type            | Required | Description                                        | Example                              |
-| -------------- | --------------- | -------- | -------------------------------------------------- | ------------------------------------ |
-| id             | string (doc id) | yes      | Unique role id                                     | r_newton_admin                       |
-| companyId      | string          | yes      | Owning company reference                           | c_123                                |
-| name           | string          | yes      | Role display name                                  | Newton Administrator                 |
-| permissionKeys | string[]        | yes      | Keys referencing entries in `settings/permissions` | ["assets.manage", "orders.create"]   |
-| description    | string          | no       | Role description                                   | Full system access and configuration |
-| createdAt      | number          | yes      | Client event time (ms)                             | Date.now()                           |
-| updatedAt      | number          | yes      | Last client event time (ms)                        | Date.now()                           |
-| dbCreatedAt    | timestamp       | yes      | Server creation time                               | serverTimestamp                      |
-| dbUpdatedAt    | timestamp       | yes      | Last server update time                            | serverTimestamp                      |
-| isActive       | boolean         | yes      | Role currently usable                              | true                                 |
+**Note:** Roles are **global** and shared across all companies. They are **not** company-scoped.
+
+**Company-Specific Visibility:** While roles are global, individual companies can hide specific roles from their users using the `hiddenForCompanies` field. This allows flexible role management where a role can be active globally but hidden for specific companies.
+
+| Field              | Type            | Required | Description                                                       | Example                              |
+| ------------------ | --------------- | -------- | ----------------------------------------------------------------- | ------------------------------------ |
+| id                 | string (doc id) | yes      | Unique role id                                                    | r_newton_admin                       |
+| name               | string          | yes      | Role display name                                                 | Newton Administrator                 |
+| permissionKeys     | string[]        | yes      | Keys referencing entries in `settings/permissions`                | ["assets.manage", "orders.create"]   |
+| description        | string          | no       | Role description                                                  | Full system access and configuration |
+| isActive           | boolean         | yes      | Role globally active (if false, hidden from all companies)        | true                                 |
+| hiddenForCompanies | string[]        | no       | Array of companyIds that have hidden this role from their users   | ["c_123", "c_456"]                   |
+| createdAt          | number          | yes      | Client event time (ms)                                            | Date.now()                           |
+| updatedAt          | number          | yes      | Last client event time (ms)                                       | Date.now()                           |
+| dbCreatedAt        | timestamp       | yes      | Server creation time                                              | serverTimestamp                      |
+| dbUpdatedAt        | timestamp       | yes      | Last server update time                                           | serverTimestamp                      |
 
 ### companies (documents)
 
@@ -92,11 +98,13 @@
 | id                         | string (doc id) | yes      | Unique company id                                                              | c_123               |
 | name                       | string          | yes      | Company name                                                                   | ABC Mining Ltd      |
 | companyType                | enum            | yes      | `mine`\|`transporter`\|`logistics_coordinator`                                 | mine                |
-| registrationNumber         | string          | yes      | Company registration number                                                    | 2021/123456/07      |
-| vatNumber                  | string          | no       | VAT registration number                                                        | 4123456789          |
+| registrationNumber         | string          | no       | Company registration number (optional)                                         | 2021/123456/07      |
+| vatNumber                  | string          | no       | VAT registration number (optional)                                             | 4123456789          |
 | physicalAddress            | string          | yes      | Company physical address                                                       | 123 Mining Rd, City |
-| mainContactId              | string          | yes      | Reference to primary contact user id                                           | u_456               |
-| secondaryContactIds        | string[]        | no       | Additional contact user ids                                                    | ["u_789", "u_012"]  |
+| mainContactId              | string          | no       | Reference to primary contact user id (optional)                                | u_456               |
+| secondaryContactIds        | string[]        | no       | Additional contact user ids (must have main contact first)                     | ["u_789", "u_012"]  |
+| isAlsoLogisticsCoordinator | boolean         | no       | For transporters who also coordinate logistics                                 | true                |
+| isAlsoTransporter          | boolean         | no       | For logistics coordinators who also transport                                  | true                |
 | createdAt                  | number          | yes      | Client event time (ms)                                                         | Date.now()          |
 | updatedAt                  | number          | yes      | Last client event time (ms)                                                    | Date.now()          |
 | dbCreatedAt                | timestamp       | yes      | Server creation time                                                           | serverTimestamp     |
@@ -154,15 +162,26 @@ systemSettings: {
 }
 
 securityAlerts: {
-  primaryContactId: "u_dev",
-  secondaryContactIds: ["u_dev_secondary"],
-  escalationMinutes: 15,
-  qrMismatchContacts: ["u_security"],
-  documentFailureContacts: [],
-  sealDiscrepancyContacts: [],
-  requiredResponseMinutes: 5
+  primaryContactId: "u_dev",              // Primary contact for security escalation
+  secondaryContactIds: [],                // Reserved for future use (not in current UI)
+  escalationMinutes: 15,                  // Time before escalating to secondary contacts
+  qrMismatchContacts: [],                 // Reserved for future use (not in current UI)
+  documentFailureContacts: [],            // Reserved for future use (not in current UI)
+  sealDiscrepancyContacts: [],            // Reserved for future use (not in current UI)
+  requiredResponseMinutes: 30             // Maximum time to respond to security alerts
 }
 ```
+
+#### Validation Rules
+
+**Company Deletion Protection:**
+- Companies cannot be deleted if they have active users assigned (`users.companyId`)
+- Companies cannot be deleted if they have sites (`sites.companyId`)
+- Companies cannot be deleted if they have orders (`orders.companyId`)
+- Companies cannot be deleted if they have assets (`assets.companyId`)
+- Validation is performed by `CompanyService.checkCompanyInUse()` which returns usage details
+- When deletion is blocked, users are offered the option to deactivate the company instead
+- Deactivated companies preserve all data but prevent login access (see `isActive` field)
 
 ### clients (documents)
 
@@ -188,27 +207,83 @@ securityAlerts: {
 
 ### assets (documents)
 
-| Field              | Type            | Required | Description                                        | Example         |
-| ------------------ | --------------- | -------- | -------------------------------------------------- | --------------- |
-| id                 | string (doc id) | yes      | Unique asset id                                    | a_123           |
-| companyId          | string          | yes      | Company reference (transporter/logistics operator) | c_456           |
-| assetType          | enum            | yes      | truck\|trailer\|driver                             | truck           |
-| qrCode             | string          | yes      | QR code data                                       | qr_string       |
-| vehicleDiskData    | string          | no       | Vehicle disk data                                  | disk_string     |
-| driverLicenseData  | string          | no       | Driver license data                                | license_string  |
-| registrationNumber | string          | no       | Vehicle registration (trucks/trailers)             | CAW 12345       |
-| licenseNumber      | string          | no       | Driver license number                              | DL123456789     |
-| licenseExpiryDate  | timestamp       | no       | License expiry date                                | 2025-12-31      |
-| fleetNumber        | string          | no       | Optional fleet number                              | FL-001          |
-| groupId            | string          | no       | Optional group identifier                          | grp_north       |
-| createdAt          | number          | yes      | Client event time (ms)                             | Date.now()      |
-| updatedAt          | number          | yes      | Last client event time (ms)                        | Date.now()      |
-| dbCreatedAt        | timestamp       | yes      | Server creation time                               | serverTimestamp |
-| dbUpdatedAt        | timestamp       | yes      | Last server update time                            | serverTimestamp |
-| isActive           | boolean         | yes      | Asset active status                                | true            |
-| inactiveReason     | string          | no       | Reason for deactivation                            | License expired |
-| inactiveDate       | timestamp       | no       | When asset was deactivated                         | 2024-01-15      |
-| deletedReason      | string          | no       | Reason for deletion (induction errors)             | Duplicate entry |
+**Important:** This collection uses field names compatible with the Android app for seamless data sharing. The `type` field (NOT `assetType`) determines which fields are populated.
+
+**Validation Rules:**
+- **ntCode** must start with "NT" prefix (South African NaTIS standard) and be unique
+- **registration** must be unique (vehicles only)
+- **vin** must be unique (vehicles only)
+- **idNumber** must be unique (drivers only)
+
+| Field                    | Type            | Required | Description                                                    | Example              | Asset Types        |
+| ------------------------ | --------------- | -------- | -------------------------------------------------------------- | -------------------- | ------------------ |
+| id                       | string (doc id) | yes      | Unique asset id                                                | a_123                | All                |
+| companyId                | string          | yes      | Company reference (transporter/logistics operator)             | c_456                | All                |
+| type                     | enum            | yes      | truck\|trailer\|driver (NOT assetType)                         | truck                | All                |
+| ntCode                   | string          | yes      | Newton QR code (NaTIS transaction code, must start with "NT")  | NT1234567890         | All                |
+| firstQRCode              | string          | yes      | First QR scan (for verification)                               | NT1234567890         | All                |
+| secondQRCode             | string          | yes      | Second QR scan (must match first)                              | NT1234567890         | All                |
+| **Vehicle Fields**       |                 |          |                                                                |                      |                    |
+| registration             | string          | no       | Vehicle registration (primary field, must be unique)           | DJM739X              | Truck, Trailer     |
+| registrationNumber       | string          | no       | Vehicle registration (alias for compatibility)                 | DJM739X              | Truck, Trailer     |
+| vehicleReg               | string          | no       | Vehicle registration (alias)                                   | DJM739X              | Truck, Trailer     |
+| make                     | string          | no       | Vehicle make                                                   | Mercedes-Benz        | Truck, Trailer     |
+| model                    | string          | no       | Vehicle model                                                  | Actros               | Truck, Trailer     |
+| colour                   | string          | no       | Vehicle color                                                  | White                | Truck, Trailer     |
+| vehicleDescription       | string          | no       | Vehicle type/description from license disk                     | Truck                | Truck, Trailer     |
+| description              | string          | no       | Additional description                                         | Heavy duty truck     | Truck, Trailer     |
+| engineNo                 | string          | no       | Engine number                                                  | OM47012345           | Truck              |
+| vin                      | string          | no       | Vehicle Identification Number (must be unique)                 | WDB9634161L123456    | Truck, Trailer     |
+| licenceDiskNo            | string          | no       | License disk number                                            | DISK123456           | Truck, Trailer     |
+| expiryDate               | string          | no       | License disk expiry date (DD/MM/YYYY format)                   | 31/12/2025           | Truck, Trailer     |
+| **Driver Fields**        |                 |          |                                                                |                      |                    |
+| idNumber                 | string          | no       | Driver ID number (must be unique)                              | 8501015800080        | Driver             |
+| name                     | string          | no       | Driver first name                                              | John                 | Driver             |
+| surname                  | string          | no       | Driver surname                                                 | Smith                | Driver             |
+| initials                 | string          | no       | Driver initials                                                | JS                   | Driver             |
+| gender                   | string          | no       | Driver gender                                                  | M                    | Driver             |
+| birthDate                | string          | no       | Driver birth date                                              | 01/01/1985           | Driver             |
+| licenseNumber            | string          | no       | Driver license number (primary)                                | DL1234567890         | Driver             |
+| licenceNumber            | string          | no       | Driver license number (alias)                                  | DL1234567890         | Driver             |
+| licenseExpiryDate        | string          | no       | License expiry date (DD/MM/YYYY format)                        | 31/12/2025           | Driver             |
+| licenseType              | string          | no       | License type                                                   | C1                   | Driver             |
+| issueDate                | string          | no       | License issue date                                             | 15/01/2020           | Driver             |
+| licenseIssueNumber       | string          | no       | License issue number                                           | 001                  | Driver             |
+| vehicleCodes             | string          | no       | Vehicle codes from license                                     | C1, EB               | Driver             |
+| vehicleClassCodes        | string          | no       | Vehicle class codes                                            | C, E                 | Driver             |
+| prdpCode                 | string          | no       | PrDP code                                                      | 08                   | Driver             |
+| prdpCategory             | string          | no       | PrDP category                                                  | Professional         | Driver             |
+| prdpValidUntil           | string          | no       | PrDP valid until date                                          | 31/12/2025           | Driver             |
+| endorsement              | string          | no       | License endorsement                                            | None                 | Driver             |
+| driverRestrictions       | string          | no       | Driver-specific restrictions                                   | None                 | Driver             |
+| vehicleRestrictions      | string          | no       | Vehicle-specific restrictions                                  | None                 | Driver             |
+| generalRestrictions      | string          | no       | General restrictions                                           | None                 | Driver             |
+| sadcCountry              | string          | no       | SADC country code                                              | ZA                   | Driver             |
+| issuedPlace              | string          | no       | Place where license was issued                                 | Cape Town            | Driver             |
+| idType                   | string          | no       | ID document type                                               | ID Book              | Driver             |
+| img                      | string          | no       | Driver photo (base64 encoded)                                  | data:image/jpeg;...  | Driver             |
+| **Optional Fields**      |                 |          |                                                                |                      |                    |
+| fleetNumber              | string          | no       | Fleet number (if company has fleet numbering enabled)          | FL-001               | All                |
+| groupId                  | string          | no       | Transporter group reference (if enabled)                       | grp_north            | All                |
+| **Status & Audit**       |                 |          |                                                                |                      |                    |
+| isActive                 | boolean         | yes      | Asset active status                                            | true                 | All                |
+| inactiveReason           | string          | no       | Reason for deactivation                                        | License expired      | All                |
+| inactiveDate             | string          | no       | When asset was deactivated (ISO string)                        | 2024-01-15T10:30:00Z | All                |
+| deletedReason            | string          | no       | Reason for deletion (stored before hard delete)                | Duplicate entry      | All                |
+| createdAt                | number          | yes      | Client event time (ms)                                         | Date.now()           | All                |
+| updatedAt                | number          | yes      | Last client event time (ms)                                    | Date.now()           | All                |
+| dbCreatedAt              | timestamp       | yes      | Server creation time                                           | serverTimestamp      | All                |
+| dbUpdatedAt              | timestamp       | yes      | Last server update time                                        | serverTimestamp      | All                |
+
+**Notes:**
+- The `type` field (NOT `assetType`) determines which category of fields are populated
+- Drivers have personal information and license details extracted via expo-sadl library
+- Vehicles have registration, make/model, and disk information
+- All assets require two-scan QR verification (firstQRCode must match secondQRCode)
+- Expiry dates are stored in DD/MM/YYYY format for compatibility
+- Driver photos are stored as base64 strings in the `img` field
+- Field name aliases exist for backward compatibility (registration/registrationNumber/vehicleReg)
+- Real production data structure available in `/data/assets-data.json`
 
 ## Order Management Collections
 
@@ -297,20 +372,22 @@ securityAlerts: {
 
 ### sites (documents)
 
-| Field           | Type            | Required | Description                   | Example          |
-| --------------- | --------------- | -------- | ----------------------------- | ---------------- |
-| id              | string (doc id) | yes      | Unique site id                | site_123         |
-| companyId       | string          | yes      | Owning company reference      | c_123            |
-| name            | string          | yes      | Site name                     | Main Loading Bay |
-| siteType        | enum            | yes      | collection\|destination       | collection       |
-| physicalAddress | string          | yes      | Physical address              | 123 Mining Road  |
-| contactUserId   | string          | yes      | Contact person user reference | u_456            |
-| operatingHours  | map             | yes      | Operating hours               | See below        |
-| createdAt       | number          | yes      | Client event time (ms)        | Date.now()       |
-| updatedAt       | number          | yes      | Last client event time (ms)   | Date.now()       |
-| dbCreatedAt     | timestamp       | yes      | Server creation time          | serverTimestamp  |
-| dbUpdatedAt     | timestamp       | yes      | Last server update time       | serverTimestamp  |
-| isActive        | boolean         | yes      | Site active status            | true             |
+| Field           | Type            | Required | Description                                      | Example          |
+| --------------- | --------------- | -------- | ------------------------------------------------ | ---------------- |
+| id              | string (doc id) | yes      | Unique site id                                   | site_123         |
+| companyId       | string          | yes      | Owning company reference                         | c_123            |
+| name            | string          | yes      | Site name                                        | Main Loading Bay |
+| siteType             | enum            | yes      | collection\|destination                          | collection        |
+| physicalAddress      | string          | yes      | Physical address                                 | 123 Mining Road   |
+| mainContactId        | string          | yes      | Primary contact user reference                   | u_456             |
+| secondaryContactIds  | string[]        | yes      | Secondary contact user references                | ["u_789", "u_012"]|
+| groupId              | string          | no       | Organizational group reference (mine companies)  | grp_123           |
+| operatingHours  | map             | yes      | Operating hours                                  | See below        |
+| createdAt       | number          | yes      | Client event time (ms)                           | Date.now()       |
+| updatedAt       | number          | yes      | Last client event time (ms)                      | Date.now()       |
+| dbCreatedAt     | timestamp       | yes      | Server creation time                             | serverTimestamp  |
+| dbUpdatedAt     | timestamp       | yes      | Last server update time                          | serverTimestamp  |
+| isActive        | boolean         | yes      | Site active status                               | true             |
 
 #### operatingHours structure
 
@@ -325,6 +402,32 @@ securityAlerts: {
   sunday: { open: "closed", close: "closed" }
 }
 ```
+
+### groups (documents)
+
+**Mine Companies Only:** Organizational groups provide hierarchical structure for mine companies. Unlimited nesting supported.
+
+| Field         | Type            | Required | Description                                              | Example                      |
+| ------------- | --------------- | -------- | -------------------------------------------------------- | ---------------------------- |
+| id            | string (doc id) | yes      | Unique group id                                          | grp_123                      |
+| companyId     | string          | yes      | Owning company reference (mine companies only)           | c_123                        |
+| name          | string          | yes      | Group name                                               | Northern Division            |
+| description   | string          | no       | Group description                                        | Mining operations in the north |
+| parentGroupId | string          | no       | Parent group reference (undefined for root groups)       | grp_456                      |
+| level         | number          | yes      | Depth in hierarchy (0 for root)                          | 0                            |
+| path          | string[]        | yes      | Array of ancestor IDs for querying/breadcrumbs           | ["grp_456", "grp_123"]       |
+| createdAt     | number          | yes      | Client event time (ms)                                   | Date.now()                   |
+| updatedAt     | number          | yes      | Last client event time (ms)                              | Date.now()                   |
+| dbCreatedAt   | timestamp       | yes      | Server creation time                                     | serverTimestamp              |
+| dbUpdatedAt   | timestamp       | yes      | Last server update time                                  | serverTimestamp              |
+| isActive      | boolean         | yes      | Group active status                                      | true                         |
+
+**Notes:**
+- Groups support unlimited hierarchical nesting (groups → subgroups → sub-subgroups → etc.)
+- Sites can be assigned to groups via the `groupId` field
+- Tree UI with expand/collapse functionality in Company Settings → Groups tab
+- Only available for mine companies (hidden for transporter/logistics coordinator companies)
+- The `path` array enables easy breadcrumb generation and hierarchical queries
 
 ## Weighbridge Operations Collections
 
@@ -388,7 +491,9 @@ securityAlerts: {
 | certificateNumber | string          | no       | Calibration certificate number | CERT-2024-001   |
 | performedById     | string          | yes      | User who performed calibration | u_555           |
 | createdAt         | number          | yes      | Client event time (ms)         | Date.now()      |
+| updatedAt         | number          | yes      | Client update time (ms)        | Date.now()      |
 | dbCreatedAt       | timestamp       | yes      | Server creation time           | serverTimestamp |
+| dbUpdatedAt       | timestamp       | yes      | Server update time             | serverTimestamp |
 
 ### seals (documents)
 
@@ -403,7 +508,9 @@ securityAlerts: {
 | appliedAt        | timestamp       | yes      | When seal was applied     | 2024-01-15T09:00:00 |
 | verifiedAt       | timestamp       | no       | When seal was verified    | 2024-01-15T11:00:00 |
 | createdAt        | number          | yes      | Client event time (ms)    | Date.now()          |
+| updatedAt        | number          | yes      | Client update time (ms)   | Date.now()          |
 | dbCreatedAt      | timestamp       | yes      | Server creation time      | serverTimestamp     |
+| dbUpdatedAt      | timestamp       | yes      | Server update time        | serverTimestamp     |
 
 ## Security & Tracking Collections
 
@@ -497,12 +604,6 @@ Example structure:
     "admin.system": { description: "System-wide settings" },
     "admin.securityAlerts": { description: "Configure security alerts" },
 
-    // Reports
-    "reports.daily": { description: "View daily reports" },
-    "reports.monthly": { description: "View monthly reports" },
-    "reports.custom": { description: "Create custom reports" },
-    "reports.export": { description: "Export report data" },
-
     // Special
     "emergency.override": { description: "Emergency override access" },
     "orders.editCompleted": { description: "Edit completed orders" },
@@ -560,11 +661,13 @@ Newton System
 | userAgent   | string          | no       | User's browser/device     | Chrome/120.0            |
 | timestamp   | timestamp       | yes      | When action occurred      | 2024-01-15T10:30:00     |
 | createdAt   | number          | yes      | Client event time (ms)    | Date.now()              |
+| updatedAt   | number          | yes      | Client update time (ms)   | Date.now()              |
 | dbCreatedAt | timestamp       | yes      | Server creation time      | serverTimestamp         |
+| dbUpdatedAt | timestamp       | yes      | Server update time        | serverTimestamp         |
 
 ## Default Roles Configuration
 
-The system should be initialized with these default roles. Each role document should be created separately for every company that needs it (e.g. seed them under `c_dev`).
+The system should be initialized with these default global roles. Roles are shared across all companies and should be seeded once (not per company).
 
 1. **Newton Administrator** (r_newton_admin): All permissions
 2. **Site Administrator** (r_site_admin): Site-level permissions

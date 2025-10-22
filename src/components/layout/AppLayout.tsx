@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { useLayout } from "@/contexts/LayoutContext"
+import { useLayout } from "@/hooks/useLayout"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Home, Settings, Menu, X, LogOut, ChevronDown } from "lucide-react"
+import { Home, Settings, Menu, X, LogOut, ChevronDown, Building2, Users, Package, MapPin, Shield, Bell, UserCog, Truck, LayoutDashboard } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -14,6 +14,13 @@ import { cn } from "@/lib/utils"
 import { useCompany } from "@/contexts/CompanyContext"
 import { useSignals } from "@preact/signals-react/runtime"
 import React from "react"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { PERMISSIONS, type PermissionKey } from "@/lib/permissions"
+import { data as globalData } from "@/services/data.service"
+import type { Role } from "@/types"
+import { useCompanyStatusMonitor } from "@/hooks/useCompanyStatusMonitor"
+import { InactiveCompanyModal } from "@/components/company/InactiveCompanyModal"
+import { CompanySwitcherModal } from "@/components/company/CompanySwitcherModal"
 
 function AppBreadcrumbs() {
   const pathname = usePathname()
@@ -23,7 +30,7 @@ function AppBreadcrumbs() {
     return null
   }
 
-  if (segments.length === 1 && navigation.some(item => item.href === `/${segments[0]}`)) {
+  if (segments.length === 1 && baseNavigation.some(item => item.href === `/${segments[0]}`)) {
     return null
   }
 
@@ -33,7 +40,7 @@ function AppBreadcrumbs() {
 
   segments.forEach((segment, index) => {
     cumulativePath += `/${segment}`
-    const navMatch = navigation.find(item => item.href === cumulativePath)
+    const navMatch = baseNavigation.find(item => item.href === cumulativePath)
     const label = navMatch?.name ?? segment.replace(/-/g, " ").replace(/\b\w/g, char => char.toUpperCase())
     const isLast = index === segments.length - 1
 
@@ -62,8 +69,82 @@ interface AppLayoutProps {
   children: React.ReactNode
 }
 
-const navigation = [
+// Base navigation items with permission requirements
+const baseNavigation = [
   { name: "Dashboard", href: "/", icon: Home },
+  {
+    name: "Admin",
+    href: "/admin",
+    icon: LayoutDashboard,
+    requiredPermissions: [
+      PERMISSIONS.ADMIN_COMPANIES_VIEW,
+      PERMISSIONS.ADMIN_COMPANIES,
+      PERMISSIONS.ADMIN_USERS_VIEW,
+      PERMISSIONS.ADMIN_USERS,
+      PERMISSIONS.ADMIN_ROLES_VIEW,
+      PERMISSIONS.ADMIN_ROLES,
+      PERMISSIONS.ADMIN_PRODUCTS_VIEW,
+      PERMISSIONS.ADMIN_PRODUCTS,
+      PERMISSIONS.ADMIN_SITES_VIEW,
+      PERMISSIONS.ADMIN_SITES,
+      PERMISSIONS.ADMIN_CLIENTS_VIEW,
+      PERMISSIONS.ADMIN_CLIENTS,
+      PERMISSIONS.ADMIN_NOTIFICATIONS_VIEW,
+      PERMISSIONS.ADMIN_NOTIFICATIONS
+    ]
+  },
+  {
+    name: "Companies",
+    href: "/admin/companies",
+    icon: Building2,
+    requiredPermissions: [PERMISSIONS.ADMIN_COMPANIES_VIEW, PERMISSIONS.ADMIN_COMPANIES]
+  },
+  {
+    name: "Products",
+    href: "/admin/products",
+    icon: Package,
+    requiresMine: true,
+    requiredPermissions: [PERMISSIONS.ADMIN_PRODUCTS_VIEW, PERMISSIONS.ADMIN_PRODUCTS]
+  },
+  {
+    name: "Clients",
+    href: "/admin/clients",
+    icon: UserCog,
+    requiresMine: true,
+    requiredPermissions: [PERMISSIONS.ADMIN_CLIENTS_VIEW, PERMISSIONS.ADMIN_CLIENTS]
+  },
+  {
+    name: "Sites",
+    href: "/admin/sites",
+    icon: MapPin,
+    requiresMine: true,
+    requiredPermissions: [PERMISSIONS.ADMIN_SITES_VIEW, PERMISSIONS.ADMIN_SITES]
+  },
+  {
+    name: "Assets",
+    href: "/assets",
+    icon: Truck,
+    requiresTransporter: true,
+    requiredPermissions: [PERMISSIONS.ASSETS_VIEW, PERMISSIONS.ASSETS_ADD, PERMISSIONS.ASSETS_EDIT]
+  },
+  {
+    name: "Users",
+    href: "/admin/users",
+    icon: Users,
+    requiredPermissions: [PERMISSIONS.ADMIN_USERS_VIEW, PERMISSIONS.ADMIN_USERS]
+  },
+  {
+    name: "Roles",
+    href: "/admin/roles",
+    icon: Shield,
+    requiredPermissions: [PERMISSIONS.ADMIN_ROLES_VIEW, PERMISSIONS.ADMIN_ROLES]
+  },
+  {
+    name: "Notifications",
+    href: "/admin/notifications",
+    icon: Bell,
+    requiredPermissions: [PERMISSIONS.ADMIN_NOTIFICATIONS_VIEW, PERMISSIONS.ADMIN_NOTIFICATIONS]
+  },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 
@@ -71,12 +152,18 @@ interface NavigationItem {
   name: string
   href: string
   icon: LucideIcon
+  requiresMine?: boolean
+  requiresTransporter?: boolean
+  requiredPermissions?: PermissionKey[]
 }
 
 function NavLink({ item, className, onClick }: { item: NavigationItem; className?: string; onClick?: () => void }) {
   const pathname = usePathname()
   const isDashboard = item.href === "/"
-  const isActive = isDashboard ? pathname === item.href : pathname.startsWith(item.href)
+  const isAdmin = item.href === "/admin"
+  // For exact match routes (Dashboard and Admin), check exact path
+  // For others, check if path starts with href
+  const isActive = isDashboard || isAdmin ? pathname === item.href : pathname.startsWith(item.href)
 
   return (
     <Link
@@ -101,20 +188,91 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { layout } = useLayout()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, logout } = useAuth()
+  const { user, logout, loading } = useAuth()
   const { company, companies, switchCompany } = useCompany()
   const activeCompanyName = company?.name || user?.companyId || "Select company"
   const canSwitchCompanies = Boolean(user?.isGlobal && companies.length > 0)
+
+  // Monitor company status for real-time deactivation handling
+  const { companyBecameInactive, isGlobalUser, availableCompanies, handleForceLogout, resetState } = useCompanyStatusMonitor()
+
+  const switchableCompanies = useMemo(
+    () => companies.filter(c => c.id !== user?.companyId),
+    [companies, user?.companyId]
+  )
+
+  // Helper function to check if user has at least one of the required permissions
+  const hasAnyPermission = (permissions?: PermissionKey[]): boolean => {
+    if (!permissions || permissions.length === 0) return true
+    if (!user) return false
+
+    // Get user's role from global data
+    const userRole = globalData.roles.value.find((r: Role) => r.id === user.roleId)
+
+    // Check if user has any of the required permissions
+    // Evaluation order: permissionOverrides → isGlobal → role.permissionKeys
+    return permissions.some(permission => {
+      // 1. Check permission overrides FIRST (allows revoking permissions from global users)
+      if (user.permissionOverrides && permission in user.permissionOverrides) {
+        return user.permissionOverrides[permission]
+      }
+
+      // 2. Global users have all permissions (unless overridden above)
+      if (user.isGlobal) return true
+
+      // 3. Check role permissions
+      if (userRole) {
+        // Check for wildcard permission
+        if (userRole.permissionKeys.includes("*")) return true
+        // Check for specific permission
+        if (userRole.permissionKeys.includes(permission)) return true
+      }
+
+      return false
+    })
+  }
+
+  // Filter navigation based on company type AND user permissions
+  const navigation = useMemo(() => {
+    if (!company || !user) return []
+
+    return baseNavigation.filter(item => {
+      // Filter out mine-only items for non-mine companies
+      if (item.requiresMine && company.companyType !== "mine") {
+        return false
+      }
+
+      // Filter out transporter-only items for non-transporters
+      if (item.requiresTransporter) {
+        const isTransporter = company.companyType === "transporter"
+        const isLogisticsCoordinatorAsTransporter =
+          company.companyType === "logistics_coordinator" && company.isAlsoTransporter === true
+
+        if (!isTransporter && !isLogisticsCoordinatorAsTransporter) {
+          return false
+        }
+      }
+
+      // Filter based on permissions
+      if (!hasAnyPermission(item.requiredPermissions)) {
+        return false
+      }
+
+      return true
+    })
+  }, [company, user])
+
+  if (loading) {
+    return <LoadingSpinner fullScreen message="Loading..." />
+  }
 
   const handleLogout = async () => {
     try {
       await logout()
     } catch (error) {
-      console.error("Logout error:", error)
     }
   }
 
-  // Sidebar Layout
   if (layout === "sidebar") {
     return (
       <div className="flex h-screen bg-transparent">
@@ -149,22 +307,27 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <Menu className="h-4 w-4" />
             </Button>
 
-            {/* Company switcher */}
-            {canSwitchCompanies && (
+            {/* Company switcher or company name */}
+            {canSwitchCompanies ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="mr-4 ml-4">
                     {activeCompanyName}
+                    <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  {companies.map(c => (
+                  {switchableCompanies.map(c => (
                     <DropdownMenuItem key={c.id} onClick={() => switchCompany(c.id)}>
                       {c.name}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : (
+              <div className="mr-4 ml-4 px-4 py-2 glass-surface glass-layer-gradient border border-[var(--glass-border-soft)] rounded-md">
+                <span className="text-sm font-medium">{activeCompanyName}</span>
+              </div>
             )}
 
             {/* User Info and Avatar - Right side */}
@@ -178,7 +341,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-12 w-12 rounded-full p-0">
-                    <Image src={user?.avatar || "/blank-avatar.jpg"} alt="User Avatar" width={48} height={48} className="rounded-full object-cover" />
+                    <Image src={user?.profilePicture || "/blank-avatar.jpg"} alt="User Avatar" width={48} height={48} className="rounded-full object-cover" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -217,11 +380,32 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <div className="glass-surface-floating glass-layer-gradient border border-[var(--glass-border-floating)] shadow-[var(--glass-shadow-xl)] min-h-full rounded-3xl px-6 py-5 animate-fade-up [animation-duration:400ms]">{children}</div>
           </main>
         </div>
+
+        {/* Company deactivation modals */}
+        {companyBecameInactive && !isGlobalUser && (
+          <InactiveCompanyModal
+            open={companyBecameInactive}
+            companyName={company?.name || "Your company"}
+            onLogout={handleForceLogout}
+          />
+        )}
+
+        {companyBecameInactive && isGlobalUser && (
+          <CompanySwitcherModal
+            open={companyBecameInactive}
+            inactiveCompanyName={company?.name || "Your company"}
+            availableCompanies={availableCompanies}
+            onSwitchCompany={async (companyId: string) => {
+              await switchCompany(companyId)
+              resetState()
+            }}
+            onLogout={handleForceLogout}
+          />
+        )}
       </div>
     )
   }
 
-  // Top Navigation Layout
   return (
     <div className="flex flex-col h-screen bg-transparent">
       {/* Top Navigation Header */}
@@ -246,7 +430,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
           {/* Right Side: Company Switcher + User Menu */}
           <div className="flex items-center space-x-3">
-            {canSwitchCompanies && (
+            {canSwitchCompanies ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -255,13 +439,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  {companies.map(c => (
+                  {switchableCompanies.map(c => (
                     <DropdownMenuItem key={c.id} onClick={() => switchCompany(c.id)}>
                       {c.name}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : (
+              <div className="px-3 py-1.5 glass-surface glass-layer-gradient border border-[var(--glass-border-soft)] rounded-md">
+                <span className="text-xs font-medium">{activeCompanyName}</span>
+              </div>
             )}
 
             {/* Mobile Menu Button */}
@@ -279,7 +467,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
-                  <Image src={user?.avatar || "/blank-avatar.jpg"} alt="User Avatar" width={40} height={40} className="rounded-full object-cover" />
+                  <Image src={user?.profilePicture || "/blank-avatar.jpg"} alt="User Avatar" width={40} height={40} className="rounded-full object-cover" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -329,6 +517,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
         )}
         <div className="glass-surface-floating glass-layer-gradient border border-[var(--glass-border-floating)] shadow-[var(--glass-shadow-xl)] min-h-full rounded-3xl px-6 py-5 animate-fade-up [animation-duration:400ms]">{children}</div>
       </main>
+
+      {/* Company deactivation modals */}
+      {companyBecameInactive && !isGlobalUser && (
+        <InactiveCompanyModal
+          open={companyBecameInactive}
+          companyName={company?.name || "Your company"}
+          onLogout={handleForceLogout}
+        />
+      )}
+
+      {companyBecameInactive && isGlobalUser && (
+        <CompanySwitcherModal
+          open={companyBecameInactive}
+          inactiveCompanyName={company?.name || "Your company"}
+          availableCompanies={availableCompanies}
+          onSwitchCompany={async (companyId: string) => {
+            await switchCompany(companyId)
+            resetState()
+          }}
+          onLogout={handleForceLogout}
+        />
+      )}
     </div>
   )
 }

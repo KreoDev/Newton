@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Lock, AlertCircle } from "lucide-react"
-import { toast } from "sonner"
+import { useAlert } from "@/hooks/useAlert"
+import { InlineSpinner } from "@/components/ui/loading-spinner"
 
 interface ChangePasswordModalProps {
   isOpen: boolean
@@ -18,6 +19,7 @@ interface ChangePasswordModalProps {
 
 export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
   const { user } = useAuth()
+  const { showSuccess, showError } = useAlert()
   const [formData, setFormData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -104,7 +106,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
     }
 
     if (!user?.email) {
-      toast.error("User email not found")
+      showError("Email Not Found", "User email not found.")
       return
     }
 
@@ -132,9 +134,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
         throw new Error(data.error || "Failed to update password")
       }
 
-      toast.success("Password updated successfully", {
-        description: "Your password has been changed. Please remember to use your new password for future logins.",
-      })
+      showSuccess("Password Updated", "Your password has been changed. Please remember to use your new password for future logins.")
 
       // Clear form and close modal
       setFormData({
@@ -150,16 +150,13 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
       })
       onClose()
     } catch (error: any) {
-      console.error("Error changing password:", error)
 
       if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
         setErrors(prev => ({ ...prev, currentPassword: "Current password is incorrect" }))
       } else if (error.code === "auth/too-many-requests") {
         setErrors(prev => ({ ...prev, general: "Too many failed attempts. Please try again later." }))
       } else {
-        toast.error("Failed to update password", {
-          description: error.message || "An unexpected error occurred. Please try again.",
-        })
+        showError("Failed to Update Password", error.message || "An unexpected error occurred. Please try again.")
       }
     } finally {
       setIsLoading(false)
@@ -252,7 +249,14 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Updating..." : "Update Password"}
+              {isLoading ? (
+                <>
+                  <InlineSpinner className="mr-2" />
+                  Updating...
+                </>
+              ) : (
+                "Update Password"
+              )}
             </Button>
           </div>
         </form>

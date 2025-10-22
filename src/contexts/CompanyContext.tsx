@@ -1,67 +1,61 @@
 "use client"
 
-import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react"
+import { createContext, useContext, useEffect, useMemo, useState, useCallback, ReactNode } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { doc, updateDoc, collection, getDocs, serverTimestamp } from "firebase/firestore"
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { data as globalData, CompanySummary } from "@/services/data.service"
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
+import type { Company } from "@/types"
 
 interface CompanyContextType {
-  company: CompanySummary | null
-  companies: CompanySummary[]
+  company: Company | null
+  companies: Company[]
   switchCompany: (companyId: string) => Promise<void>
 }
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined)
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
+  useSignals()
+
   const { user, refreshUser } = useAuth()
-  const [company, setCompany] = useState<CompanySummary | null>(null)
-  const [companies, setCompanies] = useState<CompanySummary[]>([])
+  const [company, setCompany] = useState<Company | null>(null)
+
+  const companies = globalData.companies.value.filter(c => c.isActive !== false)
 
   useEffect(() => {
     if (!user) {
       setCompany(null)
-      setCompanies([])
-      globalData.setCompanies([])
       return
     }
 
-    const fetchCompanies = async () => {
+    return globalData.initializeForCompany(user.companyId)
+  }, [user, user?.companyId])
+
+  useEffect(() => {
+    if (!user) {
+      setCompany(null)
+      return
+    }
+
+    const activeCompany = globalData.companies.value.find(c => c.id === user.companyId)
+    setCompany(activeCompany ?? null)
+  }, [globalData.companies.value, user])
+
+  const switchCompany = useCallback(
+    async (companyId: string) => {
+      if (!user) return
       try {
-        const snapshot = await getDocs(collection(db, "companies"))
-        const list: CompanySummary[] = snapshot.docs.map(docSnapshot => ({
-          id: docSnapshot.id,
-          name: (docSnapshot.data()?.name as string) || "Unknown Company",
-        }))
-
-        setCompanies(list)
-        globalData.setCompanies(list)
-
-        const activeCompany = list.find(c => c.id === user.companyId)
-        setCompany(activeCompany ?? null)
+        await updateDoc(doc(db, "users", user.id), { companyId, updatedAt: Date.now(), dbUpdatedAt: serverTimestamp() })
+        await refreshUser()
+        const selectedCompany = globalData.companies.value.find(c => c.id === companyId) ?? null
+        setCompany(selectedCompany)
       } catch (error) {
-        console.error("Failed to load companies", error)
-        setCompanies([])
-        globalData.setCompanies([])
-        setCompany(null)
       }
-    }
-
-    fetchCompanies()
-  }, [user])
-
-  const switchCompany = async (companyId: string) => {
-    if (!user) return
-    try {
-      await updateDoc(doc(db, "users", user.id), { companyId, updatedAt: Date.now(), dbUpdatedAt: serverTimestamp() })
-      await refreshUser()
-      const selectedCompany = (companies.length ? companies : globalData.companies.value).find(c => c.id === companyId) ?? null
-      setCompany(selectedCompany)
-    } catch (error) {
-      console.error("Failed to switch company", error)
-    }
-  }
+    },
+    [user, refreshUser]
+  )
 
   const value = useMemo(
     () => ({
@@ -69,7 +63,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       companies,
       switchCompany,
     }),
-    [company, companies]
+    [company, companies, switchCompany]
   )
 
   return <CompanyContext.Provider value={value}>{children}</CompanyContext.Provider>

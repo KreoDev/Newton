@@ -149,7 +149,7 @@ export default function SeedPage() {
                   <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
                   <h3 className="font-semibold text-red-900 dark:text-red-100">Clear Data</h3>
                 </div>
-                <p className="text-sm text-red-700 dark:text-red-300">All existing seeded companies, users, transporters, assets, roles, and notification templates will be deleted.</p>
+                <p className="text-sm text-red-700 dark:text-red-300">All existing companies, users, products, clients, sites, groups, transporters, assets, roles, and notification templates will be deleted from the database.</p>
               </div>
 
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-6 border border-green-200 dark:border-green-800">
@@ -157,7 +157,9 @@ export default function SeedPage() {
                   <Upload className="w-5 h-5 text-green-600 dark:text-green-400" />
                   <h3 className="font-semibold text-green-900 dark:text-green-100">Seed Data</h3>
                 </div>
-                <p className="text-sm text-green-700 dark:text-green-300">Seeds the Dev Company, global admin user, default roles, notification templates, 2 transporters, and 11 assets.</p>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  Seeds: Dev Company (Mine) with order config & escalation settings, 2 login users (dev@newton.co.za, admin@newton.co.za), 10 contact users, 6 products, 2 clients, 4 sites, 6 organizational groups, default roles with permissions, notification templates, 2 transporters, and production asset data from assets-data.json (if available).
+                </p>
               </div>
             </motion.div>
           )}

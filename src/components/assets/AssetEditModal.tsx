@@ -1,0 +1,455 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import type { Asset } from "@/types"
+import { QrCode, Barcode, ArrowLeft } from "lucide-react"
+import { QRCodeScanner } from "@/components/assets/shared/QRCodeScanner"
+import { BarcodeScanner, type ParsedBarcodeData } from "@/components/assets/shared/BarcodeScanner"
+import { AssetService } from "@/services/asset.service"
+import { useAlert } from "@/hooks/useAlert"
+
+interface AssetEditModalProps {
+  asset: Asset
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: () => void
+}
+
+type UpdateType = "qr" | "barcode" | null
+type Step = "select-type" | "verify-barcode" | "scan-new-qr" | "verify-qr" | "scan-new-barcode"
+
+export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditModalProps) {
+  const alert = useAlert()
+  const [updateType, setUpdateType] = useState<UpdateType>(null)
+  const [step, setStep] = useState<Step>("select-type")
+  const [scannedBarcode, setScannedBarcode] = useState("")
+  const [scannedQR, setScannedQR] = useState("")
+  const [newQR, setNewQR] = useState("")
+  const [newBarcode, setNewBarcode] = useState("")
+  const [newBarcodeData, setNewBarcodeData] = useState<ParsedBarcodeData | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      // Reset state when modal opens
+      setUpdateType(null)
+      setStep("select-type")
+      setScannedBarcode("")
+      setScannedQR("")
+      setNewQR("")
+      setNewBarcode("")
+      setNewBarcodeData(null)
+    }
+  }, [isOpen])
+
+  const handleSelectUpdateType = (type: UpdateType) => {
+    setUpdateType(type)
+    if (type === "qr") {
+      setStep("verify-barcode")
+    } else if (type === "barcode") {
+      setStep("verify-qr")
+    }
+  }
+
+  const handleBarcodeVerified = (barcodeData: string, parsed: ParsedBarcodeData) => {
+    // Verify it matches the asset's barcode data (vehicle only)
+    if (!("error" in parsed.data)) {
+      if (asset.registration && parsed.data.registration !== asset.registration) {
+        alert.showError("Wrong Asset", "This barcode does not match the asset you are editing. Please scan the correct vehicle license disk.")
+        return
+      }
+    }
+
+    setScannedBarcode(barcodeData)
+    setStep("scan-new-qr")
+  }
+
+  const handleQRVerified = (qrCode: string) => {
+    // Verify it matches the asset's QR code
+    if (asset.ntCode !== qrCode) {
+      alert.showError("Wrong Asset", "This QR code does not match the asset you are editing. Please scan the correct Newton QR code.")
+      return
+    }
+
+    setScannedQR(qrCode)
+    setStep("scan-new-barcode")
+  }
+
+  const handleNewQRScanned = (qrCode: string) => {
+
+    // Check if it's the same as current
+    if (qrCode === asset.ntCode) {
+      alert.showWarning(
+        "No Change Detected",
+        "The scanned QR code is the same as the current one. No update is needed.",
+        () => {
+          // Reset to scan again
+          setNewQR("")
+        }
+      )
+      return
+    }
+
+    setNewQR(qrCode)
+    // Proceed to save
+    handleSaveQRUpdate(qrCode)
+  }
+
+  const handleNewBarcodeScanned = async (barcodeData: string, parsed: ParsedBarcodeData) => {
+
+      if ("error" in parsed.data) {
+        alert.showError("Parsing Error", "Failed to parse vehicle license disk barcode.")
+        return
+      }
+
+      // Check if registration matches
+      if (parsed.data.registration !== asset.registration) {
+        alert.showError(
+          "Registration Mismatch",
+          `The registration on the scanned disk (${parsed.data.registration}) does not match the asset's registration (${asset.registration}). Please scan the correct vehicle license disk.`
+        )
+        return
+      }
+
+      // Get expiry dates for comparison
+      const currentExpiry = asset.expiryDate
+      const newExpiry = parsed.data.expiryDate
+
+      // Check if new disk is expired FIRST (before checking if changed)
+      let isExpired = false
+      if (newExpiry) {
+        const expiryParts = newExpiry.split("/")
+        if (expiryParts.length === 3) {
+          const expiryDate = new Date(
+            parseInt(expiryParts[2], 10),
+            parseInt(expiryParts[1], 10) - 1,
+            parseInt(expiryParts[0], 10)
+          )
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          isExpired = expiryDate < today
+        }
+      }
+
+      // If expired, show error and don't allow update
+      if (isExpired) {
+        alert.showError(
+          "Expired License Disk",
+          `The scanned vehicle license disk expired on ${newExpiry}. You cannot update to an expired disk. Please scan a valid, current disk.`
+        )
+        return
+      }
+
+      // Check if ANYTHING has changed
+      const hasChanges =
+        currentExpiry !== newExpiry ||
+        asset.make !== parsed.data.make ||
+        asset.model !== parsed.data.model ||
+        asset.colour !== parsed.data.colour
+
+      if (!hasChanges) {
+        alert.showInfo(
+          "No Changes Detected",
+          "The scanned vehicle license disk contains the same information as the current record. No update is needed.",
+          () => {
+            setNewBarcode("")
+            setNewBarcodeData(null)
+          }
+        )
+        return
+      }
+
+      // Check if new expiry is newer than current (warning, but allow)
+      if (currentExpiry && newExpiry) {
+        const currentParts = currentExpiry.split("/")
+        const newParts = newExpiry.split("/")
+
+        if (currentParts.length === 3 && newParts.length === 3) {
+          const currentDate = new Date(
+            parseInt(currentParts[2], 10),
+            parseInt(currentParts[1], 10) - 1,
+            parseInt(currentParts[0], 10)
+          )
+          const newDate = new Date(
+            parseInt(newParts[2], 10),
+            parseInt(newParts[1], 10) - 1,
+            parseInt(newParts[0], 10)
+          )
+
+          if (newDate <= currentDate) {
+            const confirmed = await alert.showConfirm(
+              "Older Expiry Date",
+              `The scanned disk expires on ${newExpiry}, which is not newer than the current expiry (${currentExpiry}). Do you want to proceed with this update?`,
+              "Yes, Update"
+            )
+
+            if (confirmed) {
+              // User confirmed, proceed to save
+              setNewBarcode(barcodeData)
+              setNewBarcodeData(parsed)
+              handleSaveBarcodeUpdate(barcodeData, parsed)
+            } else {
+              // User cancelled, reset
+              setNewBarcode("")
+              setNewBarcodeData(null)
+            }
+            return
+          }
+        }
+      }
+
+      // All validations passed - proceed to save
+      setNewBarcode(barcodeData)
+      setNewBarcodeData(parsed)
+      handleSaveBarcodeUpdate(barcodeData, parsed)
+  }
+
+  const handleSaveQRUpdate = async (qrCode: string) => {
+    setIsSaving(true)
+    try {
+      await AssetService.update(asset.id, {
+        ntCode: qrCode,
+      })
+
+      // Show success alert to ensure user sees the confirmation
+      alert.showSuccess(
+        "QR Code Updated",
+        `QR code for ${asset.registration} has been successfully updated.`,
+        () => {
+          onSuccess()
+          onClose()
+        }
+      )
+    } catch (error) {
+      alert.showError("Update Failed", error instanceof Error ? error.message : "Failed to update QR code. Please try again.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleSaveBarcodeUpdate = async (barcodeData: string, parsed: ParsedBarcodeData) => {
+    setIsSaving(true)
+    try {
+      const updates: Partial<Asset> = {}
+
+      if (!("error" in parsed.data)) {
+        updates.expiryDate = parsed.data.expiryDate
+        updates.make = parsed.data.make
+        updates.model = parsed.data.model
+        updates.colour = parsed.data.colour
+        updates.licenceDiskNo = parsed.data.vehicleDiskNo
+        updates.engineNo = parsed.data.engineNo
+        updates.vin = parsed.data.vin
+        updates.description = parsed.data.description
+      }
+
+      await AssetService.update(asset.id, updates)
+
+      // Show success alert to ensure user sees the confirmation
+      alert.showSuccess(
+        "Asset Updated Successfully",
+        `Vehicle license disk for ${asset.registration} has been successfully updated with the new barcode data.`,
+        () => {
+          onSuccess()
+          onClose()
+        }
+      )
+    } catch (error) {
+      alert.showError("Update Failed", error instanceof Error ? error.message : "Failed to update barcode data. Please try again.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleBack = () => {
+    if (step === "verify-barcode" || step === "verify-qr") {
+      setStep("select-type")
+      setUpdateType(null)
+    } else if (step === "scan-new-qr") {
+      setStep("verify-barcode")
+      setScannedBarcode("")
+    } else if (step === "scan-new-barcode") {
+      setStep("verify-qr")
+      setScannedQR("")
+    }
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {step === "select-type" && "Edit Asset"}
+            {step === "verify-barcode" && "Verify Asset - Scan Barcode"}
+            {step === "scan-new-qr" && "Scan New QR Code"}
+            {step === "verify-qr" && "Verify Asset - Scan QR Code"}
+            {step === "scan-new-barcode" && "Scan New Barcode"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Step 1: Select Update Type */}
+          {step === "select-type" && (
+            <div className="space-y-4">
+              <p className="text-muted-foreground">What would you like to update?</p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => handleSelectUpdateType("qr")}
+                  className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg hover:border-green-500 hover:bg-green-500/10 transition-all"
+                >
+                  <QrCode className="w-12 h-12 text-green-600 dark:text-green-400 mb-3" />
+                  <p className="font-medium">Update QR Code</p>
+                  <p className="text-xs text-muted-foreground text-center mt-1">QR code damaged or replaced</p>
+                </button>
+
+                <button
+                  onClick={() => handleSelectUpdateType("barcode")}
+                  className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg hover:border-blue-500 hover:bg-blue-500/10 transition-all"
+                >
+                  <Barcode className="w-12 h-12 text-blue-600 dark:text-blue-400 mb-3" />
+                  <p className="font-medium">Update Barcode</p>
+                  <p className="text-xs text-muted-foreground text-center mt-1">License/disk expired or renewed</p>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2a: Verify Barcode (for QR update) */}
+          {step === "verify-barcode" && (
+            <div className="space-y-4">
+              <p className="text-muted-foreground">Scan the existing barcode to verify this is the correct asset.</p>
+
+              {/* Show asset details to help identify correct barcode */}
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-1">Looking for:</p>
+                {asset.type === "driver" ? (
+                  <p className="text-sm text-muted-foreground">
+                    Driver&apos;s License: <span className="font-semibold">{asset.name} {asset.surname}</span>
+                    {asset.idNumber && <span className="block text-xs">ID: {asset.idNumber}</span>}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Vehicle License Disk: <span className="font-semibold">{asset.registration}</span>
+                    {asset.make && asset.model && <span className="block text-xs">{asset.make} {asset.model}</span>}
+                  </p>
+                )}
+              </div>
+
+              <BarcodeScanner
+                onScanSuccess={handleBarcodeVerified}
+                label="Existing Barcode"
+                helpText={
+                  asset.type === "driver"
+                    ? `Scan driver's license for ${asset.name} ${asset.surname}`
+                    : `Scan vehicle disk for ${asset.registration}`
+                }
+              />
+            </div>
+          )}
+
+          {/* Step 3a: Scan New QR Code */}
+          {step === "scan-new-qr" && (
+            <div className="space-y-4">
+              <p className="text-muted-foreground">Scan the new Newton QR code to replace the old one.</p>
+              <QRCodeScanner
+                onScanSuccess={handleNewQRScanned}
+                label="New QR Code"
+                helpText="Scan the new Newton QR code"
+              />
+            </div>
+          )}
+
+          {/* Step 2b: Verify QR Code (for barcode update) */}
+          {step === "verify-qr" && (
+            <div className="space-y-4">
+              <p className="text-muted-foreground">Scan the existing QR code to verify this is the correct asset.</p>
+
+              {/* Show asset details to help identify correct QR */}
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-1">Looking for:</p>
+                {asset.type === "driver" ? (
+                  <p className="text-sm text-muted-foreground">
+                    Driver: <span className="font-semibold">{asset.name} {asset.surname}</span>
+                    {asset.idNumber && <span className="block text-xs">ID: {asset.idNumber}</span>}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Vehicle: <span className="font-semibold">{asset.registration}</span>
+                    {asset.make && asset.model && <span className="block text-xs">{asset.make} {asset.model}</span>}
+                  </p>
+                )}
+                {asset.ntCode && <p className="text-xs text-muted-foreground mt-1">QR Code: {asset.ntCode.substring(0, 20)}...</p>}
+              </div>
+
+              <QRCodeScanner
+                onScanSuccess={handleQRVerified}
+                label="Existing QR Code"
+                helpText={
+                  asset.type === "driver"
+                    ? `Scan QR code for ${asset.name} ${asset.surname}`
+                    : `Scan QR code for ${asset.registration}`
+                }
+              />
+            </div>
+          )}
+
+          {/* Step 3b: Scan New Barcode */}
+          {step === "scan-new-barcode" && (
+            <div className="space-y-4">
+              <p className="text-muted-foreground">Scan the new {asset.type === "driver" ? "driver's license" : "vehicle license disk"} barcode.</p>
+
+              {/* Show asset details for reference */}
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm font-medium mb-1">
+                  {asset.type === "driver" ? "Driver must match:" : "Vehicle must match:"}
+                </p>
+                {asset.type === "driver" ? (
+                  <p className="text-sm text-muted-foreground">
+                    Name: <span className="font-semibold">{asset.name} {asset.surname}</span>
+                    <span className="block text-xs">ID Number: {asset.idNumber}</span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Registration: <span className="font-semibold">{asset.registration}</span>
+                  </p>
+                )}
+              </div>
+
+              <BarcodeScanner
+                onScanSuccess={handleNewBarcodeScanned}
+                label="New Barcode"
+                helpText={
+                  asset.type === "driver"
+                    ? `Scan new license for ${asset.name} ${asset.surname}`
+                    : `Scan new disk for ${asset.registration}`
+                }
+              />
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-between pt-4">
+            <Button
+              variant="outline"
+              onClick={step === "select-type" ? onClose : handleBack}
+              disabled={isSaving}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              {step === "select-type" ? "Cancel" : "Back"}
+            </Button>
+
+            {isSaving && (
+              <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                Saving...
+              </div>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { useSignals } from "@preact/signals-react/runtime"
-import { Save, User, Shield, Palette, Moon, Sun, Layout, LayoutGrid } from "lucide-react"
+import { Save, User, Shield, Palette, Moon, Sun, Layout, LayoutGrid, Bell, Table } from "lucide-react"
 import { useTheme } from "next-themes"
-import { useLayout } from "@/contexts/LayoutContext"
+import { useLayout } from "@/hooks/useLayout"
+import { useAssetViewPreference } from "@/hooks/useAssetViewPreference"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,18 +16,23 @@ import { useAuth } from "@/contexts/AuthContext"
 import { userOperations } from "@/lib/firebase-utils"
 import { ChangePasswordModal } from "@/components/users/ChangePasswordModal"
 import { ChangeEmailModal } from "@/components/users/ChangeEmailModal"
-import { toast } from "sonner"
+import { AvatarUpload } from "@/components/users/AvatarUpload"
+import { NotificationPreferencesTab } from "@/components/settings/NotificationPreferencesTab"
+import { useAlert } from "@/hooks/useAlert"
 
 export default function SettingsPage() {
   useSignals()
   const { user, refreshUser } = useAuth()
   const { theme, setTheme } = useTheme()
   const { layout, setLayout } = useLayout()
+  const { view: assetView, updateView: updateAssetView } = useAssetViewPreference()
+  const { showSuccess, showError } = useAlert()
   const [mounted, setMounted] = useState(false)
   const [profile, setProfile] = useState({
     firstName: "",
     lastName: "",
     email: "",
+    phoneNumber: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false)
@@ -43,17 +49,18 @@ export default function SettingsPage() {
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         email: user.email || "",
+        phoneNumber: user.phoneNumber || "",
       })
     }
   }, [user])
 
   const handleSaveProfile = async () => {
     if (!user) {
-      toast.error("You must be logged in to update your profile.")
+      showError("Authentication Required", "You must be logged in to update your profile.")
       return
     }
     if (!profile.firstName || !profile.lastName) {
-      toast.error("First name and last name are required.")
+      showError("Missing Information", "First name and last name are required.")
       return
     }
     setIsSubmitting(true)
@@ -61,13 +68,13 @@ export default function SettingsPage() {
       const updatedData = {
         firstName: profile.firstName,
         lastName: profile.lastName,
+        phoneNumber: profile.phoneNumber,
       }
       await userOperations.update(user.id, updatedData)
       await refreshUser() // Refresh user data in context
-      toast.success("Profile updated successfully!")
+      showSuccess("Profile Updated", "Your profile has been updated successfully!")
     } catch (error) {
-      toast.error("Failed to update profile.")
-      console.error(error)
+      showError("Failed to Update Profile", error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setIsSubmitting(false)
     }
@@ -75,17 +82,15 @@ export default function SettingsPage() {
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme)
-    toast.success(`Theme changed to ${newTheme}`)
+    showSuccess("Theme Changed", `Your theme has been changed to ${newTheme} mode.`)
   }
 
   const handleLayoutChange = (newLayout: "sidebar" | "top") => {
     setLayout(newLayout)
-    toast.success(`Layout changed to ${newLayout} navigation`)
+    showSuccess("Layout Changed", `Your navigation layout has been changed to ${newLayout}.`)
   }
 
   const handleAvatarUpdated = async (avatarBase64: string) => {
-    // Update local profile state
-    setProfile(prev => ({ ...prev, avatar: avatarBase64 }))
     // Refresh user data in context to update navbar avatar
     await refreshUser()
   }
@@ -134,6 +139,32 @@ export default function SettingsPage() {
     }
   }
 
+  const getAssetViewIcon = (viewOption: string) => {
+    switch (viewOption) {
+      case "card":
+        return <LayoutGrid className="h-4 w-4" />
+      case "table":
+        return <Table className="h-4 w-4" />
+      default:
+        return <LayoutGrid className="h-4 w-4" />
+    }
+  }
+
+  const getAssetViewLabel = (viewOption: string) => {
+    switch (viewOption) {
+      case "card":
+        return "Card View"
+      case "table":
+        return "Table View"
+      default:
+        return "Card View"
+    }
+  }
+
+  const handleAssetViewChange = async (newView: "card" | "table") => {
+    await updateAssetView(newView)
+  }
+
   // Don't render theme-dependent content until mounted
   if (!mounted) {
     return (
@@ -164,6 +195,10 @@ export default function SettingsPage() {
             <Palette className="h-4 w-4" />
             <span>Appearance</span>
           </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center space-x-2">
+            <Bell className="h-4 w-4" />
+            <span>Notifications</span>
+          </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center space-x-2">
             <Shield className="h-4 w-4" />
             <span>Security</span>
@@ -177,6 +212,16 @@ export default function SettingsPage() {
               <CardDescription>Update your personal information and contact details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
+              {/* Profile Picture Section */}
+              {user && (
+                <AvatarUpload
+                  userId={user.id}
+                  currentAvatar={user.profilePicture}
+                  userName={`${user.firstName} ${user.lastName}`}
+                  onAvatarUpdated={handleAvatarUpdated}
+                />
+              )}
+
               <div className="border-t pt-8">
                 <h4 className="font-medium mb-6">Personal Details</h4>
                 <div className="space-y-6">
@@ -193,6 +238,10 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" type="email" value={profile.email} disabled />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneNumber">Phone Number</Label>
+                    <Input id="phoneNumber" type="tel" value={profile.phoneNumber} onChange={e => setProfile({ ...profile, phoneNumber: e.target.value })} placeholder="Enter phone number (optional)" />
                   </div>
                   <Button onClick={handleSaveProfile} disabled={isSubmitting}>
                     <Save className="mr-2 h-4 w-4" />
@@ -275,9 +324,46 @@ export default function SettingsPage() {
                     </Select>
                   </div>
                 </div>
+
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <h4 className="font-medium">Assets Page Default View</h4>
+                      <p className="text-sm text-muted-foreground">Choose your preferred view for the assets page.</p>
+                    </div>
+                    <Select value={assetView} onValueChange={handleAssetViewChange}>
+                      <SelectTrigger className="w-36">
+                        <SelectValue>
+                          <div className="flex items-center space-x-2">
+                            {getAssetViewIcon(assetView)}
+                            <span>{getAssetViewLabel(assetView)}</span>
+                          </div>
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="card">
+                          <div className="flex items-center space-x-2">
+                            <LayoutGrid className="h-4 w-4" />
+                            <span>Card View</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="table">
+                          <div className="flex items-center space-x-2">
+                            <Table className="h-4 w-4" />
+                            <span>Table View</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="space-y-4">
+          <NotificationPreferencesTab />
         </TabsContent>
 
         <TabsContent value="security" className="space-y-4">

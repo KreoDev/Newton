@@ -21,18 +21,15 @@ class Utility {
       const canvas: any = document.createElement("canvas")
       const image = new Image()
       image.onload = () => {
-        let width = image.width
-        let height = image.height
+        let { width, height } = image
         if (width > height) {
           if (width > MAX_WIDTH) {
             height *= MAX_WIDTH / width
             width = MAX_WIDTH
           }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height
-            height = MAX_HEIGHT
-          }
+        } else if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height
+          height = MAX_HEIGHT
         }
         canvas.width = width
         canvas.height = height

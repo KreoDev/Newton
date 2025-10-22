@@ -13,7 +13,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
-  return <thead data-slot="table-header" className={cn("[&_tr]:border-b backdrop-blur-[var(--glass-blur-sm)]", className)} {...props} />
+  return <thead data-slot="table-header" className={cn("backdrop-blur-[var(--glass-blur-sm)]", className)} {...props} />
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
@@ -25,7 +25,22 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
 }
 
 function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
-  return <tr data-slot="table-row" className={cn("hover:bg-[oklch(1_0_0_/_0.18)] data-[state=selected]:bg-[oklch(1_0_0_/_0.24)] border-b transition-colors", className)} {...props} />
+  return (
+    <tr
+      data-slot="table-row"
+      className={cn(
+        // Only apply hover to tbody rows, not thead rows
+        "[tbody_&]:hover:bg-[oklch(1_0_0_/_0.18)] border-b transition-all duration-200",
+        // Selected row styling - reusable across all tables
+        "data-[state=selected]:bg-[oklch(0.7_0.1_240_/_0.12)]", // Subtle blue tint with 12% opacity
+        "data-[state=selected]:border-l-2",
+        "data-[state=selected]:border-l-primary/40",
+        "data-[state=selected]:shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.2)]", // Inner border glow
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 function TableHead({ className, ...props }: React.ComponentProps<"th">) {
@@ -33,7 +48,20 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
 }
 
 function TableCell({ className, ...props }: React.ComponentProps<"td">) {
-  return <td data-slot="table-cell" className={cn("p-2 align-middle whitespace-nowrap backdrop-blur-[var(--glass-blur-sm)] [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]", className)} {...props} />
+  return (
+    <td
+      data-slot="table-cell"
+      className={cn(
+        "p-2 align-middle whitespace-nowrap backdrop-blur-[var(--glass-blur-sm)]",
+        "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        // Cell-level hover effect with blue tint and border
+        "hover:bg-[oklch(0.75_0.08_240_/_0.15)] hover:shadow-[inset_0_0_0_1px_oklch(0.7_0.1_240_/_0.35)]",
+        "transition-all duration-150",
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 function TableCaption({ className, ...props }: React.ComponentProps<"caption">) {

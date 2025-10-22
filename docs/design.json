@@ -312,15 +312,16 @@
           }
         },
         "outline": {
-          "border": "effects.border_styles.light.base",
+          "border": "border-[var(--glass-border-soft)]",
           "text": "foreground",
-          "background": "transparent",
+          "background": "glass-surface",
           "backdropFilter": "blur(18px)",
           "hover": {
-            "background": "oklch(1 0 0 / 0.18)",
-            "border": "effects.border_styles.light.hover",
-            "shadow": "shadows.sm"
-          }
+            "background": "hover:bg-[oklch(1_0_0_/_0.2)]",
+            "border": "hover:border-[var(--glass-border-floating)]"
+          },
+          "implementation": "variant='outline' - clean glass surface with soft border and subtle hover border enhancement for better interactivity feedback",
+          "note": "Outline buttons use minimal styling with a subtle border glow on hover (--glass-border-floating) to indicate interactivity. Do NOT apply gradient backgrounds or strong shadow effects like active tabs."
         },
         "ghost": {
           "text": "foreground",
@@ -452,28 +453,69 @@
         "border": "effects.border_styles.light.base",
         "borderRadius": "lg",
         "overflow": "auto",
-        "background": "oklch(1 0 0 / 0.7)",
+        "background": "transparent",
         "backdropFilter": "blur(18px)",
-        "shadow": "shadows.sm"
+        "shadow": "none"
       },
       "header": {
-        "background": "oklch(0.97 0 0 / 0.65)",
-        "borderBottom": "effects.border_styles.light.base",
+        "background": "transparent",
+        "border": "none",
         "fontWeight": "medium",
-        "backdropFilter": "blur(12px)"
+        "backdropFilter": "blur(12px)",
+        "buttons": {
+          "border": "none - use !border-0 !shadow-none to ensure clean headers",
+          "background": "transparent",
+          "hover": "hover:bg-muted/50 for subtle interaction feedback"
+        },
+        "note": "Table headers should be clean without borders - buttons use ghost variant with forced border removal"
       },
       "row": {
-        "borderBottom": "effects.border_styles.light.base",
+        "borderBottom": "divide-y divide-[var(--glass-border-soft)]",
         "hover": {
-          "background": "oklch(1 0 0 / 0.16)",
-          "border": "effects.border_styles.light.hover",
-          "shadow": "shadows.sm"
+          "background": "hover:bg-[oklch(1_0_0_/_0.18)]",
+          "transition": "transition-colors"
         }
       },
       "cell": {
-        "padding": "12px",
-        "fontSize": "sm"
+        "padding": "8px (p-2)",
+        "fontSize": "sm",
+        "whiteSpace": "whitespace-nowrap",
+        "backdropFilter": "blur(12px)"
+      },
+      "implementation": {
+        "library": "TanStack Table v8",
+        "features": ["Sorting", "Filtering", "Pagination", "Column resizing", "Column reordering", "Row selection", "Export (CSV/Excel)"],
+        "components": {
+          "DataTable": "src/components/ui/data-table/DataTable.tsx",
+          "DataTableHeader": "src/components/ui/data-table/DataTableHeader.tsx - use !border-0 !shadow-none on buttons",
+          "DataTableToolbar": "src/components/ui/data-table/DataTableToolbar.tsx",
+          "DataTablePagination": "src/components/ui/data-table/DataTablePagination.tsx"
+        },
+        "styling_requirements": {
+          "header_buttons": "Must use !border-0 !shadow-none to remove all borders and shadows",
+          "sort_indicators": "ArrowUp, ArrowDown, ArrowUpDown icons from lucide-react",
+          "drag_handles": "GripVertical icon with text-muted-foreground/50",
+          "actions_column": "Always last, non-movable, non-resizable"
+        }
       }
+    },
+    "avatar_upload": {
+      "component": "src/components/users/AvatarUpload.tsx",
+      "library": "react-image-crop v11.0.10",
+      "features": ["File upload with validation (JPG/PNG, max 10MB)", "Circular crop with 1:1 aspect ratio", "Preview panel showing cropped result", "Image resizing to 150x150px", "Base64 storage in Firestore profilePicture field"],
+      "styling": {
+        "modal": "Dialog with max-w-2xl",
+        "crop_area": "flex-1 with ReactCrop component",
+        "preview": "w-24 h-24 circular Avatar component",
+        "buttons": "outline variant for Cancel, default variant for Save"
+      },
+      "validation": {
+        "file_types": "image/jpeg, image/jpg, image/png",
+        "max_size": "10MB (10 * 1024 * 1024 bytes)",
+        "output_size": "150x150 pixels",
+        "quality": "0.7 JPEG compression"
+      },
+      "usage": "Settings page profile picture upload - replaces old ProfilePictureUpload component"
     },
     "badge": {
       "base": {
@@ -564,6 +606,96 @@
           "dark": {
             "border": "oklch(0.985 0 0 / 0.25)",
             "text": "oklch(0.985 0 0)"
+          }
+        },
+        "purple": {
+          "light": {
+            "background": "oklch(0.9 0.12 290 / 0.82)",
+            "text": "oklch(0.4 0.16 290)"
+          },
+          "dark": {
+            "background": "oklch(0.65 0.18 290 / 0.20)",
+            "text": "oklch(0.92 0.12 290)"
+          }
+        },
+        "orange": {
+          "light": {
+            "background": "oklch(0.92 0.14 50 / 0.82)",
+            "text": "oklch(0.42 0.16 50)"
+          },
+          "dark": {
+            "background": "oklch(0.68 0.18 50 / 0.20)",
+            "text": "oklch(0.94 0.12 50)"
+          }
+        },
+        "lime": {
+          "light": {
+            "background": "oklch(0.92 0.14 130 / 0.82)",
+            "text": "oklch(0.42 0.16 130)"
+          },
+          "dark": {
+            "background": "oklch(0.72 0.16 130 / 0.20)",
+            "text": "oklch(0.92 0.12 130)"
+          }
+        },
+        "pink": {
+          "light": {
+            "background": "oklch(0.92 0.14 350 / 0.82)",
+            "text": "oklch(0.42 0.16 350)"
+          },
+          "dark": {
+            "background": "oklch(0.68 0.18 350 / 0.20)",
+            "text": "oklch(0.94 0.12 350)"
+          }
+        },
+        "rose": {
+          "light": {
+            "background": "oklch(0.91 0.14 10 / 0.82)",
+            "text": "oklch(0.42 0.16 10)"
+          },
+          "dark": {
+            "background": "oklch(0.67 0.17 10 / 0.20)",
+            "text": "oklch(0.93 0.12 10)"
+          }
+        },
+        "fuchsia": {
+          "light": {
+            "background": "oklch(0.9 0.15 320 / 0.82)",
+            "text": "oklch(0.4 0.18 320)"
+          },
+          "dark": {
+            "background": "oklch(0.64 0.20 320 / 0.20)",
+            "text": "oklch(0.92 0.14 320)"
+          }
+        },
+        "teal": {
+          "light": {
+            "background": "oklch(0.92 0.12 190 / 0.82)",
+            "text": "oklch(0.42 0.14 190)"
+          },
+          "dark": {
+            "background": "oklch(0.68 0.16 190 / 0.20)",
+            "text": "oklch(0.92 0.12 190)"
+          }
+        },
+        "cyan": {
+          "light": {
+            "background": "oklch(0.93 0.12 210 / 0.82)",
+            "text": "oklch(0.42 0.14 210)"
+          },
+          "dark": {
+            "background": "oklch(0.70 0.16 210 / 0.20)",
+            "text": "oklch(0.93 0.12 210)"
+          }
+        },
+        "indigo": {
+          "light": {
+            "background": "oklch(0.88 0.14 270 / 0.82)",
+            "text": "oklch(0.38 0.16 270)"
+          },
+          "dark": {
+            "background": "oklch(0.62 0.18 270 / 0.20)",
+            "text": "oklch(0.90 0.12 270)"
           }
         }
       }
@@ -879,6 +1011,56 @@
         "hover": {
           "color": "primary",
           "border": "effects.border_styles.light.hover"
+        }
+      },
+      "list_actions": {
+        "description": "Consistent action icon pattern for list items",
+        "layout": "Icon + Details (left) | Action Buttons + Status Badge (right)",
+        "action_buttons": {
+          "variant": "ghost",
+          "size": "sm",
+          "icons": {
+            "view": {
+              "icon": "FileText",
+              "purpose": "Navigate to details page",
+              "usage": "Used for viewing full details/information of a list item",
+              "note": "FileText icon avoids confusion with Eye icon which is reserved for visibility toggles (e.g., showing/hiding items per company in roles)"
+            },
+            "edit": {
+              "icon": "Edit",
+              "purpose": "Open edit modal or navigate to edit page",
+              "usage": "Used for in-place editing or navigating to dedicated edit interface",
+              "note": "Not used in assets list - editing happens on details page"
+            },
+            "delete": {
+              "icon": "Trash2",
+              "purpose": "Delete or remove item",
+              "styling": "text-destructive",
+              "usage": "Opens confirmation dialog before deletion"
+            },
+            "toggle_active": {
+              "icon": "ToggleRight (active) / ToggleLeft (inactive)",
+              "purpose": "Toggle active/inactive status",
+              "styling": "text-green-600 (active) / text-gray-400 (inactive)",
+              "usage": "Used in companies, roles, users for quick status changes"
+            },
+            "visibility_toggle": {
+              "icon": "Eye (visible) / EyeOff (hidden)",
+              "purpose": "Toggle visibility for specific companies",
+              "usage": "Used in roles page to show/hide roles per company",
+              "note": "This is why Eye icon should NOT be used for view actions"
+            }
+          }
+        },
+        "status_badges": {
+          "placement": "Right-most element after action buttons",
+          "common_variants": ["success (Active)", "secondary (Inactive)", "destructive (Expired/Deleted)"]
+        },
+        "examples": {
+          "companies_list": "ToggleRight/Left + Edit + Delete + Active/Inactive badge",
+          "roles_list": "Eye/EyeOff (visibility) + Edit + Delete + Active/Inactive badge",
+          "assets_list": "FileText (view) + Delete + Active/Inactive/Expired badge",
+          "users_list": "FileText (view) + Edit + Delete + Active/Inactive badge"
         }
       }
     }

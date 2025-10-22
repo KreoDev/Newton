@@ -42,11 +42,11 @@ export function ViewUserModal({ user, isOpen, onClose, rolesMap }: ViewUserModal
           </div>
           <div>
             <h4 className="font-medium">Joined</h4>
-            <p>{new Date(user.createdDate || 0).toLocaleDateString()}</p>
+            <p>{new Date(user.createdAt || 0).toLocaleDateString()}</p>
           </div>
           <div>
             <h4 className="font-medium">Last Updated</h4>
-            <p>{new Date(user.modifiedDate || 0).toLocaleDateString()}</p>
+            <p>{new Date(user.updatedAt || 0).toLocaleDateString()}</p>
           </div>
         </div>
       </DialogContent>

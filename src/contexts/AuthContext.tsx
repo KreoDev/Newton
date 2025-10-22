@@ -30,6 +30,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userDoc = await getDoc(doc(db, "users", currentFirebaseUser.uid))
           if (userDoc.exists()) {
             const userData = userDoc.data() as User
+
+            // Check if user is inactive
+            if (!userData.isActive) {
+              // Sign out inactive user
+              await signOut(auth)
+              setUser(null)
+              setFirebaseUser(null)
+              return
+            }
+
             setUser({
               ...userData,
               id: currentFirebaseUser.uid,
@@ -52,7 +62,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password)
+    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+
+    // Check if user is inactive after signing in
+    const userDoc = await getDoc(doc(db, "users", userCredential.user.uid))
+    if (userDoc.exists()) {
+      const userData = userDoc.data() as User
+
+      // Check if user is inactive
+      if (!userData.isActive) {
+        await signOut(auth)
+        const error: any = new Error("Your account has been deactivated. Please contact your administrator.")
+        error.code = "auth/account-deactivated"
+        throw error
+      }
+
+      // Check if company is inactive
+      const companyDoc = await getDoc(doc(db, "companies", userData.companyId))
+      if (companyDoc.exists()) {
+        const companyData = companyDoc.data()
+        if (!companyData.isActive) {
+          await signOut(auth)
+          const error: any = new Error(`Your company (${companyData.name}) has been deactivated. Please contact your administrator.`)
+          error.code = "auth/company-deactivated"
+          throw error
+        }
+      }
+    }
   }
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string, companyId: string, roleId: string) => {
@@ -62,13 +98,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       firstName,
       lastName,
+      displayName: `${firstName} ${lastName}`,
+      phoneNumber: "", // Should be collected during registration
       companyId,
       roleId,
-      notificationPreferences: {},
+      notificationPreferences: {
+        "asset.added": true,
+        "asset.inactive": true,
+        "asset.edited": true,
+        "asset.deleted": true,
+        "order.created": true,
+        "order.allocated": true,
+        "order.cancelled": true,
+        "order.completed": true,
+        "order.expiring": true,
+        "weighbridge.overload": true,
+        "weighbridge.underweight": true,
+        "weighbridge.violations": true,
+        "weighbridge.manualOverride": true,
+        "preBooking.created": true,
+        "preBooking.lateArrival": true,
+        "security.invalidLicense": true,
+        "security.unbookedArrival": true,
+        "security.noActiveOrder": true,
+        "security.sealMismatch": true,
+        "security.incorrectSealsNo": true,
+        "security.unregisteredAsset": true,
+        "security.inactiveEntity": true,
+        "security.incompleteTruck": true,
+        "driver.licenseExpiring7": true,
+        "driver.licenseExpiring30": true,
+        "system.calibrationDue": true,
+      },
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      dbCreatedAt: new Date().toISOString(),
-      dbUpdatedAt: new Date().toISOString(),
       isActive: true,
       isGlobal: false,
     }
