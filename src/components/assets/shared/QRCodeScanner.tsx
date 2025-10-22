@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { QrCode, CheckCircle2, Loader2, XCircle } from "lucide-react"
 import { useAlert } from "@/hooks/useAlert"
-import onScan from "onscan.js"
 
 interface QRCodeScannerProps {
   onScanSuccess: (qrCode: string) => void
@@ -38,20 +37,49 @@ export function QRCodeScanner({
     setIsValidating(false)
   }, [])
 
-  // Attach onScan listener
+  // Custom scanner handler - captures ALL keyboard input
   useEffect(() => {
-    onScan.attachTo(document, {
-      onScan: handleScannerScan,
-      suffixKeyCodes: [13],
-      avgTimeByChar: 20,
-      minLength: 6,
-      reactToPaste: false,
-    })
+    let scanBuffer = ""
+    let scanTimeout: NodeJS.Timeout | null = null
+    let lastKeyTime = 0
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const currentTime = Date.now()
+      const timeDiff = currentTime - lastKeyTime
+
+      if (event.key === "Enter") {
+        if (scanBuffer.length >= 6) {
+          handleScannerScan(scanBuffer)
+          scanBuffer = ""
+        }
+        if (scanTimeout) clearTimeout(scanTimeout)
+        event.preventDefault()
+        return
+      }
+
+      if (timeDiff > 100 && scanBuffer.length > 0) {
+        scanBuffer = ""
+      }
+
+      if (event.key.length === 1) {
+        scanBuffer += event.key
+        lastKeyTime = currentTime
+
+        if (scanTimeout) clearTimeout(scanTimeout)
+        scanTimeout = setTimeout(() => {
+          if (scanBuffer.length >= 6) {
+            handleScannerScan(scanBuffer)
+          }
+          scanBuffer = ""
+        }, 100)
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
 
     return () => {
-      try {
-        onScan.detachFrom(document)
-      } catch {}
+      document.removeEventListener("keydown", handleKeyDown)
+      if (scanTimeout) clearTimeout(scanTimeout)
     }
   }, [handleScannerScan])
 

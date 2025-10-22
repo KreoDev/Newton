@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input"
 import { Barcode, CheckCircle2, Loader2, XCircle } from "lucide-react"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import { useAlert } from "@/hooks/useAlert"
-import onScan from "onscan.js"
 
 export type ParsedBarcodeData = {
   type: "vehicle"
@@ -46,20 +45,53 @@ export function BarcodeScanner({
     setIsProcessing(false)
   }, [])
 
-  // Attach onScan listener
+  // Custom scanner handler - captures ALL keyboard input including spaces and slashes
   useEffect(() => {
-    onScan.attachTo(document, {
-      onScan: handleScannerScan,
-      suffixKeyCodes: [13],
-      avgTimeByChar: 20,
-      minLength: 6,
-      reactToPaste: false,
-    })
+    let scanBuffer = ""
+    let scanTimeout: NodeJS.Timeout | null = null
+    let lastKeyTime = 0
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const currentTime = Date.now()
+      const timeDiff = currentTime - lastKeyTime
+
+      // Enter key = end of scan
+      if (event.key === "Enter") {
+        if (scanBuffer.length >= 6) {
+          handleScannerScan(scanBuffer)
+          scanBuffer = ""
+        }
+        if (scanTimeout) clearTimeout(scanTimeout)
+        event.preventDefault()
+        return
+      }
+
+      // Reset buffer if too much time passed (not part of a scan)
+      if (timeDiff > 100 && scanBuffer.length > 0) {
+        scanBuffer = ""
+      }
+
+      // Add character to buffer (capture EVERYTHING except control keys)
+      if (event.key.length === 1) {
+        scanBuffer += event.key
+        lastKeyTime = currentTime
+
+        // Set timeout to auto-complete scan if no Enter key
+        if (scanTimeout) clearTimeout(scanTimeout)
+        scanTimeout = setTimeout(() => {
+          if (scanBuffer.length >= 6) {
+            handleScannerScan(scanBuffer)
+          }
+          scanBuffer = ""
+        }, 100)
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
 
     return () => {
-      try {
-        onScan.detachFrom(document)
-      } catch {}
+      document.removeEventListener("keydown", handleKeyDown)
+      if (scanTimeout) clearTimeout(scanTimeout)
     }
   }, [handleScannerScan])
 
