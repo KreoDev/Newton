@@ -10,6 +10,7 @@ import { KeyRound, UserCircle2, ToggleRight, ToggleLeft, MoreHorizontal, Edit, U
 import Image from "next/image"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DataTable } from "@/components/ui/data-table"
+import { FilterableColumnHeader } from "@/components/ui/data-table/FilterableColumnHeader"
 import { useAlert } from "@/hooks/useAlert"
 import { useAuth } from "@/contexts/AuthContext"
 import { updateDoc, doc } from "firebase/firestore"
@@ -177,11 +178,27 @@ export function UsersTable({ users, canViewAllCompanies, canManage, canManagePer
     },
     {
       id: "status",
-      accessorKey: "isActive",
-      header: "Status",
+      accessorFn: (row) => (row.isActive ? "Active" : "Inactive"),
+      header: ({ column }) => (
+        <FilterableColumnHeader
+          column={column}
+          title="Status"
+          filterOptions={[
+            { label: "All", value: "all" },
+            { label: "Active", value: "Active" },
+            { label: "Inactive", value: "Inactive" },
+          ]}
+        />
+      ),
       cell: ({ row }) => {
         const user = row.original
         return <Badge variant={user.isActive ? "success" : "secondary"}>{user.isActive ? "Active" : "Inactive"}</Badge>
+      },
+      enableColumnFilter: true,
+      filterFn: (row, columnId, filterValue) => {
+        if (!filterValue || filterValue === "all") return true
+        const status = row.getValue(columnId) as string
+        return status === filterValue
       },
     },
     ...(canManage || isViewOnly

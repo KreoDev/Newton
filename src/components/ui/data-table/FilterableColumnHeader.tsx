@@ -75,15 +75,15 @@ export function FilterableColumnHeader<TData, TValue>({
   }
 
   return (
-    <div className="relative flex items-center w-full">
+    <>
       <span>{title}</span>
 
-      {/* Filter Dropdown - positioned absolutely at far right of cell */}
+      {/* Filter Dropdown - positioned absolutely at far right of TableHead cell */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <div
             className={cn(
-              "absolute right-0 cursor-pointer p-1 hover:opacity-70 transition-opacity",
+              "absolute right-2 top-1/2 -translate-y-1/2 z-10 cursor-pointer p-1 hover:opacity-70 transition-opacity",
               isFiltered && "text-primary"
             )}
             onClick={(e) => e.stopPropagation()} // Prevent triggering parent button's sort
@@ -125,6 +125,6 @@ export function FilterableColumnHeader<TData, TValue>({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
+    </>
   )
 }
