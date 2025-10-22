@@ -198,6 +198,12 @@ export function Step9Review({ state, onComplete, onPrev }: Step9Props) {
                 <span className="text-muted-foreground">Colour:</span>
                 <span>{state.parsedData?.vehicleInfo?.colour}</span>
               </div>
+              {state.parsedData?.vehicleInfo?.description && (
+                <div className="grid grid-cols-2 gap-2">
+                  <span className="text-muted-foreground">Description:</span>
+                  <span>{state.parsedData.vehicleInfo.description}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <span className="text-muted-foreground">Expiry Date:</span>
                 <span className="flex items-center gap-2">
