@@ -12,13 +12,13 @@ import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import { useAlert } from "@/hooks/useAlert"
 import { toast } from "sonner"
 
-interface Step9Props {
+interface Step4Props {
   state: Partial<AssetInductionState>
   onComplete: () => void
   onPrev: () => void
 }
 
-export function Step9Review({ state, onComplete, onPrev }: Step9Props) {
+export function Step4Review({ state, onComplete, onPrev }: Step4Props) {
   useSignals()
   const alert = useAlert()
   const companies = globalData.companies.value

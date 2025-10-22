@@ -11,14 +11,14 @@ import { useSignals } from "@preact/signals-react/runtime"
 import { data as globalData } from "@/services/data.service"
 import { useAlert } from "@/hooks/useAlert"
 
-interface Step8Props {
+interface Step3Props {
   state: Partial<AssetInductionState>
   updateState: (updates: Partial<AssetInductionState>) => void
   onNext: () => void
   onPrev: () => void
 }
 
-export function Step8OptionalFields({ state, updateState, onNext, onPrev }: Step8Props) {
+export function Step3OptionalFields({ state, updateState, onNext, onPrev }: Step3Props) {
   useSignals()
   const alert = useAlert()
   const companies = globalData.companies.value
