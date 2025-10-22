@@ -81,12 +81,12 @@ export default function AssetsPage() {
             )}
           </Button>
           {canAddAssets && (
-            <Link href="/assets/induct">
-              <Button>
+            <Button asChild>
+              <Link href="/assets/induct">
                 <Plus className="mr-2 h-4 w-4" />
                 Induct Asset
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           )}
         </div>
       </div>
