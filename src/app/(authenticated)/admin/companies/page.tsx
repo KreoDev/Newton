@@ -62,6 +62,15 @@ export default function CompaniesPage() {
   })
 
   const toggleCompanyStatus = async (company: Company) => {
+    // Prevent deactivating the currently active company
+    if (company.isActive && user && company.id === user.companyId) {
+      showError(
+        "Cannot Deactivate Active Company",
+        "You cannot deactivate the company you are currently using. Please switch to a different company first if you need to deactivate this one."
+      )
+      return
+    }
+
     try {
       await CompanyService.update(company.id, { isActive: !company.isActive })
       showSuccess(
