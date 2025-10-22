@@ -324,7 +324,14 @@ export class AssetFieldMapper {
     }
 
     if ((parsedData.type === "truck" || parsedData.type === "trailer") && parsedData.vehicleInfo) {
-      return removeUndefined({
+      console.log("🔍 toAssetDocument - Vehicle Info:", {
+        registration: parsedData.vehicleInfo.registration,
+        description: parsedData.vehicleInfo.description,
+        hasDescription: !!parsedData.vehicleInfo.description,
+        fullVehicleInfo: parsedData.vehicleInfo
+      })
+
+      const vehicleDocument = {
         ...baseData,
         // All vehicle-specific fields from barcode scan (matching Android app structure)
         registration: parsedData.vehicleInfo.registration, // Android app field
@@ -336,7 +343,14 @@ export class AssetFieldMapper {
         licenceDiskNo: parsedData.vehicleInfo.vehicleDiskNo,
         dateOfExpiry: parsedData.vehicleInfo.expiryDate, // Android app field
         description: parsedData.vehicleInfo.description, // Android app field
-      })
+      }
+
+      console.log("📝 toAssetDocument - Before removeUndefined:", vehicleDocument)
+      const finalDocument = removeUndefined(vehicleDocument)
+      console.log("✅ toAssetDocument - After removeUndefined:", finalDocument)
+      console.log("📋 Description in final document:", finalDocument.description)
+
+      return finalDocument
     }
 
     return baseData
