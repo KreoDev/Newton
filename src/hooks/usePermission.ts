@@ -2,13 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
-import { db } from "@/lib/firebase"
-import { doc, getDoc } from "firebase/firestore"
 import type { Role } from "@/types"
 import type { PermissionKey } from "@/lib/permissions"
-
-// Cache for roles to avoid repeated Firestore queries
-const roleCache = new Map<string, Role>()
+import { data as globalData } from "@/services/data.service"
 
 export function usePermission(permission: PermissionKey): { hasPermission: boolean; loading: boolean } {
   const { user } = useAuth()
@@ -16,7 +12,7 @@ export function usePermission(permission: PermissionKey): { hasPermission: boole
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function checkPermission() {
+    function checkPermission() {
       if (!user) {
         setHasPermission(false)
         setLoading(false)
@@ -42,21 +38,8 @@ export function usePermission(permission: PermissionKey): { hasPermission: boole
           return
         }
 
-        // 3. Fetch role and check permission keys
-        let role: Role | null = null
-
-        // Check cache first
-        if (roleCache.has(user.roleId)) {
-          role = roleCache.get(user.roleId)!
-        } else {
-          // Fetch from Firestore
-          const roleDoc = await getDoc(doc(db, "roles", user.roleId))
-          if (roleDoc.exists()) {
-            role = { id: roleDoc.id, ...roleDoc.data() } as Role
-            // Cache the role
-            roleCache.set(user.roleId, role)
-          }
-        }
+        // 3. Get role from centralized data service (in-memory, real-time)
+        const role = globalData.roles.value.find((r: Role) => r.id === user.roleId)
 
         if (!role) {
           setHasPermission(false)
@@ -86,9 +69,4 @@ export function usePermission(permission: PermissionKey): { hasPermission: boole
   }, [user, permission])
 
   return { hasPermission, loading }
-}
-
-// Clear role cache when needed (e.g., after role updates)
-export function clearRoleCache() {
-  roleCache.clear()
 }

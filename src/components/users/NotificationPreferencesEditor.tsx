@@ -53,6 +53,9 @@ const DEFAULT_PREFERENCES = {
   // Driver Notifications
   "driver.licenseExpiring7": true,
   "driver.licenseExpiring30": true,
+
+  // System Notifications
+  "system.calibrationDue": true,
 }
 
 const NOTIFICATION_CATEGORIES = {
@@ -92,6 +95,9 @@ const NOTIFICATION_CATEGORIES = {
   "Driver Notifications": [
     { key: "driver.licenseExpiring7", label: "License Expiring in 7 Days" },
     { key: "driver.licenseExpiring30", label: "License Expiring in 30 Days" },
+  ],
+  "System Notifications": [
+    { key: "system.calibrationDue", label: "Calibration Due" },
   ],
 }
 

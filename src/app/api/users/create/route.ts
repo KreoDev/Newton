@@ -51,21 +51,26 @@ export async function POST(request: Request) {
         isGlobal: isGlobal || false,
         canLogin: !isContactRole,
         notificationPreferences: {
+          // Asset Notifications
           "asset.added": true,
-          "asset.inactive": true,
+          "asset.inactive": false,
           "asset.edited": true,
           "asset.deleted": true,
+          // Order Notifications
           "order.created": true,
           "order.allocated": true,
-          "order.cancelled": true,
+          "order.cancelled": false,
           "order.completed": true,
           "order.expiring": true,
+          // Weighbridge Notifications
           "weighbridge.overload": true,
           "weighbridge.underweight": true,
           "weighbridge.violations": true,
           "weighbridge.manualOverride": true,
+          // Pre-Booking Notifications
           "preBooking.created": true,
           "preBooking.lateArrival": true,
+          // Security Notifications
           "security.invalidLicense": true,
           "security.unbookedArrival": true,
           "security.noActiveOrder": true,
@@ -74,8 +79,10 @@ export async function POST(request: Request) {
           "security.unregisteredAsset": true,
           "security.inactiveEntity": true,
           "security.incompleteTruck": true,
+          // Driver Notifications
           "driver.licenseExpiring7": true,
           "driver.licenseExpiring30": true,
+          // System Notifications
           "system.calibrationDue": true,
         },
         createdAt: Date.now(),

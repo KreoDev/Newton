@@ -9,7 +9,6 @@ import { QRCodeScanner } from "@/components/assets/shared/QRCodeScanner"
 import { BarcodeScanner, type ParsedBarcodeData } from "@/components/assets/shared/BarcodeScanner"
 import { AssetService } from "@/services/asset.service"
 import { useAlert } from "@/hooks/useAlert"
-import { toast } from "sonner"
 
 interface AssetEditModalProps {
   asset: Asset
@@ -360,7 +359,7 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
       )
     } catch (error) {
       console.error("Error updating QR code:", error)
-      toast.error("Failed to update QR code")
+      alert.showError("Update Failed", error instanceof Error ? error.message : "Failed to update QR code. Please try again.")
     } finally {
       setIsSaving(false)
     }
@@ -410,7 +409,7 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
       )
     } catch (error) {
       console.error("Error updating barcode:", error)
-      toast.error("Failed to update barcode data")
+      alert.showError("Update Failed", error instanceof Error ? error.message : "Failed to update barcode data. Please try again.")
     } finally {
       setIsSaving(false)
     }

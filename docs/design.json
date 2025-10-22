@@ -320,8 +320,8 @@
             "background": "hover:bg-[oklch(1_0_0_/_0.2)]",
             "border": "hover:border-[var(--glass-border-floating)]"
           },
-          "implementation": "variant='outline' - clean glass surface with soft border, no gradient or glow effects",
-          "note": "Outline buttons should remain minimal - do NOT apply active tab styling (gradient/glow)"
+          "implementation": "variant='outline' - clean glass surface with soft border and subtle hover border enhancement for better interactivity feedback",
+          "note": "Outline buttons use minimal styling with a subtle border glow on hover (--glass-border-floating) to indicate interactivity. Do NOT apply gradient backgrounds or strong shadow effects like active tabs."
         },
         "ghost": {
           "text": "foreground",
