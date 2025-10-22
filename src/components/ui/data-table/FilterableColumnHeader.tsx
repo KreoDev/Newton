@@ -75,15 +75,15 @@ export function FilterableColumnHeader<TData, TValue>({
   }
 
   return (
-    <div className="flex items-center justify-between w-full">
+    <div className="flex items-center w-full gap-2">
       <span>{title}</span>
 
-      {/* Filter Dropdown - positioned at end without button border */}
+      {/* Filter Dropdown - positioned at absolute right edge of cell */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <div
             className={cn(
-              "cursor-pointer p-1 hover:opacity-70 transition-opacity",
+              "cursor-pointer p-1 hover:opacity-70 transition-opacity ml-auto -mr-2",
               isFiltered && "text-primary"
             )}
           >
