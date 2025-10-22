@@ -25,7 +25,7 @@
 | displayName             | string               | yes      | Friendly name                                             | John Smith                                         |
 | firstName               | string               | yes      | First name                                                | John                                               |
 | lastName                | string               | yes      | Last name                                                 | Smith                                              |
-| phoneNumber             | string               | yes      | Contact number for notifications                          | +27821234567                                       |
+| phoneNumber             | string               | no       | Contact number for notifications (optional)               | +27821234567                                       |
 | roleId                  | string               | yes      | Role reference                                            | r_weighbridge_operator                             |
 | permissionOverrides     | map<string, boolean> | no       | Per-user permission adjustments (overrides role defaults). For view-only access, set both `.view` and base permissions. Example: `{ "admin.users.view": true, "admin.users": false }` grants view-only access. | { "assets.delete": false, "admin.users.view": true, "admin.users": false } |
 | profilePicture          | string               | no       | Profile image URL                                         | `https://...`                                      |
@@ -172,6 +172,17 @@ securityAlerts: {
 }
 ```
 
+#### Validation Rules
+
+**Company Deletion Protection:**
+- Companies cannot be deleted if they have active users assigned (`users.companyId`)
+- Companies cannot be deleted if they have sites (`sites.companyId`)
+- Companies cannot be deleted if they have orders (`orders.companyId`)
+- Companies cannot be deleted if they have assets (`assets.companyId`)
+- Validation is performed by `CompanyService.checkCompanyInUse()` which returns usage details
+- When deletion is blocked, users are offered the option to deactivate the company instead
+- Deactivated companies preserve all data but prevent login access (see `isActive` field)
+
 ### clients (documents)
 
 | Field              | Type            | Required | Description                     | Example              |
@@ -241,14 +252,14 @@ securityAlerts: {
 | vehicleCodes             | string          | no       | Vehicle codes from license                                     | C1, EB               | Driver             |
 | vehicleClassCodes        | string          | no       | Vehicle class codes                                            | C, E                 | Driver             |
 | prdpCode                 | string          | no       | PrDP code                                                      | 08                   | Driver             |
-| category                 | string          | no       | License category                                               | Professional         | Driver             |
-| validUntil               | string          | no       | Valid until date                                               | 31/12/2025           | Driver             |
+| prdpCategory             | string          | no       | PrDP category                                                  | Professional         | Driver             |
+| prdpValidUntil           | string          | no       | PrDP valid until date                                          | 31/12/2025           | Driver             |
 | endorsement              | string          | no       | License endorsement                                            | None                 | Driver             |
 | driverRestrictions       | string          | no       | Driver-specific restrictions                                   | None                 | Driver             |
 | vehicleRestrictions      | string          | no       | Vehicle-specific restrictions                                  | None                 | Driver             |
 | generalRestrictions      | string          | no       | General restrictions                                           | None                 | Driver             |
-| country                  | string          | no       | Country of issue                                               | South Africa         | Driver             |
-| placeIssued              | string          | no       | Place of issue                                                 | Cape Town            | Driver             |
+| sadcCountry              | string          | no       | SADC country code                                              | ZA                   | Driver             |
+| issuedPlace              | string          | no       | Place where license was issued                                 | Cape Town            | Driver             |
 | idType                   | string          | no       | ID document type                                               | ID Book              | Driver             |
 | img                      | string          | no       | Driver photo (base64 encoded)                                  | data:image/jpeg;...  | Driver             |
 | **Optional Fields**      |                 |          |                                                                |                      |                    |
@@ -366,10 +377,11 @@ securityAlerts: {
 | id              | string (doc id) | yes      | Unique site id                                   | site_123         |
 | companyId       | string          | yes      | Owning company reference                         | c_123            |
 | name            | string          | yes      | Site name                                        | Main Loading Bay |
-| siteType        | enum            | yes      | collection\|destination                          | collection       |
-| physicalAddress | string          | yes      | Physical address                                 | 123 Mining Road  |
-| contactUserId   | string          | yes      | Contact person user reference                    | u_456            |
-| groupId         | string          | no       | Organizational group reference (mine companies)  | grp_123          |
+| siteType             | enum            | yes      | collection\|destination                          | collection        |
+| physicalAddress      | string          | yes      | Physical address                                 | 123 Mining Road   |
+| mainContactId        | string          | yes      | Primary contact user reference                   | u_456             |
+| secondaryContactIds  | string[]        | yes      | Secondary contact user references                | ["u_789", "u_012"]|
+| groupId              | string          | no       | Organizational group reference (mine companies)  | grp_123           |
 | operatingHours  | map             | yes      | Operating hours                                  | See below        |
 | createdAt       | number          | yes      | Client event time (ms)                           | Date.now()       |
 | updatedAt       | number          | yes      | Last client event time (ms)                      | Date.now()       |
@@ -479,7 +491,9 @@ securityAlerts: {
 | certificateNumber | string          | no       | Calibration certificate number | CERT-2024-001   |
 | performedById     | string          | yes      | User who performed calibration | u_555           |
 | createdAt         | number          | yes      | Client event time (ms)         | Date.now()      |
+| updatedAt         | number          | yes      | Client update time (ms)        | Date.now()      |
 | dbCreatedAt       | timestamp       | yes      | Server creation time           | serverTimestamp |
+| dbUpdatedAt       | timestamp       | yes      | Server update time             | serverTimestamp |
 
 ### seals (documents)
 
@@ -494,7 +508,9 @@ securityAlerts: {
 | appliedAt        | timestamp       | yes      | When seal was applied     | 2024-01-15T09:00:00 |
 | verifiedAt       | timestamp       | no       | When seal was verified    | 2024-01-15T11:00:00 |
 | createdAt        | number          | yes      | Client event time (ms)    | Date.now()          |
+| updatedAt        | number          | yes      | Client update time (ms)   | Date.now()          |
 | dbCreatedAt      | timestamp       | yes      | Server creation time      | serverTimestamp     |
+| dbUpdatedAt      | timestamp       | yes      | Server update time        | serverTimestamp     |
 
 ## Security & Tracking Collections
 
@@ -645,7 +661,9 @@ Newton System
 | userAgent   | string          | no       | User's browser/device     | Chrome/120.0            |
 | timestamp   | timestamp       | yes      | When action occurred      | 2024-01-15T10:30:00     |
 | createdAt   | number          | yes      | Client event time (ms)    | Date.now()              |
+| updatedAt   | number          | yes      | Client update time (ms)   | Date.now()              |
 | dbCreatedAt | timestamp       | yes      | Server creation time      | serverTimestamp         |
+| dbUpdatedAt | timestamp       | yes      | Server update time        | serverTimestamp         |
 
 ## Default Roles Configuration
 

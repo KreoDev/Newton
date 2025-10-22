@@ -210,7 +210,7 @@ export class AssetService {
    */
   static async getByType(companyId: string, assetType: "truck" | "trailer" | "driver"): Promise<Asset[]> {
     try {
-      const q = query(collection(db, "assets"), where("companyId", "==", companyId), where("assetType", "==", assetType))
+      const q = query(collection(db, "assets"), where("companyId", "==", companyId), where("type", "==", assetType))
       const snapshot = await getDocs(q)
 
       return snapshot.docs.map(doc => ({
