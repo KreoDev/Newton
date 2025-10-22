@@ -68,9 +68,11 @@ export function Step9Review({ state, onComplete, onPrev }: Step9Props) {
     setIsSubmitting(true)
 
     try {
-      console.log("💾 Creating asset with following data:")
+      console.log("💾 Step9: Creating asset with following data:")
       console.log("  Company ID:", state.companyId)
       console.log("  Parsed Data:", state.parsedData)
+      console.log("  🔍 Step9: VehicleInfo in parsedData:", state.parsedData.vehicleInfo)
+      console.log("  🚨 Step9: Description in vehicleInfo:", state.parsedData.vehicleInfo?.description)
       console.log("  Optional Fields:", { fleetNumber: state.fleetNumber, groupId: state.groupId })
 
       // Create the asset

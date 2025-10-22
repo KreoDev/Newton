@@ -69,6 +69,7 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
           expiryDate: data.vehicleInfo?.expiryDate || "",
           engineNo: data.vehicleInfo?.engineNo || "",
           vin: data.vehicleInfo?.vin || "",
+          description: data.vehicleInfo?.description || "", // Preserve vehicle type description
         }
         setFields(vehicleFields)
 
@@ -123,6 +124,7 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
               expiryDate: currentFields.expiryDate,
               engineNo: currentFields.engineNo,
               vin: currentFields.vin,
+              description: currentFields.description, // Preserve vehicle type description
             },
           }),
     }
@@ -175,6 +177,7 @@ export function Step7FieldConfirmation({ state, updateState, onNext, onPrev, onE
               expiryDate: fields.expiryDate,
               engineNo: fields.engineNo,
               vin: fields.vin,
+              description: fields.description, // Preserve vehicle type description
             },
           }),
     }
