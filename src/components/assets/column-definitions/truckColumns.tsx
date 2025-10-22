@@ -149,7 +149,15 @@ export const getTruckColumns = (
     },
     {
       id: "status",
-      accessorKey: "isActive",
+      accessorFn: (row) => {
+        // Return actual status text for searchability
+        if (!row.isActive) return "Inactive"
+        if (row.dateOfExpiry) {
+          const expiryInfo = AssetFieldMapper.getExpiryInfo(row.dateOfExpiry)
+          if (expiryInfo.status === "expired") return "Expired"
+        }
+        return "Active"
+      },
       header: "Status",
       cell: ({ row }) => {
         const asset = row.original
