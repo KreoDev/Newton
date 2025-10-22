@@ -1,7 +1,6 @@
 "use client"
 
 import { Column } from "@tanstack/react-table"
-import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Filter, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { Filter, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface FilterOption {
@@ -21,7 +20,6 @@ interface FilterableColumnHeaderProps<TData, TValue> {
   column: Column<TData, TValue>
   title: string
   filterOptions: FilterOption[]
-  enableSorting?: boolean
 }
 
 /**
@@ -29,9 +27,13 @@ interface FilterableColumnHeaderProps<TData, TValue> {
  *
  * Features:
  * - Dropdown filter with custom options
- * - Optional sorting
  * - Visual indicator for active filters
  * - Clear filter option
+ * - Sorting handled by DataTableHeader wrapper
+ *
+ * Note: This component does NOT handle sorting - DataTableHeader handles it.
+ * The filter icon is positioned at the end of the cell without button styling
+ * to match other table headers.
  *
  * @example
  * {
@@ -46,20 +48,23 @@ interface FilterableColumnHeaderProps<TData, TValue> {
  *         { label: "Inactive", value: "Inactive" },
  *         { label: "Expired", value: "Expired" },
  *       ]}
- *       enableSorting={true}
  *     />
  *   ),
+ *   enableSorting: true, // DataTableHeader handles sorting
+ *   enableColumnFilter: true,
+ *   filterFn: (row, columnId, filterValue) => {
+ *     if (!filterValue || filterValue === "all") return true
+ *     return row.getValue(columnId) === filterValue
+ *   },
  * }
  */
 export function FilterableColumnHeader<TData, TValue>({
   column,
   title,
   filterOptions,
-  enableSorting = true,
 }: FilterableColumnHeaderProps<TData, TValue>) {
   const currentFilter = (column.getFilterValue() as string) || "all"
   const isFiltered = currentFilter !== "all"
-  const isSorted = column.getIsSorted()
 
   const handleFilterChange = (value: string) => {
     if (value === "all") {
@@ -69,90 +74,56 @@ export function FilterableColumnHeader<TData, TValue>({
     }
   }
 
-  const handleSort = () => {
-    if (!enableSorting) return
-
-    if (!isSorted) {
-      column.toggleSorting(false) // ascending
-    } else if (isSorted === "asc") {
-      column.toggleSorting(true) // descending
-    } else {
-      column.clearSorting() // clear
-    }
-  }
-
   return (
-    <div className="flex items-center gap-2">
-      <span className="font-semibold">{title}</span>
+    <div className="flex items-center justify-between w-full">
+      <span>{title}</span>
 
-      <div className="flex items-center gap-1">
-        {/* Filter Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
+      {/* Filter Dropdown - positioned at end without button border */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <div
+            className={cn(
+              "cursor-pointer p-1 hover:opacity-70 transition-opacity",
+              isFiltered && "text-primary"
+            )}
+          >
+            <Filter className={cn("h-4 w-4 opacity-50", isFiltered && "fill-primary opacity-100")} />
+          </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-[180px]">
+          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+            Filter by {title}
+          </div>
+          <DropdownMenuSeparator />
+          {filterOptions.map((option) => (
+            <DropdownMenuItem
+              key={option.value}
+              onClick={() => handleFilterChange(option.value)}
               className={cn(
-                "h-7 px-2 hover:bg-accent/50",
-                isFiltered && "text-primary"
+                "cursor-pointer",
+                currentFilter === option.value && "bg-accent font-medium"
               )}
             >
-              <Filter className={cn("h-3.5 w-3.5", isFiltered && "fill-primary")} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[180px]">
-            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-              Filter by {title}
-            </div>
-            <DropdownMenuSeparator />
-            {filterOptions.map((option) => (
+              {option.label}
+              {currentFilter === option.value && (
+                <span className="ml-auto text-xs text-primary">✓</span>
+              )}
+            </DropdownMenuItem>
+          ))}
+          {isFiltered && (
+            <>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
-                key={option.value}
-                onClick={() => handleFilterChange(option.value)}
-                className={cn(
-                  "cursor-pointer",
-                  currentFilter === option.value && "bg-accent font-medium"
-                )}
+                onClick={() => handleFilterChange("all")}
+                className="cursor-pointer text-muted-foreground"
               >
-                {option.label}
-                {currentFilter === option.value && (
-                  <span className="ml-auto text-xs text-primary">✓</span>
-                )}
+                <X className="mr-2 h-3.5 w-3.5" />
+                Clear filter
               </DropdownMenuItem>
-            ))}
-            {isFiltered && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => handleFilterChange("all")}
-                  className="cursor-pointer text-muted-foreground"
-                >
-                  <X className="mr-2 h-3.5 w-3.5" />
-                  Clear filter
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Sort Button */}
-        {enableSorting && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSort}
-            className="h-7 px-2 hover:bg-accent/50"
-          >
-            {isSorted === "asc" ? (
-              <ArrowUp className="h-3.5 w-3.5" />
-            ) : isSorted === "desc" ? (
-              <ArrowDown className="h-3.5 w-3.5" />
-            ) : (
-              <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-            )}
-          </Button>
-        )}
-      </div>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }

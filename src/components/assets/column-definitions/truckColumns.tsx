@@ -169,7 +169,6 @@ export const getTruckColumns = (
             { label: "Inactive", value: "Inactive" },
             { label: "Expired", value: "Expired" },
           ]}
-          enableSorting={true}
         />
       ),
       cell: ({ row }) => {
@@ -185,7 +184,6 @@ export const getTruckColumns = (
         }
         return <Badge variant="success">Active</Badge>
       },
-      enableSorting: false, // Disable DataTableHeader sorting wrapper - FilterableColumnHeader handles its own sorting
       enableColumnFilter: true,
       filterFn: (row, columnId, filterValue) => {
         if (!filterValue || filterValue === "all") return true
