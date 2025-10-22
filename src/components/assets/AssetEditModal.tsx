@@ -55,15 +55,10 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
 
   const handleBarcodeVerified = (barcodeData: string, parsed: ParsedBarcodeData) => {
     console.log("EditAssetModal: Barcode verified for QR update")
-    // Verify it matches the asset's barcode data
-    if (parsed.type === "vehicle" && !("error" in parsed.data)) {
+    // Verify it matches the asset's barcode data (vehicle only)
+    if (!("error" in parsed.data)) {
       if (asset.registration && parsed.data.registration !== asset.registration) {
         alert.showError("Wrong Asset", "This barcode does not match the asset you are editing. Please scan the correct vehicle license disk.")
-        return
-      }
-    } else if (parsed.type === "driver" && !("error" in parsed.data)) {
-      if (asset.idNumber && parsed.data.person.idNumber !== asset.idNumber) {
-        alert.showError("Wrong Asset", "This barcode does not match the asset you are editing. Please scan the correct driver's license.")
         return
       }
     }
@@ -106,127 +101,7 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
   }
 
   const handleNewBarcodeScanned = (barcodeData: string, parsed: ParsedBarcodeData) => {
-    console.log("EditAssetModal: New barcode scanned")
-
-    // Validate based on asset type
-    if (asset.type === "driver") {
-      if (parsed.type !== "driver") {
-        alert.showError("Wrong Barcode Type", "This asset is a driver. Please scan a driver's license barcode.")
-        return
-      }
-
-      if ("error" in parsed.data) {
-        alert.showError("Parsing Error", "Failed to parse driver's license barcode.")
-        return
-      }
-
-      // Check if ID number matches
-      if (parsed.data.person.idNumber !== asset.idNumber) {
-        alert.showError(
-          "ID Number Mismatch",
-          `The ID number on the scanned license (${parsed.data.person.idNumber}) does not match the asset's ID number (${asset.idNumber}). Please scan the correct driver's license.`
-        )
-        return
-      }
-
-      // Get expiry dates for comparison
-      const currentExpiry = asset.expiryDate
-      const newExpiry = parsed.data.licence?.expiryDate || parsed.data.person.birthDate
-
-      // Check if new license is expired FIRST (before checking if changed)
-      let isExpired = false
-      if (newExpiry) {
-        const expiryParts = newExpiry.split("/")
-        if (expiryParts.length === 3) {
-          const expiryDate = new Date(
-            parseInt(expiryParts[2], 10),
-            parseInt(expiryParts[1], 10) - 1,
-            parseInt(expiryParts[0], 10)
-          )
-          const today = new Date()
-          today.setHours(0, 0, 0, 0)
-          isExpired = expiryDate < today
-        }
-      }
-
-      // If expired, show error and don't allow update
-      if (isExpired) {
-        alert.showError(
-          "Expired License",
-          `The scanned driver's license expired on ${newExpiry}. You cannot update to an expired license. Please scan a valid, current license.`
-        )
-        return
-      }
-
-      // Check if ANYTHING has changed
-      const hasChanges =
-        currentExpiry !== newExpiry ||
-        asset.name !== parsed.data.person.name ||
-        asset.surname !== parsed.data.person.surname ||
-        asset.initials !== parsed.data.person.initials
-
-      if (!hasChanges) {
-        alert.showInfo(
-          "No Changes Detected",
-          "The scanned driver's license contains the same information as the current record. No update is needed.",
-          () => {
-            setNewBarcode("")
-            setNewBarcodeData(null)
-          }
-        )
-        return
-      }
-
-      // Check if new expiry is newer than current (warning, but allow)
-      if (currentExpiry && newExpiry) {
-        const currentParts = currentExpiry.split("/")
-        const newParts = newExpiry.split("/")
-
-        if (currentParts.length === 3 && newParts.length === 3) {
-          const currentDate = new Date(
-            parseInt(currentParts[2], 10),
-            parseInt(currentParts[1], 10) - 1,
-            parseInt(currentParts[0], 10)
-          )
-          const newDate = new Date(
-            parseInt(newParts[2], 10),
-            parseInt(newParts[1], 10) - 1,
-            parseInt(newParts[0], 10)
-          )
-
-          if (newDate <= currentDate) {
-            alert.showConfirm(
-              "Older Expiry Date",
-              `The scanned license expires on ${newExpiry}, which is not newer than the current expiry (${currentExpiry}). Do you want to proceed with this update?`,
-              () => {
-                // User confirmed, proceed to save
-                setNewBarcode(barcodeData)
-                setNewBarcodeData(parsed)
-                handleSaveBarcodeUpdate(barcodeData, parsed)
-              },
-              () => {
-                // User cancelled, reset
-                setNewBarcode("")
-                setNewBarcodeData(null)
-              },
-              "Yes, Update",
-              "Cancel"
-            )
-            return
-          }
-        }
-      }
-
-      // All validations passed - proceed to save
-      setNewBarcode(barcodeData)
-      setNewBarcodeData(parsed)
-      handleSaveBarcodeUpdate(barcodeData, parsed)
-    } else {
-      // Vehicle (truck/trailer)
-      if (parsed.type !== "vehicle") {
-        alert.showError("Wrong Barcode Type", "This asset is a vehicle. Please scan a vehicle license disk barcode.")
-        return
-      }
+    console.log("EditAssetModal: New barcode scanned - vehicle only")
 
       if ("error" in parsed.data) {
         alert.showError("Parsing Error", "Failed to parse vehicle license disk barcode.")
@@ -334,7 +209,6 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
       setNewBarcode(barcodeData)
       setNewBarcodeData(parsed)
       handleSaveBarcodeUpdate(barcodeData, parsed)
-    }
   }
 
   const handleSaveQRUpdate = async (qrCode: string) => {
@@ -345,13 +219,9 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
       })
 
       // Show success alert to ensure user sees the confirmation
-      const assetIdentifier = asset.type === "driver"
-        ? `${asset.name} ${asset.surname}`
-        : asset.registration
-
       alert.showSuccess(
         "QR Code Updated",
-        `QR code for ${assetIdentifier} has been successfully updated.`,
+        `QR code for ${asset.registration} has been successfully updated.`,
         () => {
           onSuccess()
           onClose()
@@ -370,7 +240,7 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
     try {
       const updates: Partial<Asset> = {}
 
-      if (parsed.type === "vehicle" && !("error" in parsed.data)) {
+      if (!("error" in parsed.data)) {
         updates.expiryDate = parsed.data.expiryDate
         updates.make = parsed.data.make
         updates.model = parsed.data.model
@@ -379,29 +249,14 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
         updates.engineNo = parsed.data.engineNo
         updates.vin = parsed.data.vin
         updates.description = parsed.data.description
-        updates.description = parsed.data.description
-      } else if (parsed.type === "driver" && !("error" in parsed.data)) {
-        updates.expiryDate = parsed.data.licence?.expiryDate || parsed.data.person.birthDate
-        updates.name = parsed.data.person.name
-        updates.surname = parsed.data.person.surname
-        updates.initials = parsed.data.person.initials
-        updates.gender = parsed.data.person.gender
-        updates.birthDate = parsed.data.person.birthDate
-        updates.licenceNumber = parsed.data.licence?.licenceNumber
-        updates.licenceType = parsed.data.licence?.licenceType
       }
 
       await AssetService.update(asset.id, updates)
 
       // Show success alert to ensure user sees the confirmation
-      const assetIdentifier = asset.type === "driver"
-        ? `${asset.name} ${asset.surname}`
-        : asset.registration
-      const updateType = asset.type === "driver" ? "driver's license" : "vehicle license disk"
-
       alert.showSuccess(
         "Asset Updated Successfully",
-        `${updateType.charAt(0).toUpperCase() + updateType.slice(1)} for ${assetIdentifier} has been successfully updated with the new barcode data.`,
+        `Vehicle license disk for ${asset.registration} has been successfully updated with the new barcode data.`,
         () => {
           onSuccess()
           onClose()

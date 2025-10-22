@@ -23,7 +23,6 @@ interface Step2Props {
   updateState: (updates: Partial<AssetInductionState>) => void
   onNext: () => void
   onPrev: () => void
-  testDriverHex?: string // Optional test driver hex string for testing
 }
 
 type ScanPhase =
@@ -38,7 +37,7 @@ type ScanPhase =
   | "error"
 
 /**
- * Normalize barcode/QR code by removing all non-alphanumeric characters except %
+ * Normalize barcode by removing all non-alphanumeric characters except %
  * This handles scanner issues where extra characters might be added
  */
 function normalize(str: string): string {
@@ -63,13 +62,13 @@ function determineVehicleType(description: string): "truck" | "trailer" | null {
   return null
 }
 
-export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDriverHex }: Step2Props) {
+export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Props) {
   const alert = useAlert()
   const [phase, setPhase] = useState<ScanPhase>("first-scan-waiting")
   const [firstBarcodeData, setFirstBarcodeData] = useState(state.firstBarcodeData || "")
   const [secondBarcodeData, setSecondBarcodeData] = useState("")
   const [parsedData, setParsedData] = useState<any>(null)
-  const [detectedType, setDetectedType] = useState<"truck" | "trailer" | "driver" | null>(null)
+  const [detectedType, setDetectedType] = useState<"truck" | "trailer" | null>(null)
   const [fields, setFields] = useState<any>({})
   const [expiryInfo, setExpiryInfo] = useState<any>(null)
   const [isExpired, setIsExpired] = useState(false)
@@ -153,129 +152,96 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDrive
   }, [phase, detectedType, fields])
 
   const processFirstScan = async () => {
-    console.log("Step2: Processing first scan - parsing and validating")
+    console.log("Step2: Processing first scan - parsing and validating vehicle disk")
 
     try {
-      // Try to parse as vehicle disk first
+      // Parse as vehicle disk
       const vehicleResult = await AssetFieldMapper.parseVehicleDisk(firstBarcodeData.trim())
 
-      if (!("error" in vehicleResult)) {
-        console.log(
-          "Step2: Parsed as vehicle, registration:",
-          vehicleResult.registration,
-          "description:",
-          vehicleResult.description
+      if ("error" in vehicleResult) {
+        console.log("Step2: Failed to parse as vehicle disk:", vehicleResult.error)
+        setError("Invalid vehicle license disk")
+        setPhase("error")
+        alert.showError(
+          "Barcode Parsing Failed",
+          "Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk for a truck or trailer.",
+          () => {
+            handleClear()
+          }
         )
-
-        // Check if vehicle type is acceptable
-        const vehicleType = (vehicleResult.description || "").toLowerCase()
-        const acceptedTypes = [
-          "truck",
-          "trailer",
-          "tipper",
-          "wipbak",
-          "truck tractor",
-          "trucktractor",
-          "voorspanmotor",
-          "semi-trailer",
-          "semi trailer",
-          "heavy vehicle",
-          "goods vehicle",
-          "ldv",
-          "mdv",
-          "hdv",
-          "light delivery vehicle",
-          "medium delivery vehicle",
-          "heavy delivery vehicle",
-        ]
-
-        const isAcceptedType = acceptedTypes.some((type) => vehicleType.includes(type))
-
-        if (!isAcceptedType) {
-          console.log("Step2: Invalid vehicle type detected:", vehicleResult.description)
-          setError(`Invalid vehicle type: ${vehicleResult.description}`)
-          setPhase("error")
-          alert.showError(
-            "Invalid Vehicle Type",
-            `This barcode is for a ${vehicleResult.description || "passenger vehicle"}. Please scan a barcode for a truck, trailer, or driver's license only.`,
-            () => {
-              handleClear()
-            }
-          )
-          return
-        }
-
-        // Check for duplicates
-        console.log("Step2: Valid vehicle type, checking for duplicates")
-        const validation = AssetService.validateRegistration(vehicleResult.registration)
-
-        if (!validation.isValid) {
-          console.log("Step2: Duplicate vehicle detected")
-          setError(validation.error || "Duplicate vehicle registration")
-          setPhase("error")
-          alert.showError(
-            "Duplicate Vehicle",
-            validation.error || "This vehicle registration is already registered in the system.",
-            () => {
-              handleClear()
-            }
-          )
-          return
-        }
-
-        // Success - move to second scan
-        console.log("Step2: First scan valid, proceeding to verification")
-        setParsedData({ type: "vehicle", data: vehicleResult })
-        setPhase("first-scan-success")
-        setTimeout(() => {
-          setPhase("second-scan-waiting")
-        }, 300)
         return
       }
 
-      // Try to parse as driver license/ID
-      const driverResult = await AssetFieldMapper.parseDriverLicense(firstBarcodeData.trim())
-
-      if (!("error" in driverResult)) {
-        console.log("Step2: Parsed as driver, ID number:", driverResult.person.idNumber)
-
-        // Check for duplicates
-        const validation = AssetService.validateIDNumber(driverResult.person.idNumber)
-
-        if (!validation.isValid) {
-          console.log("Step2: Duplicate driver detected")
-          setError(validation.error || "Duplicate driver ID number")
-          setPhase("error")
-          alert.showError(
-            "Duplicate Driver",
-            validation.error || "This driver ID number is already registered in the system.",
-            () => {
-              handleClear()
-            }
-          )
-          return
-        }
-
-        // Success - move to second scan
-        console.log("Step2: First scan valid, proceeding to verification")
-        setParsedData({ type: "driver", data: driverResult })
-        setPhase("first-scan-success")
-        setTimeout(() => {
-          setPhase("second-scan-waiting")
-        }, 300)
-        return
-      }
-
-      // Both parsers failed
-      setError("Could not parse barcode")
-      setPhase("error")
-      alert.showError(
-        "Barcode Parsing Failed",
-        "Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk or driver license.",
-        () => {
-          handleClear()
-        }
+      console.log(
+        "Step2: Parsed as vehicle, registration:",
+        vehicleResult.registration,
+        "description:",
+        vehicleResult.description
       )
+
+      // Check if vehicle type is acceptable (truck or trailer only)
+      const vehicleType = (vehicleResult.description || "").toLowerCase()
+      const acceptedTypes = [
+        "truck",
+        "trailer",
+        "tipper",
+        "wipbak",
+        "truck tractor",
+        "trucktractor",
+        "voorspanmotor",
+        "semi-trailer",
+        "semi trailer",
+        "heavy vehicle",
+        "goods vehicle",
+        "ldv",
+        "mdv",
+        "hdv",
+        "light delivery vehicle",
+        "medium delivery vehicle",
+        "heavy delivery vehicle",
+      ]
+
+      const isAcceptedType = acceptedTypes.some((type) => vehicleType.includes(type))
+
+      if (!isAcceptedType) {
+        console.log("Step2: Invalid vehicle type detected:", vehicleResult.description)
+        setError(`Invalid vehicle type: ${vehicleResult.description}`)
+        setPhase("error")
+        alert.showError(
+          "Invalid Vehicle Type",
+          `This barcode is for a ${vehicleResult.description || "passenger vehicle"}. Please scan a barcode for a truck or trailer only.`,
+          () => {
+            handleClear()
+          }
+        )
+        return
+      }
+
+      // Check for duplicates
+      console.log("Step2: Valid vehicle type, checking for duplicates")
+      const validation = AssetService.validateRegistration(vehicleResult.registration)
+
+      if (!validation.isValid) {
+        console.log("Step2: Duplicate vehicle detected")
+        setError(validation.error || "Duplicate vehicle registration")
+        setPhase("error")
+        alert.showError(
+          "Duplicate Vehicle",
+          validation.error || "This vehicle registration is already registered in the system.",
+          () => {
+            handleClear()
+          }
+        )
+        return
+      }
+
+      // Success - move to second scan
+      console.log("Step2: First scan valid, proceeding to verification")
+      setParsedData({ type: "vehicle", data: vehicleResult })
+      setPhase("first-scan-success")
+      setTimeout(() => {
+        setPhase("second-scan-waiting")
+      }, 300)
     } catch (error) {
       console.error("Error parsing/validating barcode:", error)
       setError("Failed to validate barcode")
@@ -314,65 +280,42 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDrive
   }
 
   const detectAssetType = () => {
-    console.log("Step2: Detecting asset type from parsed data")
+    console.log("Step2: Detecting asset type from parsed vehicle data")
 
-    if (parsedData.type === "vehicle") {
-      const vehicleType = determineVehicleType(parsedData.data.description || "")
+    const vehicleType = determineVehicleType(parsedData.data.description || "")
 
-      if (vehicleType) {
-        console.log("Step2: Detected vehicle type:", vehicleType)
-        setDetectedType(vehicleType)
-
-        // Populate fields for validation
-        const vehicleFields = {
-          registration: parsedData.data.registration || "",
-          make: parsedData.data.make || "",
-          model: parsedData.data.model || "",
-          colour: parsedData.data.colour || "",
-          vehicleDiskNo: parsedData.data.vehicleDiskNo || "",
-          expiryDate: parsedData.data.expiryDate || "",
-          engineNo: parsedData.data.engineNo || "",
-          vin: parsedData.data.vin || "",
-          description: parsedData.data.description || "",
+    if (!vehicleType) {
+      const errorMsg = `Could not determine vehicle type. Description: "${parsedData.data.description}"`
+      console.error("Step2:", errorMsg)
+      setError(errorMsg)
+      setPhase("error")
+      alert.showError(
+        "Invalid Vehicle Type",
+        "Could not determine if this is a truck or trailer. Please scan a valid Truck Tractor or Tipper license disk.",
+        () => {
+          handleClear()
         }
-        setFields(vehicleFields)
-        setPhase("field-validation")
-      } else {
-        const errorMsg = `Could not determine vehicle type. Description: "${parsedData.data.description}"`
-        console.error("Step2:", errorMsg)
-        setError(errorMsg)
-        setPhase("error")
-        alert.showError(
-          "Invalid Vehicle Type",
-          "Could not determine if this is a truck or trailer. Please scan a valid Truck Tractor or Tipper license disk.",
-          () => {
-            handleClear()
-          }
-        )
-      }
-    } else {
-      // Driver
-      console.log("Step2: Detected as driver")
-      setDetectedType("driver")
-
-      // Populate fields for validation
-      const driverFields = {
-        idNumber: parsedData.data.person?.idNumber || "",
-        name: parsedData.data.person?.name || "",
-        surname: parsedData.data.person?.surname || "",
-        initials: parsedData.data.person?.initials || "",
-        gender: parsedData.data.person?.gender || "",
-        birthDate: parsedData.data.person?.birthDate || "",
-        licenceNumber: parsedData.data.licence?.licenceNumber || "",
-        licenceType: parsedData.data.licence?.licenceType || "",
-        expiryDate: parsedData.data.licence?.expiryDate || "",
-        issueDate: parsedData.data.licence?.issueDate || "",
-        driverRestrictions: parsedData.data.licence?.driverRestrictions || "",
-        ntCode: parsedData.data.licence?.ntCode || "",
-      }
-      setFields(driverFields)
-      setPhase("field-validation")
+      )
+      return
     }
+
+    console.log("Step2: Detected vehicle type:", vehicleType)
+    setDetectedType(vehicleType)
+
+    // Populate fields for validation
+    const vehicleFields = {
+      registration: parsedData.data.registration || "",
+      make: parsedData.data.make || "",
+      model: parsedData.data.model || "",
+      colour: parsedData.data.colour || "",
+      vehicleDiskNo: parsedData.data.vehicleDiskNo || "",
+      expiryDate: parsedData.data.expiryDate || "",
+      engineNo: parsedData.data.engineNo || "",
+      vin: parsedData.data.vin || "",
+      description: parsedData.data.description || "",
+    }
+    setFields(vehicleFields)
+    setPhase("field-validation")
   }
 
   const validateFields = () => {
@@ -386,8 +329,8 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDrive
         setIsExpired(info.status === "expired")
 
         if (info.status === "expired") {
-          console.log("Step2: License/disk is expired, blocking advancement")
-          setError("Expired license/disk")
+          console.log("Step2: License disk is expired, blocking advancement")
+          setError("Expired license disk")
           setPhase("error")
           return
         }
@@ -406,38 +349,17 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDrive
     const updatedParsedData: ParsedAssetData = {
       type: detectedType!,
       ntCode: state.firstQRCode || "",
-      ...(detectedType === "driver"
-        ? {
-            personInfo: {
-              idNumber: fields.idNumber,
-              name: fields.name,
-              surname: fields.surname,
-              initials: fields.initials,
-              gender: fields.gender,
-              birthDate: fields.birthDate,
-            },
-            licenceInfo: {
-              licenceNumber: fields.licenceNumber,
-              licenceType: fields.licenceType,
-              expiryDate: fields.expiryDate,
-              issueDate: fields.issueDate,
-              driverRestrictions: fields.driverRestrictions,
-              ntCode: fields.ntCode,
-            },
-          }
-        : {
-            vehicleInfo: {
-              registration: fields.registration,
-              make: fields.make,
-              model: fields.model,
-              colour: fields.colour,
-              vehicleDiskNo: fields.vehicleDiskNo,
-              expiryDate: fields.expiryDate,
-              engineNo: fields.engineNo,
-              vin: fields.vin,
-              description: fields.description,
-            },
-          }),
+      vehicleInfo: {
+        registration: fields.registration,
+        make: fields.make,
+        model: fields.model,
+        colour: fields.colour,
+        vehicleDiskNo: fields.vehicleDiskNo,
+        expiryDate: fields.expiryDate,
+        engineNo: fields.engineNo,
+        vin: fields.vin,
+        description: fields.description,
+      },
     }
 
     updateState({
@@ -497,7 +419,7 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDrive
   const getStatusMessage = () => {
     switch (phase) {
       case "first-scan-waiting":
-        return "Scan vehicle license disk or driver's license"
+        return "Scan vehicle license disk (truck or trailer)"
       case "first-scan-processing":
         return "Parsing and validating barcode..."
       case "first-scan-success":
@@ -507,7 +429,7 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDrive
       case "second-scan-verifying":
         return "Verifying barcode match..."
       case "type-detection":
-        return "Detecting asset type..."
+        return "Detecting vehicle type..."
       case "field-validation":
         return "Validating fields and expiry..."
       case "complete":
@@ -519,30 +441,6 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDrive
     }
   }
 
-  // Test button handler - simulates scanning testDriver hex
-  const handleTestDriverScan = () => {
-    if (!testDriverHex) {
-      alert.showError("Test Data Missing", "No test driver hex data provided")
-      return
-    }
-
-    console.log("Step2: Test driver button clicked - simulating hex scan")
-
-    if (phase === "first-scan-waiting" || phase === "error") {
-      // Simulate first scan
-      setFirstBarcodeData(testDriverHex)
-      setSecondBarcodeData("")
-      setParsedData(null)
-      setError("")
-      setPhase("first-scan-processing")
-    } else if (phase === "second-scan-waiting") {
-      // Simulate second scan (verification)
-      setSecondBarcodeData(testDriverHex)
-      setError("")
-      setPhase("second-scan-verifying")
-    }
-  }
-
   const visualState = getVisualState()
 
   return (
@@ -550,18 +448,11 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDrive
       <div>
         <p className="text-muted-foreground mb-4">
           {phase === "first-scan-waiting" || phase === "error"
-            ? "Scan the vehicle license disk OR driver license barcode."
+            ? "Scan the vehicle license disk barcode (truck or trailer)."
             : phase === "second-scan-waiting"
-              ? "Scan the same license/disk barcode again to verify."
+              ? "Scan the same license disk barcode again to verify."
               : "Processing barcode data..."}
         </p>
-
-        {/* Test button - only show when testDriverHex is provided and waiting for scan */}
-        {testDriverHex && (phase === "first-scan-waiting" || phase === "second-scan-waiting" || phase === "error") && (
-          <Button type="button" variant="outline" size="sm" onClick={handleTestDriverScan} className="mt-2">
-            Test with Sample Driver License
-          </Button>
-        )}
       </div>
 
       {/* Hidden input that captures scanner events */}
@@ -646,37 +537,18 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDrive
         {/* Show parsed data preview */}
         {parsedData && phase === "first-scan-success" && (
           <div className="mt-4 p-3 bg-muted rounded-lg w-full max-w-md">
-            <p className="text-xs font-medium text-muted-foreground mb-2">
-              {parsedData.type === "vehicle" ? "Vehicle License Disk" : "Driver License"}
-            </p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Vehicle License Disk</p>
             <div className="space-y-1 text-xs">
-              {parsedData.type === "vehicle" ? (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Registration:</span>
-                    <span className="font-mono font-medium">{parsedData.data.registration}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Make/Model:</span>
-                    <span>
-                      {parsedData.data.make} {parsedData.data.model}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">ID Number:</span>
-                    <span className="font-mono font-medium">{parsedData.data.person.idNumber}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Name:</span>
-                    <span>
-                      {parsedData.data.person.name} {parsedData.data.person.surname}
-                    </span>
-                  </div>
-                </>
-              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Registration:</span>
+                <span className="font-mono font-medium">{parsedData.data.registration}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Make/Model:</span>
+                <span>
+                  {parsedData.data.make} {parsedData.data.model}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -685,17 +557,11 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDrive
         {detectedType && (phase === "type-detection" || phase === "field-validation" || phase === "complete") && (
           <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg w-full max-w-md">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">
-                {detectedType === "truck" ? "🚚" : detectedType === "trailer" ? "🚛" : "👤"}
-              </span>
+              <span className="text-2xl">{detectedType === "truck" ? "🚚" : "🚛"}</span>
               <div className="flex-1">
-                <p className="text-xs font-medium text-green-700 dark:text-green-300">Asset Type Detected</p>
+                <p className="text-xs font-medium text-green-700 dark:text-green-300">Vehicle Type Detected</p>
                 <p className="text-sm font-semibold capitalize">
-                  {detectedType === "truck"
-                    ? "Truck (Truck Tractor)"
-                    : detectedType === "trailer"
-                      ? "Trailer (Tipper)"
-                      : "Driver"}
+                  {detectedType === "truck" ? "Truck (Truck Tractor)" : "Trailer (Tipper)"}
                 </p>
               </div>
             </div>
@@ -731,7 +597,7 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDrive
               <div>
                 <p className="text-sm font-bold text-red-700 dark:text-red-300">EXPIRED - Process Blocked</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  This license/disk has expired. Cannot proceed with induction.
+                  This license disk has expired. Cannot proceed with induction.
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
                   Notification will be sent to security personnel.

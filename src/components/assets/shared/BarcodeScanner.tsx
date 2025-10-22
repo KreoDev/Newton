@@ -8,9 +8,10 @@ import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import { useAlert } from "@/hooks/useAlert"
 import onScan from "onscan.js"
 
-export type ParsedBarcodeData =
-  | { type: "vehicle"; data: Awaited<ReturnType<typeof AssetFieldMapper.parseVehicleDisk>> }
-  | { type: "driver"; data: Awaited<ReturnType<typeof AssetFieldMapper.parseDriverLicense>> }
+export type ParsedBarcodeData = {
+  type: "vehicle"
+  data: Awaited<ReturnType<typeof AssetFieldMapper.parseVehicleDisk>>
+}
 
 interface BarcodeScannerProps {
   onScanSuccess: (barcodeData: string, parsedData: ParsedBarcodeData) => void
@@ -85,84 +86,7 @@ export function BarcodeScanner({
     try {
       const trimmedData = barcodeData.trim()
 
-      // Check if this is hex data (driver's license - 720 bytes = 1440 hex chars)
-      const isHexData = /^[0-9A-Fa-f]{1000,}$/.test(trimmedData) && trimmedData.length >= 1000
-
-      if (isHexData) {
-        console.log("BarcodeScanner: Detected hex data, attempting SADL decryption, length:", trimmedData.length)
-
-        // Import scan service dynamically to access SADL decryption
-        const { scan } = await import("@/services/scan.service")
-        const sadlResult = await scan.decryptDriverLicense(trimmedData)
-
-        if ("error" in sadlResult || !sadlResult.success) {
-          const errorMsg = sadlResult.error || "Failed to decrypt driver's license"
-          setError(errorMsg)
-          alert.showError("Decryption Failed", errorMsg, () => {
-            setBarcodeData("")
-            setError("")
-            setParsedData(null)
-            setIsProcessing(false)
-            setTimeout(() => inputRef.current?.focus(), 100)
-          })
-          setIsProcessing(false)
-          if (onScanError) onScanError(errorMsg)
-          return
-        }
-
-        // Parse the SADL decoded data
-        const driverResult = AssetFieldMapper.parseSADLDriverLicense(sadlResult)
-
-        if (!("error" in driverResult)) {
-          console.log("BarcodeScanner: SADL driver parsed successfully, ID:", driverResult.person.idNumber)
-
-          const parsed: ParsedBarcodeData = { type: "driver", data: driverResult }
-          setParsedData(parsed)
-
-          // Custom validation if provided
-          if (validateFn) {
-            const validation = validateFn(trimmedData, parsed)
-            if (!validation.isValid) {
-              setError(validation.error || "Validation failed")
-              alert.showError("Validation Failed", validation.error || "Validation failed", () => {
-                setBarcodeData("")
-                setError("")
-                setParsedData(null)
-                setIsProcessing(false)
-                setTimeout(() => inputRef.current?.focus(), 100)
-              })
-              setIsProcessing(false)
-              if (onScanError) onScanError(validation.error || "Validation failed")
-              return
-            }
-          }
-
-          // Success
-          setIsProcessing(false)
-          if (autoAdvance) {
-            setTimeout(() => onScanSuccess(trimmedData, parsed), 300)
-          } else {
-            onScanSuccess(trimmedData, parsed)
-          }
-          return
-        } else {
-          // SADL parsing failed
-          const errorMsg = driverResult.error || "Failed to parse driver's license data"
-          setError(errorMsg)
-          alert.showError("Parsing Failed", errorMsg, () => {
-            setBarcodeData("")
-            setError("")
-            setParsedData(null)
-            setIsProcessing(false)
-            setTimeout(() => inputRef.current?.focus(), 100)
-          })
-          setIsProcessing(false)
-          if (onScanError) onScanError(errorMsg)
-          return
-        }
-      }
-
-      // Try to parse as vehicle disk first
+      // Parse as vehicle disk
       const vehicleResult = await AssetFieldMapper.parseVehicleDisk(trimmedData)
 
       if (!("error" in vehicleResult)) {
@@ -207,54 +131,9 @@ export function BarcodeScanner({
         return
       }
 
-      // Try to parse as driver license/ID
-      const driverResult = await AssetFieldMapper.parseDriverLicense(barcodeData.trim())
-
-      if (!("error" in driverResult)) {
-        console.log("BarcodeScanner: Parsed as driver, ID number:", driverResult.person.idNumber)
-
-        const parsed: ParsedBarcodeData = { type: "driver", data: driverResult }
-        setParsedData(parsed)
-
-        // Custom validation if provided
-        if (validateFn) {
-          const validation = validateFn(barcodeData.trim(), parsed)
-
-          if (!validation.isValid) {
-            setError(validation.error || "Validation failed")
-            alert.showError("Validation Failed", validation.error || "Validation failed", () => {
-              // Auto-clear when user clicks OK
-              setBarcodeData("")
-              setError("")
-              setParsedData(null)
-              setIsProcessing(false)
-              setTimeout(() => {
-                inputRef.current?.focus()
-              }, 100)
-            })
-            setIsProcessing(false)
-            if (onScanError) {
-              onScanError(validation.error || "Validation failed")
-            }
-            return
-          }
-        }
-
-        // Barcode is valid
-        setIsProcessing(false)
-        if (autoAdvance) {
-          setTimeout(() => {
-            onScanSuccess(barcodeData.trim(), parsed)
-          }, 300)
-        } else {
-          onScanSuccess(barcodeData.trim(), parsed)
-        }
-        return
-      }
-
-      // Both parsers failed
-      setError("Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk or driver license.")
-      alert.showError("Barcode Parsing Failed", "Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk or driver license.", () => {
+      // Parsing failed
+      setError("Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk.")
+      alert.showError("Barcode Parsing Failed", "Could not parse barcode. Please ensure you're scanning a valid South African vehicle license disk for a truck or trailer.", () => {
         setBarcodeData("")
         setError("")
         setParsedData(null)
@@ -370,10 +249,10 @@ export function BarcodeScanner({
         {parsedData && (
           <div className="mt-4 p-3 bg-muted rounded-lg w-full max-w-md">
             <p className="text-xs font-medium text-muted-foreground mb-2">
-              {parsedData.type === "vehicle" ? "Vehicle License Disk" : "Driver License"}
+              Vehicle License Disk
             </p>
             <div className="space-y-1 text-xs">
-              {parsedData.type === "vehicle" && !("error" in parsedData.data) ? (
+              {!("error" in parsedData.data) && (
                 <>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Registration:</span>
@@ -390,18 +269,7 @@ export function BarcodeScanner({
                     </div>
                   )}
                 </>
-              ) : parsedData.type === "driver" && !("error" in parsedData.data) ? (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">ID Number:</span>
-                    <span className="font-mono font-medium">{parsedData.data.person.idNumber}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Name:</span>
-                    <span>{parsedData.data.person.name} {parsedData.data.person.surname}</span>
-                  </div>
-                </>
-              ) : null}
+              )}
             </div>
             <Button variant="ghost" size="sm" type="button" className="h-6 px-2 text-xs mt-2 w-full" onClick={handleClear}>
               Clear & Rescan
