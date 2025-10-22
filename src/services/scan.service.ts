@@ -206,27 +206,9 @@ class Scan {
 
         colour = toSentenceCase(colour)
 
-        // Normalise Description – take left part before '/' and sentence-case
-        const descriptionRaw = licenceArray[8] || ""
-        const descriptionLeft = descriptionRaw.includes("/") ? descriptionRaw.split("/")[0] : descriptionRaw
-        let description = toSentenceCase(descriptionLeft)
-
-        // If there is a parenthesis keep first English variant e.g. "Sedan(closedtop)Sedan(toekap)" -> "Sedan (Closed Top)"
-        if (/[()]/.test(description)) {
-          const match = description.match(/^[^(]+\([^)]*\)/)
-          if (match) description = match[0]
-        } else if (description.includes(" ")) {
-          // Multiple words without parenthesis, keep first word
-          description = description.split(" ")[0]
-        }
-
-        // Normalise spacing around parentheses
-        description = description.replace(/\(/, " (").replace(/\s+\(/, " (").replace(/\)\s*/, ")")
-
-        // Special fix for Hatchback spacing if still concatenated
-        if (/^Hatchback$/i.test(description)) {
-          description = "Hatchback"
-        }
+        // Description – return raw value unchanged (matches Android app behavior)
+        // Keep full bilingual description e.g. "Truck tractor / Voorspanmotor"
+        const description = licenceArray[8] || ""
 
         const result = {
           colour,
