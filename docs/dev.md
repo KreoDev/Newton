@@ -5,6 +5,7 @@
 This document provides a comprehensive, phase-by-phase implementation guide for the Newton Weighbridge System. It covers ALL features from `docs/user-flow-web.md` and `docs/data-model.md` in a MECE (Mutually Exclusive, Collectively Exhaustive) manner.
 
 **Important Notes:**
+
 - This document does NOT include implementation code - only file names, class names, method names, and functional requirements
 - Phases are ordered by logical dependencies - prerequisites must be completed first
 - Everything currently in the codebase constitutes Phase 1 (✅ COMPLETED)
@@ -16,23 +17,36 @@ This document provides a comprehensive, phase-by-phase implementation guide for 
 ## Technology Stack
 
 ### Core Framework
-- **Next.js 15.5.4** with App Router
-- **React 19**
+
+- **Next.js 15.5.4** with App Router (Turbopack enabled)
+- **React 19.1.1**
 - **TypeScript 5.9.2** (strict mode)
 - **Tailwind CSS 4.1.13**
 - **Bun** package manager
 
 ### Key Libraries
+
 - **Firebase 12.3.0** (client SDK)
 - **firebase-admin 13.5.0** (server SDK, API routes only)
-- **Radix UI** (component primitives)
+- **Radix UI** (component primitives) - Alert Dialog, Avatar, Checkbox, Dialog, Dropdown Menu, Label, Radio Group, Select, Slot, Tabs
 - **Framer Motion 12.23.22** (animations)
 - **react-hook-form 7.63.0** + **Zod 4.1.11** (forms & validation)
-- **Preact Signals** (reactive state)
-- **expo-sadl** (South African driver's license parsing)
-- **Sonner** (toast notifications)
+- **Preact Signals 3.3.0** (reactive state)
+- **expo-sadl 1.0.3** (South African driver's license parsing)
+- **Sonner 2.0.7** (toast notifications)
+- **TanStack React Table 8.21.3** (advanced data tables)
+- **Zustand 5.0.8** (state management)
+- **jsPDF 3.0.3 + jspdf-autotable 5.0.2** (PDF generation)
+- **xlsx 0.18.5** (Excel export)
+- **Pragmatic Drag-and-Drop 1.7.7** (column reordering)
+- **react-image-crop 11.0.10** (profile picture cropping)
+- **Lodash 4.17.21** (utilities)
+- **date-fns 4.1.0** (date utilities)
+- **uuid 13.0.0** (ID generation)
+- **Lucide React 0.544.0** (icons)
 
 ### Firebase Architecture
+
 - **`src/lib/firebase.ts`**: Client SDK exports (`auth`, `db`, `storage`) - use in components/services
 - **`src/lib/firebase-utils.ts`**: CRUD helpers with auto-timestamps - USE THESE FIRST
 - **`src/lib/firebase-admin.ts`**: Admin SDK (`adminDb`, `adminAuth`) - API routes ONLY
@@ -57,16 +71,22 @@ This document provides a comprehensive, phase-by-phase implementation guide for 
 All foundational systems are implemented and tested. The following components are live:
 
 ### 1.1 Authentication & Authorization ✅
+
 **User Flow**: Flow 1 - User Login
 
 **Completed Components:**
-- `src/contexts/AuthContext.tsx` - User session management
+
+- `src/contexts/AuthContext.tsx` - User session management with Firebase Auth
 - `src/hooks/usePermission.ts` - Permission checking hook (returns `{ hasPermission, loading }`)
+- `src/hooks/useViewPermission.ts` - Dual permission hook for view/manage patterns (returns `{ canView, canManage, isViewOnly, loading }`)
+- `src/hooks/usePermissions.ts` - Multiple permissions management hook
 - `src/components/auth/PermissionGate.tsx` - Conditional rendering based on permissions
 - `src/services/permission.service.ts` - Permission evaluation logic
-- `src/lib/permissions.ts` - Permission constants and labels
+- `src/lib/permissions.ts` - Complete permission constants and labels (54 permissions)
+- `src/lib/permission-config.ts` - Permission categories by company type
 
 **Completed Features:**
+
 - Firebase Authentication integration
 - Role-based permission system with dual permissions (view + manage)
 - Global admin support (isGlobal users)
@@ -76,15 +96,18 @@ All foundational systems are implemented and tested. The following components ar
 - Permission evaluation priority: Global users → Permission overrides → Role permissions → Wildcard
 
 ### 1.2 Company Management ✅
+
 **User Flows**: Flows 7, 8, 9 - Company Configuration (Mine, Transporter, Logistics Coordinator)
 
 **Completed Components:**
+
 - `src/app/(authenticated)/admin/companies/page.tsx` - Company listing with search/filter
 - `src/components/companies/CompanyFormModal.tsx` - Tabbed creation/edit modal
 - `src/services/company.service.ts` - Company CRUD operations
 - `src/contexts/CompanyContext.tsx` - Company state & switcher
 
 **Completed Features:**
+
 - Full CRUD for companies (mine, transporter, logistics_coordinator)
 - Dual-role support (transporter can also be LC, and vice versa)
 - Company switcher for multi-company users
@@ -99,19 +122,34 @@ All foundational systems are implemented and tested. The following components ar
 **Note:** Roles are **global** and shared across all companies. They do not have a `companyId` field.
 
 ### 1.3 User Management ✅
+
 **User Flow**: Flow 10 - User Management Configuration
 
 **Completed Components:**
-- `src/app/(authenticated)/admin/users/page.tsx` - User listing with advanced data table
-- `src/components/users/AddUserModal.tsx` - User creation
-- `src/components/users/ChangePasswordModal.tsx` - Password management
-- `src/components/users/ChangeEmailModal.tsx` - Email updates
+
+- `src/app/(authenticated)/admin/users/page.tsx` - User listing with advanced data table and company filtering
+- `src/components/users/AddUserModal.tsx` - User creation with role assignment
+- `src/components/users/EditUserModal.tsx` - Complete user profile editing
+- `src/components/users/ChangePasswordModal.tsx` - Password management with Firebase Auth
+- `src/components/users/ChangeEmailModal.tsx` - Email updates with verification
+- `src/components/users/MoveUserModal.tsx` - Transfer users between companies (global admins only)
+- `src/components/users/PermissionOverrideEditor.tsx` - Granular permission override system
+- `src/components/users/RoleManager.tsx` - Add/remove user roles
+- `src/components/users/NotificationPreferencesEditor.tsx` - User notification preferences
 - `src/components/users/ProfilePictureUpload.tsx` - Profile picture upload with Firebase Storage
-- `src/components/users/UsersTable.tsx` - Advanced data table with pagination, sorting, filtering, export
-- `src/app/(authenticated)/settings/page.tsx` - User settings with profile picture upload
-- `src/services/user.service.ts` - User operations (if exists, or use firebase-utils directly)
+- `src/components/users/AvatarUpload.tsx` - Avatar upload component
+- `src/components/users/UsersTable.tsx` - Advanced data table with TanStack React Table v8
+- `src/components/users/ViewUserModal.tsx` - View-only user details modal
+- `src/components/users/DeleteUserModal.tsx` - User deletion with confirmation
+- `src/components/users/ConvertToContactWarningDialog.tsx` - Convert login users to contacts
+- `src/components/users/ReauthenticateModal.tsx` - Re-authentication for sensitive operations
+- `src/components/users/PasswordPromptModal.tsx` - Password prompt for secure actions
+- `src/components/users/BulkActionsToolbar.tsx` - Bulk operations on selected users
+- `src/components/users/bulk-actions/` - Individual bulk action components (6 files)
+- `src/app/(authenticated)/settings/page.tsx` - User settings with tabbed interface
 
 **Completed Features:**
+
 - User creation with Firebase Auth
 - Role assignment
 - Email/password management
@@ -141,14 +179,17 @@ All foundational systems are implemented and tested. The following components ar
 - Notification preferences fully implemented (see Phase 2.8)
 
 ### 1.4 Centralized Data Management ✅
+
 **Technical Infrastructure**
 
 **Completed Components:**
+
 - `src/services/data.service.ts` - Singleton reactive data service
 - `src/lib/firebase-utils.ts` - `createCollectionListener` factory
 - `src/contexts/CompanyContext.tsx` - Integration with global data service
 
 **Completed Features:**
+
 - Preact Signals-based reactive state
 - Real-time Firebase listeners for **all centralized collections**:
   - **Companies**: All companies (including inactive) - no company scoping
@@ -214,14 +255,17 @@ if (existingAsset) {
 - Use in-memory filtering/searching for better performance and lower Firestore costs
 
 ### 1.5 Search Infrastructure ✅
+
 **Technical Infrastructure**
 
 **Completed Components:**
+
 - `src/services/search.service.ts` - Core weighted search logic
 - `src/hooks/useOptimizedSearch.ts` - React hook with debouncing
 - `src/config/search-configs.ts` - Centralized search configurations
 
 **Completed Features:**
+
 - 300ms debouncing
 - requestIdleCallback for non-blocking search
 - Weighted field matching
@@ -230,14 +274,17 @@ if (existingAsset) {
 - Result limiting
 
 ### 1.6 Loading States System ✅
+
 **Technical Infrastructure**
 
 **Completed Components:**
+
 - `src/components/ui/loading-spinner.tsx` - `LoadingSpinner`, `InlineSpinner`, `SkeletonLoader`
 - Updated `usePermission.ts` to return loading state
 - Updated `AppLayout.tsx` with auth loading screen
 
 **Completed Features:**
+
 - Glass morphism design
 - Multiple sizes (sm, md, lg, xl)
 - Full-screen and inline modes
@@ -245,18 +292,21 @@ if (existingAsset) {
 - Button loading states
 
 ### 1.7 Advanced Data Table System ✅
+
 **Technical Infrastructure**
 
 **Completed Components:**
-- `src/components/ui/data-table/DataTable.tsx` - Main reusable table component
-- `src/components/ui/data-table/DataTableHeader.tsx` - Draggable, sortable, resizable headers
-- `src/components/ui/data-table/DataTableToolbar.tsx` - Search and export controls
-- `src/components/ui/data-table/DataTablePagination.tsx` - Pagination controls
-- `src/components/ui/data-table/DataTableColumnToggle.tsx` - Column visibility toggle
-- `src/components/ui/data-table/index.ts` - Barrel export
-- `src/stores/table-config.store.ts` - Zustand store for table state persistence
+
+- `src/components/ui/data-table/DataTable.tsx` - Main reusable table component with TanStack React Table v8.21.3
+- `src/components/ui/data-table/DataTableHeader.tsx` - Draggable, sortable, resizable headers with Pragmatic Drag-and-Drop
+- `src/components/ui/data-table/DataTableToolbar.tsx` - Search and export controls with xlsx, jsPDF, and jspdf-autotable
+- `src/components/ui/data-table/DataTablePagination.tsx` - Advanced pagination with customizable page sizes
+- `src/components/ui/data-table/DataTableColumnToggle.tsx` - Column visibility toggle with hide/show controls
+- `src/components/ui/data-table/index.ts` - Barrel export for all components
+- `src/stores/table-config.store.ts` - Zustand 5.0.8 store for table state persistence across sessions
 
 **Completed Features:**
+
 - **TanStack Table v8** integration for headless data management
 - **Pagination**: Customizable page sizes (10, 20, 30, 40, 50, 100 rows)
 - **Row Selection**: Checkboxes with bulk action support via callback
@@ -285,11 +335,13 @@ if (existingAsset) {
 - **Header Styling**: Clean headers without borders - use `!border-0 !shadow-none` on header buttons to remove all borders and shadows
 
 **Important Styling Notes:**
+
 - Table header buttons (sort/drag) should NOT have visible borders
 - Add `!border-0 !shadow-none` classes to all buttons in `DataTableHeader.tsx`
 - This ensures clean, borderless column headers matching the Actions column appearance
 
 **Usage Pattern:**
+
 ```typescript
 <DataTable
   tableId="unique-table-id"
@@ -301,24 +353,28 @@ if (existingAsset) {
   enableRowSelection={true}
   enableColumnResizing={true}
   enableExport={true}
-  onRowSelectionChange={(selectedRows) => {
+  onRowSelectionChange={selectedRows => {
     console.log("Selected:", selectedRows)
   }}
 />
 ```
 
 ### 1.8 Alert Dialog System ✅
+
 **Technical Infrastructure**
 
 **Completed Components:**
-- `src/hooks/useAlert.tsx` - Zustand-based alert state management hook
-- `src/components/ui/alert-provider.tsx` - Global alert dialog component
-- `src/components/ui/dialog.tsx` - Base Dialog component with outside click prevention
-- `src/components/ui/alert-dialog.tsx` - Base AlertDialog component with outside click prevention
-- Updated `src/app/layout.tsx` - Added AlertProvider to root layout
-- Updated `src/lib/firebase-utils.ts` - Removed automatic toasts (components handle alerts)
+
+- `src/hooks/useAlert.tsx` - Zustand 5.0.8-based alert state management hook with 5 variants (success, error, warning, info, confirm)
+- `src/components/ui/alert-provider.tsx` - Global alert dialog component with Framer Motion animations
+- `src/components/ui/dialog.tsx` - Radix UI Dialog component with outside click prevention
+- `src/components/ui/alert-dialog.tsx` - Radix UI AlertDialog component with glass morphism design
+- `src/components/ui/InfoDialog.tsx` - Information dialog component
+- Updated `src/app/layout.tsx` - Added AlertProvider to root layout (wraps all authenticated routes)
+- Updated `src/lib/firebase-utils.ts` - Removed automatic toasts (components handle alerts with full control)
 
 **Completed Features:**
+
 - Global alert dialog system with 5 variants (success, error, warning, info, confirm)
 - Glass morphism design matching design.json
 - Icon-based visual feedback (CheckCircle2, XCircle, AlertTriangle, AlertCircle)
@@ -329,14 +385,15 @@ if (existingAsset) {
 - Responsive mobile-friendly design
 - **Outside click prevention**: All modals (Dialog and AlertDialog) prevent closing when clicking outside to avoid accidental data loss
 
-**Modal Close Behavior:**
-All modals require explicit user action to close:
+**Modal Close Behavior:** All modals require explicit user action to close:
+
 - Click the close button (X icon)
 - Click the Cancel button
 - Click any action button that closes the modal
 - **Clicking outside the modal does NOT close it** (prevents accidental data loss)
 
 **Usage Pattern:**
+
 ```typescript
 import { useAlert } from "@/hooks/useAlert"
 
@@ -365,6 +422,7 @@ export default function MyComponent() {
 ```
 
 **Design Specifications:**
+
 - Backdrop: Linear gradient with blur (16px)
 - Content: Glass surface with backdrop-blur (24px)
 - Icons: 8x8 with colored background circles
@@ -373,19 +431,23 @@ export default function MyComponent() {
 - Max width: 28rem (sm:max-w-md)
 
 **Migration Status:**
+
 - ✅ Core infrastructure complete
 - ✅ All 23 component files migrated from toast to alerts (100% complete)
 - ✅ 8 admin page files migrated
 - ✅ 15 modal component files migrated
 
 ### 1.9 Seed Script ✅
+
 **Development Infrastructure**
 
 **Completed Components:**
+
 - `src/app/api/seed/route.ts` - Seed API endpoint
 - `src/app/seed/page.tsx` - Seed UI
 
 **Completed Features:**
+
 - Seed permissions document (`settings/permissions`)
 - Seed 9 default global roles (shared across all companies)
 - Seed default company with proper contact IDs
@@ -395,13 +457,16 @@ export default function MyComponent() {
 **Important:** Roles are seeded as **global** resources (no `companyId` field). They are shared across all companies.
 
 ### 1.10 Admin Dashboard ✅
+
 **Navigation & UX**
 
 **Completed Components:**
+
 - `src/app/(authenticated)/admin/page.tsx` - Admin dashboard landing page
 - Updated `src/components/layout/AppLayout.tsx` - Added Admin menu item with exact path matching
 
 **Completed Features:**
+
 - **Card-based overview** of all admin sections:
   - Companies (Building2 icon, blue theme)
   - Users (Users icon, green theme)
@@ -426,6 +491,7 @@ export default function MyComponent() {
   - Exact path matching prevents highlighting when on admin sub-routes
 
 **Acceptance Criteria:**
+
 - ✅ Dashboard shows all accessible admin sections as cards
 - ✅ Permission-based filtering works (sections hidden without access)
 - ✅ Company type filtering works (mine-only sections conditional)
@@ -443,16 +509,19 @@ export default function MyComponent() {
 All administrative configuration modules have been implemented and tested. Products, Clients, Sites, Roles, User Management, and Notification Templates are fully functional with complete CRUD operations, permission controls, and usage validation.
 
 ### Overview
+
 Implement all administrative configuration modules required BEFORE orders can be created. These are the master data tables that orders depend on.
 
 ---
 
 ### 2.1 Product Management ✅
+
 **User Flow**: Flow 11 - Product Management Configuration
 
 **Goal**: Simple catalog of minerals (Gold, Platinum, Diamond, Iron Ore, Chrome, etc.) for use in orders.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/admin/products/page.tsx`
 - `src/components/products/ProductFormModal.tsx`
 
@@ -465,20 +534,21 @@ Implement all administrative configuration modules required BEFORE orders can be
 - **No Firebase queries** - all data already in memory via data.service.ts
 
 **UI Requirements:**
+
 - Simple list view with search by name/code
 - Filter: Active/Inactive
 - Modal form with fields:
-  - Product name* (string, e.g., "Gold Ore")
-  - Product code* (string, e.g., "AU-001")
+  - Product name\* (string, e.g., "Gold Ore")
+  - Product code\* (string, e.g., "AU-001")
   - Specifications (optional textarea, e.g., "Grade A")
   - isActive (checkbox)
 - Usage validation: Query orders collection before delete
 - Show badge if product used in orders
 
-**Data Model:**
-Reference `docs/data-model.md` → `products` collection
+**Data Model:** Reference `docs/data-model.md` → `products` collection
 
 **Acceptance Criteria:**
+
 - ✅ Products can be created with name, code, specifications
 - ✅ Products can be edited/deactivated
 - ✅ Search by name or code works
@@ -488,11 +558,13 @@ Reference `docs/data-model.md` → `products` collection
 ---
 
 ### 2.2 Client Management ✅
+
 **User Flow**: Flow 13 - Client Management Configuration
 
 **Goal**: Manage client companies (buyers/receivers of materials).
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/admin/clients/page.tsx`
 - `src/components/clients/ClientFormModal.tsx`
 
@@ -505,25 +577,26 @@ Reference `docs/data-model.md` → `products` collection
 - **No Firebase queries** - all data already in memory via data.service.ts
 
 **UI Requirements:**
+
 - List view with search by name/registration/VAT
 - Filter: Active/Inactive
 - Modal form with fields:
-  - Client name* (string)
-  - Company registration number* (string)
+  - Client name\* (string)
+  - Company registration number\* (string)
   - VAT number (optional)
-  - Physical address* (string)
-  - Contact person name* (string)
-  - Contact email* (email validation)
-  - Contact phone* (phone validation)
+  - Physical address\* (string)
+  - Contact person name\* (string)
+  - Contact email\* (email validation)
+  - Contact phone\* (phone validation)
   - Allowed sites (multi-select dropdown of active sites)
   - isActive (checkbox)
 - Usage validation: Query orders collection before delete
 - Show badge if client has orders
 
-**Data Model:**
-Reference `docs/data-model.md` → `clients` collection
+**Data Model:** Reference `docs/data-model.md` → `clients` collection
 
 **Acceptance Criteria:**
+
 - ✅ Clients can be created with all contact info
 - ✅ Phone number validation works (react-hook-form + Zod)
 - ✅ Email validation works
@@ -534,11 +607,13 @@ Reference `docs/data-model.md` → `clients` collection
 ---
 
 ### 2.3 Site Management ✅
+
 **User Flow**: Flow 14 - Site Management Configuration
 
 **Goal**: Configure collection sites (loading places) and destination sites.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/admin/sites/page.tsx`
 - `src/components/sites/SiteFormModal.tsx`
 - `src/components/sites/OperatingHoursEditor.tsx`
@@ -553,14 +628,15 @@ Reference `docs/data-model.md` → `clients` collection
 - Operating hours validation: Implement in OperatingHoursEditor component
 
 **UI Requirements:**
+
 - List view with tabs/filter: All, Collection, Destination
 - Search by site name/address
 - Modal form with fields:
-  - Site name* (string)
-  - Site type* (radio: collection | destination)
-  - Physical address* (string)
-  - Contact person* (dropdown from users - must have phone)
-  - Operating hours* (day-by-day time picker):
+  - Site name\* (string)
+  - Site type\* (radio: collection | destination)
+  - Physical address\* (string)
+  - Contact person\* (dropdown from users - must have phone)
+  - Operating hours\* (day-by-day time picker):
     - Monday-Sunday: open time, close time
     - "Closed" checkbox per day
     - "24 Hours" checkbox per day (sets open: "00:00", close: "23:59")
@@ -571,10 +647,10 @@ Reference `docs/data-model.md` → `clients` collection
 - Show operating hours in list view (collapsed/expandable)
 - Prevent deletion if site used in orders
 
-**Data Model:**
-Reference `docs/data-model.md` → `sites` collection
+**Data Model:** Reference `docs/data-model.md` → `sites` collection
 
 **Operating Hours Structure:**
+
 ```typescript
 {
   monday: { open: "06:00", close: "18:00" },
@@ -585,6 +661,7 @@ Reference `docs/data-model.md` → `sites` collection
 ```
 
 **Acceptance Criteria:**
+
 - ✅ Sites can be created as collection or destination
 - ✅ Operating hours can be set per day
 - ✅ Contact person must have phone number
@@ -595,14 +672,17 @@ Reference `docs/data-model.md` → `sites` collection
 ---
 
 ### 2.4 Organizational Groups ✅
+
 **User Flow**: Internal organizational structure for mine companies
 
 **Goal**: Create hierarchical organizational groups with unlimited nesting for better site organization. Only available for mine companies.
 
 **Files Created:**
+
 - `src/components/groups/GroupsTreeManager.tsx` - Tree-based group management UI
 
 **Files Modified:**
+
 - `src/types/index.ts` - Added `Group` interface
 - `src/components/companies/CompanyFormModal.tsx` - Added Groups tab (mine companies only)
 - `src/components/sites/SiteFormModal.tsx` - Added group assignment dropdown (mine companies only)
@@ -618,6 +698,7 @@ Reference `docs/data-model.md` → `sites` collection
 **UI Requirements:**
 
 **Groups Tab (in Company Edit Modal):**
+
 - Visible only for mine companies when editing
 - Tree-based UI with unlimited nesting levels
 - Visual hierarchy diagram showing current structure
@@ -631,22 +712,26 @@ Reference `docs/data-model.md` → `sites` collection
   - Real-time updates via Firebase listeners
 
 **Groups Form Fields:**
-- Group name* (string, required)
+
+- Group name\* (string, required)
 - Description (optional textarea)
 
 **Hierarchy Diagram:**
+
 - ASCII tree visualization (├─, └─, │)
 - Shows group names and descriptions
 - Monospace font for alignment
 - Displayed above interactive tree view
 
 **Site Assignment:**
+
 - Group dropdown in SiteFormModal
 - Shows hierarchical structure with indentation
 - Only visible for mine companies
 - Optional field (sites can exist without group assignment)
 
 **Data Model:**
+
 ```typescript
 interface Group extends Timestamped, CompanyScoped {
   id: string
@@ -660,11 +745,13 @@ interface Group extends Timestamped, CompanyScoped {
 ```
 
 **Validation Rules:**
+
 - Group name required (friendly error: "Please enter a group name")
 - Cannot delete group with children (must delete/reassign children first)
 - Cannot set `undefined` values in Firestore (omit optional fields if empty)
 
 **Company Type-Based Access Control:**
+
 - **Mine companies**: Full access to Products, Clients, Sites, Groups
 - **Transporter companies**: No access to Products, Clients, Sites, Groups
 - **Logistics Coordinator companies**: No access to Products, Clients, Sites, Groups
@@ -672,6 +759,7 @@ interface Group extends Timestamped, CompanyScoped {
 - Groups tab only visible for mine companies
 
 **Acceptance Criteria:**
+
 - ✅ Groups can be created with unlimited nesting
 - ✅ Groups display in tree structure with expand/collapse
 - ✅ Visual hierarchy diagram shows current structure
@@ -686,11 +774,13 @@ interface Group extends Timestamped, CompanyScoped {
 ---
 
 ### 2.5 Comprehensive User Management ✅
+
 **User Flow**: Flow 10 - User Management Configuration (expanded)
 
 **Goal**: Complete user administration including company transfers, role management, and permission overrides.
 
 **Files to Modify:**
+
 - `src/app/(authenticated)/admin/users/page.tsx` - Enhanced user listing
 - `src/components/users/EditUserModal.tsx` - Complete user editing
 - `src/components/users/MoveUserModal.tsx` - Transfer users between companies
@@ -707,6 +797,7 @@ interface Group extends Timestamped, CompanyScoped {
 **UI Requirements:**
 
 **Enhanced User List Page:**
+
 - Company filter dropdown (global admins only):
   - "All Companies" (show all users across system)
   - Individual company selector (show users for specific company)
@@ -730,12 +821,14 @@ interface Group extends Timestamped, CompanyScoped {
 - Add User button
 
 **Edit User Modal:**
+
 - All basic fields from Phase 1 (name, email, phone, profile picture)
 - Company dropdown (global admins only - for moves)
 - Active/Inactive toggle
 - Save button
 
 **Move User Modal (Global Admins Only):**
+
 - Current company (read-only display)
 - New company dropdown (all active companies)
 - Confirmation checkbox: "I understand this will remove all current roles and reset permissions for this user"
@@ -747,6 +840,7 @@ interface Group extends Timestamped, CompanyScoped {
 - Move button
 
 **On Move:**
+
 - Update `user.companyId` to new company
 - Clear `user.roles` array
 - Clear `user.permissionOverrides` object
@@ -754,6 +848,7 @@ interface Group extends Timestamped, CompanyScoped {
 - Create audit log entry
 
 **Role Manager Modal:**
+
 - User name and current company (header)
 - Available roles section:
   - List of all global roles (from globalData.roles.value)
@@ -771,25 +866,31 @@ interface Group extends Timestamped, CompanyScoped {
 **Note:** Roles are global and shared across all companies (no `companyId` field).
 
 **Permission Override Editor:**
+
 - User name and current company (header)
 - Permission tree view (by category):
 
   **Asset Management:**
+
   - No Access / View Only / Add & Edit / Full Access (dropdown per permission)
 
   **Order Management:**
+
   - No Access / View Only / Create Orders / Allocate Orders / Full Access
 
   **Pre-Booking Management:**
+
   - No Access / View Only / Create & Edit / Full Access
 
   **Operational Flow Permissions:**
+
   - Security In - Enable/Disable (toggle)
   - Security Out - Enable/Disable
   - Weighbridge Tare Weight - Enable/Disable
   - Weighbridge Gross Weight - Enable/Disable
 
   **Administrative Permissions:**
+
   - User Management - No Access / View Only / Full Access
   - Product Management - No Access / View Only / Full Access
   - Order Settings - No Access / View Only / Full Access
@@ -800,6 +901,7 @@ interface Group extends Timestamped, CompanyScoped {
   - Security Alert Configuration - No Access / View Only / Full Access
 
   **Transporter-Specific:**
+
   - View Only Assigned Orders - Enable/Disable
   - View Other Transporters' Data - Enable/Disable
 
@@ -810,8 +912,8 @@ interface Group extends Timestamped, CompanyScoped {
 - Reset to Defaults button (clear all overrides)
 - Save button (updates user.permissionOverrides object)
 
-**Data Model:**
-Reference `docs/data-model.md` → `users` collection:
+**Data Model:** Reference `docs/data-model.md` → `users` collection:
+
 - `companyId: string` - Can be updated for company moves
 - `roles: string[]` - Array of role IDs
 - `permissionOverrides: Record<string, any>` - Custom permissions that override role defaults
@@ -819,6 +921,7 @@ Reference `docs/data-model.md` → `users` collection:
 - `notificationPreferences: object` - See Phase 2.6
 
 **Acceptance Criteria:**
+
 - ✅ Users can be viewed per specific company
 - ✅ Users can be edited (all fields)
 - ✅ Global admins can move users between companies
@@ -832,11 +935,13 @@ Reference `docs/data-model.md` → `users` collection:
 ---
 
 ### 2.6 Role Management ✅
+
 **User Flow**: Administrative configuration for role-based access control
 
 **Goal**: Create, edit, and manage global roles with permission assignments. Roles are shared across all companies with company-specific visibility control.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/admin/roles/page.tsx`
 - `src/components/roles/RoleFormModal.tsx`
 - `src/components/roles/PermissionSelector.tsx`
@@ -851,6 +956,7 @@ Reference `docs/data-model.md` → `users` collection:
 - **No Firebase queries** - all data already in memory via data.service.ts
 
 **Important:**
+
 - Roles are **global** and do NOT have a `companyId` field. They are shared across all companies.
 - **Company-Specific Visibility**: Roles have a `hiddenForCompanies` array that tracks which companies have hidden that role.
   - `isActive: false` → Role is globally inactive (hidden from all companies)
@@ -862,6 +968,7 @@ Reference `docs/data-model.md` → `users` collection:
 **UI Requirements:**
 
 **Role List Page:**
+
 - Search by role name
 - Filter: Active/Inactive
 - Table columns:
@@ -873,16 +980,20 @@ Reference `docs/data-model.md` → `users` collection:
 - Add Role button
 
 **Create/Edit Role Modal:**
-- Role name* (text input)
+
+- Role name\* (text input)
 - Description (textarea)
 - Permission selection:
+
   - **Asset Management:**
+
     - assets.view (View assets)
     - assets.add (Add assets)
     - assets.edit (Edit assets)
     - assets.delete (Delete assets)
 
   - **Order Management:**
+
     - orders.view (View orders)
     - orders.create (Create orders)
     - orders.allocate (Allocate orders)
@@ -890,18 +1001,21 @@ Reference `docs/data-model.md` → `users` collection:
     - orders.cancel (Cancel orders)
 
   - **Pre-Booking Management:**
+
     - prebookings.view (View pre-bookings)
     - prebookings.create (Create pre-bookings)
     - prebookings.edit (Edit pre-bookings)
     - prebookings.cancel (Cancel pre-bookings)
 
   - **Operational Flow Permissions:**
+
     - operations.securityIn (Security checkpoint - entry)
     - operations.securityOut (Security checkpoint - exit)
     - operations.weighbridgeTare (Weighbridge tare weight)
     - operations.weighbridgeGross (Weighbridge gross weight)
 
   - **Administrative Permissions:**
+
     - admin.users (User management)
     - admin.companies (Company management)
     - admin.roles (Role management)
@@ -916,12 +1030,14 @@ Reference `docs/data-model.md` → `users` collection:
   - **Transporter-Specific:**
     - transporter.viewOnlyAssigned (View only assigned orders)
     - transporter.viewOtherTransporters (View other transporters' data)
+
 - Permissions displayed as checkboxes grouped by category
 - Select All / Deselect All per category
 - isActive (checkbox)
 - Save button
 
 **Delete Role Flow:**
+
 - Check if role is assigned to any users:
   - Query `users` collection where `roleId` = role.id
 - If users exist:
@@ -934,6 +1050,7 @@ Reference `docs/data-model.md` → `users` collection:
   - Show success toast: "Role deleted successfully"
 
 **Reassign Users Modal (Optional Enhancement):**
+
 - Display: "This role is assigned to {count} user(s)"
 - New role dropdown (all active roles except current)
 - "Reassign All" button
@@ -942,8 +1059,8 @@ Reference `docs/data-model.md` → `users` collection:
   - Delete old role
   - Show success: "{count} user(s) reassigned and role deleted"
 
-**Default Roles (Seed Script):**
-Create 9 default global roles (once, not per company):
+**Default Roles (Seed Script):** Create 9 default global roles (once, not per company):
+
 1. **Newton Administrator** - Full system access
 2. **Site Administrator** - Site-level management and operations
 3. **Logistics Coordinator** - Order and pre-booking management
@@ -954,16 +1071,16 @@ Create 9 default global roles (once, not per company):
 8. **Weighbridge Operator** - Weight capture operations only
 9. **Security Personnel** - Security checkpoint operations
 
-**Data Model:**
-Reference `docs/data-model.md` → `roles` collection:
+**Data Model:** Reference `docs/data-model.md` → `roles` collection:
+
 - **Note:** Roles are GLOBAL - no `companyId` field
 - `name: string` - Role display name
 - `description: string` - Role description
 - `permissionKeys: string[]` - Array of permission keys
 - `isActive: boolean` - Active status
 
-**Permission Keys Structure:**
-Stored in `settings/permissions` document (global):
+**Permission Keys Structure:** Stored in `settings/permissions` document (global):
+
 ```typescript
 {
   "assets.view": { label: "View Assets", category: "Asset Management" },
@@ -974,6 +1091,7 @@ Stored in `settings/permissions` document (global):
 ```
 
 **Acceptance Criteria:**
+
 - ✅ Roles can be created with name, description, and permissions
 - ✅ Roles can be edited (all fields)
 - ✅ Roles can be deleted only if no users assigned
@@ -988,11 +1106,13 @@ Stored in `settings/permissions` document (global):
 ---
 
 ### 2.7 Notification Templates ✅
+
 **User Flow**: Flow 15 - Notification System Infrastructure
 
 **Goal**: Configure email templates for all system notifications.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/admin/notifications/page.tsx`
 - `src/components/notifications/TemplateEditor.tsx`
 - `src/components/notifications/TemplatePreview.tsx`
@@ -1009,6 +1129,7 @@ Stored in `settings/permissions` document (global):
   - `sendTestEmail(templateId: string, userEmail: string)` - Send test email
 
 **Template Categories (per data-model.md):**
+
 - **Asset**: asset.added, asset.inactive, asset.edited, asset.deleted
 - **Order**: order.created, order.allocated, order.cancelled, order.completed, order.expiring
 - **Weighbridge**: weighbridge.overload, weighbridge.underweight, weighbridge.violations, weighbridge.manualOverride
@@ -1017,12 +1138,13 @@ Stored in `settings/permissions` document (global):
 - **Driver**: driver.licenseExpiring7, driver.licenseExpiring30
 
 **UI Requirements:**
+
 - Category tabs (Asset, Order, Weighbridge, Security, PreBooking, Driver)
 - List of templates per category
 - Editor modal with fields:
-  - Template name* (string, read-only for system templates)
-  - Email subject* (string with placeholder support)
-  - Email body* (rich text editor with placeholder support)
+  - Template name\* (string, read-only for system templates)
+  - Email subject\* (string with placeholder support)
+  - Email body\* (rich text editor with placeholder support)
   - Available placeholders (sidebar):
     - {{userName}}, {{companyName}}, {{date}}, {{time}}
     - {{type}}, {{registrationNumber}}, {{fleetNumber}}
@@ -1035,13 +1157,12 @@ Stored in `settings/permissions` document (global):
 - "Send Test Email" button (uses user's email)
 - Reset to default button (for system templates)
 
-**Seed Requirements:**
-Create default templates for all notification types in seed script
+**Seed Requirements:** Create default templates for all notification types in seed script
 
-**Data Model:**
-Reference `docs/data-model.md` → `notification_templates` collection
+**Data Model:** Reference `docs/data-model.md` → `notification_templates` collection
 
 **Acceptance Criteria:**
+
 - ✅ All notification types have default templates
 - ✅ Templates can be edited with placeholders
 - ✅ Preview shows rendered HTML
@@ -1053,11 +1174,13 @@ Reference `docs/data-model.md` → `notification_templates` collection
 ---
 
 ### 2.8 User Notification Preferences ✅
+
 **User Flow**: Flow 10 - User Management Configuration (Notification Settings)
 
 **Goal**: Allow users to opt-in/opt-out of notification types.
 
 **Files to Modify:**
+
 - `src/app/(authenticated)/admin/users/page.tsx` (add Notifications tab/modal)
 - `src/components/users/NotificationPreferencesEditor.tsx` (new component)
 - Update `src/components/users/AddUserModal.tsx` to include default preferences
@@ -1070,16 +1193,19 @@ Reference `docs/data-model.md` → `notification_templates` collection
 - **Helper function**: `getDefaultNotificationPreferences()` in lib for default preferences on user creation
 
 **UI Requirements:**
+
 - Notification Preferences modal/section in user edit
 - Grouped checkboxes by category:
 
   **Asset Notifications:**
+
   - ☑ Asset Added
   - ☐ Asset Made Inactive
   - ☑ Asset Edited
   - ☑ Asset Deleted
 
   **Order Notifications:**
+
   - ☑ Order Created
   - ☑ Order Allocated (always sent if directly allocated)
   - ☐ Order Cancelled
@@ -1087,16 +1213,19 @@ Reference `docs/data-model.md` → `notification_templates` collection
   - ☑ Order Expiring Soon
 
   **Weighbridge Notifications:**
+
   - ☑ Overload Detected
   - ☑ Underweight Detected
   - ☑ Weight Limit Violations
   - ☑ Manual Weight Override Used
 
   **Pre-Booking & Scheduling:**
+
   - ☑ Pre-Booking Created
   - ☑ Pre-Booking Late Arrival (24+ hours)
 
   **Security & Compliance:**
+
   - ☑ Invalid/Expired License
   - ☑ Unbooked Truck Arrival
   - ☑ Truck Arrival No Active Order
@@ -1107,19 +1236,21 @@ Reference `docs/data-model.md` → `notification_templates` collection
   - ☑ Truck Left Without Completing Process
 
   **Asset & Driver Alerts:**
+
   - ☑ Driver License Expiring (7 days)
   - ☑ Driver License Expiring (30 days)
 
   **Preferred Email:**
+
   - Email address field (defaults to user email)
 
 - "Select All" / "Deselect All" per category
 - Note: "Users always receive notifications when orders are allocated directly to them"
 
-**Data Model:**
-Reference `docs/data-model.md` → `users.notificationPreferences`
+**Data Model:** Reference `docs/data-model.md` → `users.notificationPreferences`
 
 **Acceptance Criteria:**
+
 - ✅ All notification types can be toggled
 - ✅ Preferences persist in user document
 - ✅ Default preferences set on user creation
@@ -1129,11 +1260,13 @@ Reference `docs/data-model.md` → `users.notificationPreferences`
 ---
 
 ### 2.9 System-Wide Settings ✅
+
 **User Flow**: Flow 16 - System-Wide Settings Configuration
 
 **Goal**: Configure global UI/feature toggles that affect all users.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/admin/settings/page.tsx`
 - `src/components/settings/SystemSettingsForm.tsx`
 
@@ -1144,32 +1277,37 @@ Reference `docs/data-model.md` → `users.notificationPreferences`
 - **No service file needed** - simple field update on company document
 
 **UI Requirements:**
+
 - Single-page form with sections:
 
   **Fleet Management:**
+
   - ☑ Enable Fleet Number field (checkbox)
   - Fleet Number Label (text input, default: "Fleet No.")
 
   **Transporter Groups:**
+
   - ☑ Enable Transporter Group field (checkbox)
   - Transporter Group Label (text input, default: "Group")
   - Group Options (tag input, comma-separated)
     - Example: North, South, East, West
 
   **UI Simplification:**
+
   - ☐ Hide advanced features (checkbox)
   - ☐ Simplified dashboard (checkbox)
 
   **Role-Specific Views:**
+
   - Dashboard widgets per role (drag-and-drop configurator - future enhancement)
 
 - Save button (updates company.systemSettings)
 - Preview mode toggle to show/hide fields based on settings
 
-**Data Model:**
-Reference `docs/data-model.md` → `companies.systemSettings`
+**Data Model:** Reference `docs/data-model.md` → `companies.systemSettings`
 
 **Acceptance Criteria:**
+
 - ✅ Settings can be updated and saved
 - ✅ Fleet number field shows/hides based on setting
 - ✅ Custom labels appear in asset forms
@@ -1188,6 +1326,7 @@ Reference `docs/data-model.md` → `companies.systemSettings`
 All core asset management features have been fully implemented and tested. This includes comprehensive permission enforcement, complete CRUD operations, advanced table features with persistent column ordering, and seamless integration with the centralized data service.
 
 ### Overview
+
 Complete asset induction, management, and deletion flows using wizard-based approach with expo-sadl integration for driver license parsing. All pages enforce granular asset permissions (view, add, edit, delete).
 
 #### Important: Android App Schema Compatibility
@@ -1202,15 +1341,18 @@ The Asset data model uses field names that match the Android app's data structur
 #### Validation Rules (Enforced)
 
 **QR Code (ntCode) Validation:**
+
 - Must start with "NT" prefix (South African NaTIS standard)
 - Must be unique across all assets (no duplicates allowed)
 - Source: `/Users/joe/iDev/hybrid_appz/NewtonWeighbridges/src/services/scan.service.ts:281`
 
 **Vehicle Validation:**
+
 - `registration` must be unique (no duplicate registration numbers)
 - `vin` must be unique (no duplicate VINs)
 
 **Driver Validation:**
+
 - `idNumber` must be unique (no duplicate ID numbers)
 
 **Implementation Pattern:**
@@ -1260,36 +1402,42 @@ All asset management pages enforce granular permission checks to ensure users on
 ---
 
 ### 3.1 Asset Type Configuration ✅
+
 **Supporting Infrastructure**
 
 **Goal**: Configure asset types that determine which fields appear in wizard.
 
 **Implemented Files:**
-- `src/types/asset-types.ts` - TypeScript definitions for ParsedAssetData, VehicleData, DriverData
-- `src/lib/asset-field-mappings.ts` - expo-sadl field mappings and utilities
+
+- `src/types/asset-types.ts` - Complete TypeScript definitions for ParsedAssetData, VehicleData, DriverData with all expo-sadl fields
+- `src/lib/asset-field-mappings.ts` - Complete expo-sadl field mappings and utilities with Android app schema compatibility
 
 **Asset Types (from data/assets-data.json):**
+
 - **Truck**: registration, engineNo, make, model, colour, licenceDiskNo, firstQRCode, secondQRCode, expiryDate, vin
 - **Trailer**: registration, make, model, colour, licenceDiskNo, firstQRCode, secondQRCode, expiryDate
 - **Driver**: licenceNumber, idNumber, name, surname, initials, gender, birthDate, expiryDate, issueDate, driverRestrictions, ntCode, licenceType, img (base64 photo)
 
-**expo-sadl Field Mappings:**
-Per South African driver's license standard:
+**expo-sadl Field Mappings:** Per South African driver's license standard:
+
 - `DecodedLicenseInfo` from expo-sadl provides: idNumber, name, surname, initials, gender, birthDate, licenceNumber, expiryDate, img (base64), and more
 - Vehicle disk parsing not yet implemented (placeholder for future)
 
 **Implemented Methods:**
+
 - `AssetFieldMapper.toAssetDocument(parsedData, companyId, additionalFields)` - Convert parsed data to Asset document with **ALL barcode fields saved as top-level properties**
 - `AssetFieldMapper.getExpiryInfo(expiryDate)` - Returns expiry status, color, days until expiry
 - `AssetFieldMapper.formatExpiryDate(timestamp)` - Format dates from expo-sadl
 
 **Barcode Field Saving (✅ COMPLETE - Matches Android App):**
+
 - **Vehicle fields saved**: registration, make, model, vin, colour, engineNo, licenceDiskNo, vehicleDescription, description, dateOfExpiry
 - **Driver fields saved**: idNumber, name, surname, initials, birthDate, gender, licenceNumber, licenceType, issueDate, expiryDate, vehicleCodes
 - **All fields** extracted from barcode scans are now saved as top-level document properties for consistent display across the app
 - Fixes "undefined undefined" display issues caused by missing fields
 
 **Acceptance Criteria:**
+
 - ✅ expo-sadl successfully decodes driver licenses
 - ✅ All driver fields mapped to Asset type
 - ✅ **All vehicle fields saved** (make, model, vin, colour, engineNo, licenceDiskNo, etc.)
@@ -1306,103 +1454,67 @@ Per South African driver's license standard:
 **Goal**: Multi-step wizard to induct new assets with QR/barcode scanning and validation.
 
 **Implemented Files:**
-- `src/app/(authenticated)/assets/induct/page.tsx` - Main induction page
-- `src/components/assets/InductionWizard.tsx` - Wizard container with step navigation
-- `src/components/assets/wizard-steps/Step1CompanySelect.tsx` - Company selection
-- `src/components/assets/wizard-steps/Step2QRScan.tsx` - First QR scan with NT validation
-- `src/components/assets/wizard-steps/Step3QRVerification.tsx` - Second QR scan verification
-- `src/components/assets/wizard-steps/Step4LicenseScan.tsx` - License/disk barcode scan
-- `src/components/assets/wizard-steps/Step5LicenseVerification.tsx` - Second scan verification
-- `src/components/assets/wizard-steps/Step6AssetTypeDetection.tsx` - Auto-detect type
-- `src/components/assets/wizard-steps/Step7FieldConfirmation.tsx` - Edit extracted fields
-- `src/components/assets/wizard-steps/Step8OptionalFields.tsx` - Fleet number & group
-- `src/components/assets/wizard-steps/Step9Review.tsx` - Final review & submit
-- `src/services/asset.service.ts` - Asset CRUD operations + validation methods
-- Assets added to `src/services/data.service.ts` (real-time reactive state)
+
+- `src/app/(authenticated)/assets/induct/page.tsx` - Main induction page with company type access control
+- `src/components/assets/InductionWizard.tsx` - Wizard container with dynamic 3-4 step navigation
+- `src/components/assets/wizard-steps/Step1QRScan.tsx` - QR code scanning with NT prefix validation
+- `src/components/assets/wizard-steps/Step2LicenseScan.tsx` - License/disk barcode scan with expo-sadl integration
+- `src/components/assets/wizard-steps/Step3OptionalFields.tsx` - Fleet number & group (trucks only, conditional)
+- `src/components/assets/wizard-steps/Step4Review.tsx` - Final review & submit with success alerts
+- `src/services/asset.service.ts` - Complete Asset CRUD operations + in-memory validation methods
+- Assets integrated into `src/services/data.service.ts` (centralized real-time reactive state)
 
 **Implementation Notes:**
+
 - Desktop scanner integration (text input fields with auto-focus and Enter key support)
 - No camera components (web app uses desktop scanners)
 - QR validation enforces NT prefix requirement
 - Two-scan verification pattern for both QR and license
 
-**Wizard Steps (per Flow 2):**
+**Wizard Steps (Current Implementation - Simplified 3-4 Step Process):**
 
-**Step 1: Company Selection**
-- Dropdown: Select company (companyType = transporter OR logistics_coordinator with isAlsoTransporter = true)
-- Only companies that are transporters or logistics coordinators marked as transporters are shown
-- Next button
+**Step 1: QR Code Scan & Validation**
 
-**Step 2: QR Code Scan (First)**
 - Text input field with auto-focus (for desktop scanner)
-- Scan QR code (firstQRCode)
-- Validation: Check not already in system
-- If duplicate: Error + return to start
-- Retry button
-- Next button (or press Enter)
+- Scan Newton QR code with NT prefix validation
+- Real-time uniqueness validation against existing assets
+- Auto-advances on valid scan (Enter key support)
+- Error handling with retry for duplicates/invalid codes
 
-**Step 3: QR Code Verification (Second)**
+**Step 2: License/Disk Barcode Scan & Processing**
+
 - Text input field with auto-focus (for desktop scanner)
-- Scan QR code again (secondQRCode)
-- Validation: Must match firstQRCode
-- If mismatch: Error + return to Step 2
-- Next button (or press Enter)
+- Two-phase scanning: First scan → Verification scan (must match)
+- Auto-parse via expo-sadl for driver licenses or vehicle disks
+- Automatic asset type detection:
+  - PersonInformation → Driver (automatic)
+  - VehicleInformation → User selects Truck or Trailer
+- Field confirmation with editing capability
+- Expiry date validation with color-coded warnings:
+  - Expired: Red banner, process blocked, alert dialog
+  - <7 days: Orange warning (allows continue)
+  - <30 days: Yellow warning (allows continue)
+  - > 30 days: Green (valid)
 
-**Step 4: License/Disk Scan (First)**
-- Text input field with auto-focus (for desktop scanner)
-- Scan license disc barcode (vehicle) OR driver license barcode
-- Auto-parse via AssetFieldMapper wrapper around scan.service.ts
-- Display extracted fields
-- Next button (or press Enter)
+**Step 3: Optional Fields (Conditional - Trucks Only)**
 
-**Step 5: License/Disk Verification (Second)**
-- Text input field with auto-focus (for desktop scanner)
-- Scan same barcode again
-- Validation: Must match first scan data
-- If mismatch: Error + return to Step 4
-- Next button (or press Enter)
+- **Shows only if**: Asset type is "truck" AND company has fleet/group settings enabled
+- Fleet Number (text input) - if `systemSettings.fleetNumberEnabled`
+- Group (dropdown from active groups) - if `systemSettings.transporterGroupEnabled`
+- Auto-skips for trailers/drivers or if both settings disabled
 
-**Step 6: Asset Type Detection**
-- Automatically identify type:
-  - If `VehicleInformation` → Truck or Trailer (user selects)
-  - If `PersonInformation` → Driver (auto-selected, no choice)
-- Display detected type with icon
-- User confirms or overrides (vehicles only)
-- Next button
+**Step 4: Review & Submit**
 
-**Step 7: Field Confirmation & Validation**
-- Display all auto-extracted fields in editable form
-- Editable fields (pre-filled from barcode data)
-- Expiry date validation:
-  - If expired: Red banner "EXPIRED - Process Blocked" + error message
-  - Block next button completely (per Flow 2: "If Invalid (Expired): Process Blocked")
-  - Send notification to users with "security.invalidLicense" enabled
-  - "Return to Start" button provided
-- If valid but <30 days: Yellow warning banner (allows continue)
-- If valid but <7 days: Orange warning banner (allows continue)
-- Next button (disabled if expired)
-
-**Step 8: Optional Fields (Trucks Only)**
-- **IMPORTANT**: This step only shows for **trucks**. Trailers and drivers skip this step automatically.
-- Fleet Number (text input) - only if `systemSettings.fleetNumberEnabled` AND asset type is "truck"
-- Group (dropdown from active groups) - only if `systemSettings.transporterGroupEnabled` AND asset type is "truck"
-- Skip button / Next button
-- Auto-skips if:
-  - Asset type is trailer or driver (these fields don't apply)
-  - Both fields disabled in company settings
-
-**Step 9: Review & Submit**
-- Summary cards showing:
-  - Company
-  - Asset type (with icon)
-  - QR code
-  - All extracted fields (ID/License/Registration/Make/Model/etc)
-  - Expiry date with color-coded badge
-  - Optional fields (Fleet Number, Group)
-- Edit button on each section (returns to relevant step)
-- Submit button (creates asset and sends notifications)
+- Comprehensive summary with all asset information
+- Asset type with appropriate icon/emoji
+- All barcode-extracted fields displayed
+- Expiry date with color-coded badge
+- Edit capability for each section (returns to relevant step)
+- Submit creates asset with ALL extracted fields as top-level properties
+- Success alert dialog requires user acknowledgment before wizard completion
 
 **On Successful Submit:**
+
 - Call `AssetService.create(assetData)` - Saves ALL barcode fields as top-level properties
 - Send notification to users with "asset.added" enabled
 - **Show success alert dialog** with asset type and identifier (requires user acknowledgment before closing wizard)
@@ -1410,15 +1522,16 @@ Per South African driver's license standard:
 - After user clicks "OK", wizard closes and returns to asset listing
 
 **Implemented Methods:**
+
 - `AssetService.create(parsedData, companyId, additionalFields)` - Create asset
 - `AssetService.validateNTCode(ntCode, excludeId?)` - Check NT prefix + uniqueness
 - `AssetService.checkExpiry(expiryDate)` - Validate expiry with status
 - `AssetService.sendExpiryNotifications(asset, daysUntilExpiry)` - Trigger notifications (placeholder)
 
-**Data Model:**
-Reference `docs/data-model.md` → `assets` collection
+**Data Model:** Reference `docs/data-model.md` → `assets` collection
 
 **Acceptance Criteria:**
+
 - ✅ Wizard navigates through all 9 steps
 - ✅ QR code scanned twice and verified (text input with desktop scanner)
 - ✅ QR code validated with NT prefix requirement
@@ -1443,16 +1556,23 @@ Reference `docs/data-model.md` → `assets` collection
 **Goal**: Display all assets with search, filter, and expiry warnings.
 
 **Implemented Files:**
-- `src/app/(authenticated)/assets/page.tsx` - Asset listing page with inline search/filters
-- Assets integrated with `src/services/data.service.ts` (real-time reactive state)
+
+- `src/app/(authenticated)/assets/page.tsx` - Asset listing page with view toggle (card/table) and comprehensive filters
+- `src/components/assets/AssetsCardView.tsx` - Card-based asset listing with dynamic icons and badges
+- `src/components/assets/AssetsTableView.tsx` - Advanced table view with TanStack React Table v8
+- `src/components/assets/AssetBulkActionsToolbar.tsx` - Bulk operations for selected assets
+- Assets fully integrated with `src/services/data.service.ts` (centralized real-time reactive state)
+- `src/hooks/useAssetViewPreference.ts` - Persistent view preference (card/table)
 
 **Implemented Methods:**
+
 - `AssetService.getByCompany(companyId)` - All assets
 - `AssetService.getByType(companyId, type)` - Filter by type
 - `AssetService.getExpiringAssets(companyId, daysThreshold)` - Assets expiring soon
 - `AssetService.getExpiredAssets(companyId)` - Expired assets
 
 **Implemented Features:**
+
 - Search bar (filters registration, license number, ntCode, fleet number, name, surname)
 - Filters:
   - Asset type (All, Truck, Trailer, Driver)
@@ -1477,6 +1597,7 @@ Reference `docs/data-model.md` → `assets` collection
 - Click "View" button navigates to asset details page
 
 **Acceptance Criteria:**
+
 - ✅ Assets listed with all relevant fields
 - ✅ Search works across registration, license, QR, fleet number, driver names
 - ✅ Filters work correctly (type, status, expiry)
@@ -1494,21 +1615,29 @@ Reference `docs/data-model.md` → `assets` collection
 **Goal**: View full asset details and edit QR codes or barcode data (license/disk renewal).
 
 **Implemented Files:**
-- `src/app/(authenticated)/assets/[id]/page.tsx` - Comprehensive asset details page
+
+- `src/app/(authenticated)/assets/[id]/page.tsx` - Comprehensive asset details page with permission-based actions
 - `src/components/assets/AssetEditModal.tsx` - QR code and barcode update modal with success alerts
+- `src/components/assets/AssetOptionalFieldsEditModal.tsx` - Fleet number and group editing modal
+- `src/components/assets/DeleteAssetModal.tsx` - Asset deletion with transaction validation
+- `src/components/assets/InactivateAssetModal.tsx` - Asset inactivation with reason tracking
 
 **Implemented Methods:**
+
 - `AssetService.getById(id)` - Fetch single asset
 - `AssetService.update(id, data)` - Update asset (saves ALL barcode fields when updating)
 - `AssetService.reactivate(id)` - Reactivate inactive assets
 
 **Implemented Features:**
+
 - **Asset Header:**
+
   - Asset type with large icon/emoji
   - Status badges (Active/Inactive/Expired)
   - Action buttons (Edit, Inactivate, Delete)
 
 - **Basic Information Card:**
+
   - Newton QR Code (ntCode)
   - Company name
   - Fleet number (if assigned)
@@ -1516,6 +1645,7 @@ Reference `docs/data-model.md` → `assets` collection
   - Created/updated timestamps
 
 - **Vehicle Details Card** (for trucks/trailers):
+
   - Registration number
   - Make & Model
   - Vehicle Type (vehicleDescription)
@@ -1527,6 +1657,7 @@ Reference `docs/data-model.md` → `assets` collection
   - VIN
 
 - **Driver Personal Information Card** (for drivers):
+
   - Driver photo (if available)
   - ID Number
   - Full Name (initials/name + surname)
@@ -1544,8 +1675,11 @@ Reference `docs/data-model.md` → `assets` collection
   - Status badge (Expired/Valid)
 
 **Asset Edit Modal Features:**
+
 - **Two update options:**
+
   1. **Update QR Code**: For damaged/replaced Newton QR codes
+
      - Verify existing barcode (match asset)
      - Scan new QR code
      - Success alert: "QR code for {identifier} has been successfully updated."
@@ -1562,6 +1696,7 @@ Reference `docs/data-model.md` → `assets` collection
 - All updates require user acknowledgment via success alert dialog before closing modal
 
 **Acceptance Criteria:**
+
 - ✅ Asset details display correctly based on asset type (truck/trailer/driver)
 - ✅ All vehicle fields shown for trucks/trailers (make, model, vin, colour, etc.)
 - ✅ All driver personal info and license details shown for drivers
@@ -1584,10 +1719,12 @@ Reference `docs/data-model.md` → `assets` collection
 **Goal**: Delete assets with no transactions, or inactivate if transactions exist.
 
 **Implemented Files:**
+
 - `src/components/assets/DeleteAssetModal.tsx` - Deletion with transaction checks (NO QR verification)
 - `src/components/assets/InactivateAssetModal.tsx` - Asset inactivation with reason
 
 **Implemented Methods:**
+
 - `AssetService.checkHasTransactions(assetId)` - Returns `{ hasTransactions: boolean, count: number }`
 - `AssetService.delete(id, reason)` - Hard delete (only if no transactions)
 - `AssetService.inactivate(id, reason)` - Soft delete (set isActive = false)
@@ -1596,6 +1733,7 @@ Reference `docs/data-model.md` → `assets` collection
 **UI Requirements:**
 
 **Delete Flow (Simplified - NO QR Verification):**
+
 - User clicks "Delete" on asset
 - Modal opens → **Immediately checks for transactions** (automatic):
   - Query `weighing_records` where `assetId` = id
@@ -1603,6 +1741,7 @@ Reference `docs/data-model.md` → `assets` collection
 - Shows loading state: "Checking if this asset is in use..."
 
   **If No Transactions:**
+
   - Show green success banner: "No Transactions Found - This asset can be safely deleted"
   - Show reason input modal:
     - "Why are you deleting this asset?" (textarea, required)
@@ -1615,6 +1754,7 @@ Reference `docs/data-model.md` → `assets` collection
     - Redirect to asset list
 
   **If Transactions Exist:**
+
   - Show red error banner: "Cannot Delete Asset"
   - Message: "This asset has {count} transaction(s) and cannot be deleted."
   - Explanation: "Instead of deleting, you can mark this asset as inactive. This will hide it from operational dropdowns while preserving all transaction history."
@@ -1627,6 +1767,7 @@ Reference `docs/data-model.md` → `assets` collection
     - Open inactivate modal (see below)
 
 **Inactivate Flow:**
+
 - Show reason input modal:
   - "Why are you marking this asset inactive?" (textarea, required)
   - Examples: "License expired", "Vehicle sold", "Driver resigned"
@@ -1637,10 +1778,10 @@ Reference `docs/data-model.md` → `assets` collection
   - Show success toast: "Asset marked as inactive"
   - Redirect to asset list
 
-**Data Model:**
-Reference `docs/data-model.md` → `assets` collection fields: `isActive`, `inactiveReason`, `inactiveDate`, `deletedReason`
+**Data Model:** Reference `docs/data-model.md` → `assets` collection fields: `isActive`, `inactiveReason`, `inactiveDate`, `deletedReason`
 
 **Acceptance Criteria:**
+
 - ✅ **NO QR scan required** (simplified UX - automatic transaction check)
 - ✅ Transaction check prevents deletion (queries weighing_records and security_checks)
 - ✅ **Assets with transactions CANNOT be deleted** (delete button not shown)
@@ -1672,29 +1813,36 @@ Use for admin/configuration pages where users can have either view-only or full 
 import { useViewPermission } from "@/hooks/useViewPermission"
 import { PERMISSIONS } from "@/lib/permissions"
 
-const { canView, canManage, isViewOnly, loading: permissionLoading } = useViewPermission(
-  PERMISSIONS.MODULE_VIEW,  // View-only permission
-  PERMISSIONS.MODULE        // Full management permission
+const {
+  canView,
+  canManage,
+  isViewOnly,
+  loading: permissionLoading,
+} = useViewPermission(
+  PERMISSIONS.MODULE_VIEW, // View-only permission
+  PERMISSIONS.MODULE // Full management permission
 )
 
 // Action buttons
-{canManage ? (
-  <>
-    <Button onClick={handleToggle}>
-      <ToggleRight />
+{
+  canManage ? (
+    <>
+      <Button onClick={handleToggle}>
+        <ToggleRight />
+      </Button>
+      <Button onClick={handleEdit}>
+        <Edit />
+      </Button>
+      <Button onClick={handleDelete}>
+        <Trash2 />
+      </Button>
+    </>
+  ) : isViewOnly ? (
+    <Button onClick={handleView}>
+      <FileText />
     </Button>
-    <Button onClick={handleEdit}>
-      <Edit />
-    </Button>
-    <Button onClick={handleDelete}>
-      <Trash2 />
-    </Button>
-  </>
-) : isViewOnly ? (
-  <Button onClick={handleView}>
-    <FileText />
-  </Button>
-) : null}
+  ) : null
+}
 ```
 
 #### Pattern 2: Operational Pages (Granular Permissions)
@@ -1711,28 +1859,34 @@ const { hasPermission: canEdit } = usePermission(PERMISSIONS.MODULE_EDIT)
 const { hasPermission: canDelete } = usePermission(PERMISSIONS.MODULE_DELETE)
 
 // Add button
-{canAdd && (
-  <Button onClick={handleAdd}>
-    <Plus /> Add
-  </Button>
-)}
+{
+  canAdd && (
+    <Button onClick={handleAdd}>
+      <Plus /> Add
+    </Button>
+  )
+}
 
 // Edit button
-{canEdit && (
-  <Button onClick={handleEdit}>
-    <Edit /> Edit
-  </Button>
-)}
+{
+  canEdit && (
+    <Button onClick={handleEdit}>
+      <Edit /> Edit
+    </Button>
+  )
+}
 
 // Delete button
-{canDelete && (
-  <Button onClick={handleDelete}>
-    <Trash2 /> Delete
-  </Button>
-)}
+{
+  canDelete && (
+    <Button onClick={handleDelete}>
+      <Trash2 /> Delete
+    </Button>
+  )
+}
 
 // View button (always shown)
-<Button onClick={handleView}>
+;<Button onClick={handleView}>
   <FileText /> View
 </Button>
 ```
@@ -1752,6 +1906,7 @@ When implementing Order Management, the following permission checks MUST be impl
 **Files to Implement:**
 
 1. **Order List Page** (`src/app/(authenticated)/orders/page.tsx`)
+
    - Use Pattern 2 (Granular Permissions)
    - "Create Order" button: Requires `orders.add`
    - "Edit" button: Requires `orders.edit`
@@ -1760,6 +1915,7 @@ When implementing Order Management, the following permission checks MUST be impl
    - "Allocate Assets" button: Requires `orders.allocate`
 
 2. **Order Details Page** (`src/app/(authenticated)/orders/[id]/page.tsx`)
+
    - "Edit" button: Requires `orders.edit`
    - "Update Status" button: Requires `orders.edit`
    - "Allocate Assets" button: Requires `orders.allocate`
@@ -1782,6 +1938,7 @@ When implementing Order Management, the following permission checks MUST be impl
 **Files to Implement:**
 
 1. **Pre-Booking List Page**
+
    - "Create Pre-Booking" button: Requires `prebooking.add`
    - "Edit" button: Requires `prebooking.edit`
    - "Approve/Reject" buttons: Requires `prebooking.approve`
@@ -1808,6 +1965,7 @@ When implementing Order Management, the following permission checks MUST be impl
 **Files to Implement:**
 
 1. **Weighbridge List Page**
+
    - "Start Tare" button: Requires `weighbridge.tare`
    - "Edit" button: Requires `weighbridge.edit`
    - "Void" button: Requires `weighbridge.void`
@@ -1830,6 +1988,7 @@ When implementing Order Management, the following permission checks MUST be impl
 **Files to Implement:**
 
 1. **Security Dashboard**
+
    - "Check In" button: Requires `security.checkin`
    - "Check Out" button: Requires `security.checkout`
    - Override options: Requires `security.override`
@@ -1922,6 +2081,7 @@ When saved column order in localStorage doesn't contain ALL current columns, Dat
 ## Phase 4: Order Management
 
 ### Overview
+
 Implement order creation, allocation, and tracking. Orders depend on products, clients, sites being configured (Phase 2).
 
 **Implementation Pattern (Apply to All Phase 4 Features):**
@@ -1943,11 +2103,13 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
 ---
 
 ### 4.1 Order Creation
+
 **User Flow**: Flow 4 - Order Creation
 
 **Goal**: Create receiving/dispatching orders with complex configuration.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/orders/new/page.tsx`
 - `src/components/orders/OrderCreationWizard.tsx`
 - `src/components/orders/wizard-steps/Step1OrderNumber.tsx`
@@ -1964,14 +2126,17 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
 **Wizard Steps (per Flow 4):**
 
 **Step 1: Order Number Configuration**
+
 - Check `company.orderConfig.orderNumberMode`:
 
   **If "autoOnly":**
+
   - Display auto-generated order number (read-only)
   - Format: `{orderConfig.orderNumberPrefix}YYYY-NNNN` (e.g., DEV-2024-0001)
   - Next button
 
   **If "manualAllowed":**
+
   - Radio buttons:
     - ◉ Use Auto-Generated: `{prefix}YYYY-NNNN`
     - ◯ Enter Manual Order Number: (text input)
@@ -1983,33 +2148,37 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
   - Next button
 
 **Step 2: Basic Information**
-- Order Type* (radio):
+
+- Order Type\* (radio):
   - ◯ Receiving
   - ◉ Dispatching
-- Client* (dropdown from active clients)
-- Dispatch Date Range* (date range picker):
+- Client\* (dropdown from active clients)
+- Dispatch Date Range\* (date range picker):
   - Start Date
   - End Date
   - Validation: End >= Start
-- Total Weight* (number input, tons)
+- Total Weight\* (number input, tons)
   - Validation: > 0
 - Next button
 
 **Step 3: Sites**
-- Collection Site* (dropdown from active sites where siteType = 'collection')
+
+- Collection Site\* (dropdown from active sites where siteType = 'collection')
   - Display: Site name, address, operating hours (collapsed)
-- Destination Site* (dropdown from active sites where siteType = 'destination')
+- Destination Site\* (dropdown from active sites where siteType = 'destination')
   - Display: Site name, address
 - Validation: Collection ≠ Destination
 - Next button
 
 **Step 4: Product**
-- Product* (dropdown from active products)
+
+- Product\* (dropdown from active products)
   - Display: Product name, code, category
 - Next button
 
 **Step 5: Seal Requirements**
-- Seal Required* (checkbox)
+
+- Seal Required\* (checkbox)
   - Pre-filled from `company.orderConfig.defaultSealRequired`
 - Seal Quantity (number input)
   - Pre-filled from `company.orderConfig.defaultSealQuantity`
@@ -2018,10 +2187,11 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
 - Next button
 
 **Step 6: Limits**
-- Daily Truck Limit* (number input)
+
+- Daily Truck Limit\* (number input)
   - Pre-filled from `company.orderConfig.defaultDailyTruckLimit`
   - Validation: > 0
-- Daily Weight Limit* (number input, tons)
+- Daily Weight Limit\* (number input, tons)
   - Pre-filled from `company.orderConfig.defaultDailyWeightLimit`
   - Validation: > 0
 - Monthly Limit (number input, tons, optional)
@@ -2029,14 +2199,17 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
 - Next button
 
 **Step 7: Trip Configuration**
+
 - Radio buttons:
 
   **Option 1: Maximum Trips Per Day**
+
   - Number input (pre-filled from `company.orderConfig.defaultTripLimit`, default 1)
   - Validation: >= 1
   - Applied uniformly across all order days
 
   **Option 2: Trip Duration (hours)**
+
   - Number input (hours, e.g., 4)
   - System calculates possible trips based on:
     - Collection site operating hours (from sites.operatingHours)
@@ -2048,15 +2221,18 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
   - Validation: Trip duration > 0 and <= 24
 
 - Display summary:
+
   - "This order allows {tripsPerDay} trips per day"
   - "Total trips across {days} days: {totalTrips}"
 
 - Next button
 
 **Step 8: Allocation Method**
+
 - Radio buttons:
 
   **Option 1: Assign to Logistics Coordinator**
+
   - Dropdown: Select company (companyType = 'logistics_coordinator')
   - Note: "LC will distribute weight to transporters later"
   - On save:
@@ -2065,6 +2241,7 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
     - Send notification to users with "order.allocated" enabled
 
   **Option 2: Assign to Transporter Companies**
+
   - Add Transporter button:
     - Opens mini-modal:
       - Company dropdown (companyType = 'transporter')
@@ -2087,6 +2264,7 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
 - Next button (disabled if allocation invalid)
 
 **Step 9: Review & Submit**
+
 - Summary sections:
   - Order Number
   - Order Type, Client
@@ -2102,6 +2280,7 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
 - Submit button
 
 **On Submit:**
+
 - Call `OrderService.create(orderData)`
 - Set order status:
   - If allocated to LC or transporters: `status = 'allocated'`
@@ -2114,16 +2293,17 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
 - Redirect to order details page
 
 **Methods/Functions:**
+
 - `OrderService.create(data: OrderInput)` - Create order
 - `OrderService.generateOrderNumber(prefix: string)` - Auto-generate with sequence
 - `OrderService.validateOrderNumber(orderNumber: string)` - Check uniqueness
 - `OrderService.calculatePossibleTrips(siteId: string, tripDuration: number, dateRange: DateRange)` - Trip calculation
 - `OrderService.validateAllocation(allocations: Allocation[], totalWeight: number)` - Weight sum validation
 
-**Data Model:**
-Reference `docs/data-model.md` → `orders` collection
+**Data Model:** Reference `docs/data-model.md` → `orders` collection
 
 **Acceptance Criteria:**
+
 - ✅ Order number auto-generation works
 - ✅ Manual order number validated for duplicates
 - ✅ All required fields validated
@@ -2138,17 +2318,20 @@ Reference `docs/data-model.md` → `orders` collection
 ---
 
 ### 4.2 Order Allocation (Post-Creation)
+
 **User Flow**: Flow 5 - Order Allocation Process (Post-Creation)
 
 **Goal**: Allow Logistics Coordinators to redistribute weight to transporters.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/orders/allocate/[id]/page.tsx`
 - `src/components/orders/AllocationWizard.tsx`
 - `src/components/orders/TransporterAllocationForm.tsx`
 - Modify `OrderService` with allocation methods
 
 **UI Requirements:**
+
 - Only accessible by users in LC companies
 - Only shows orders where `allocations = []` OR order assigned to LC company
 - Allocation form:
@@ -2179,13 +2362,14 @@ Reference `docs/data-model.md` → `orders` collection
   - Show success message
 
 **Methods/Functions:**
+
 - `OrderService.allocate(orderId: string, allocations: Allocation[])` - Update order
 - `OrderService.validateAllocation(allocations: Allocation[], totalWeight: number)` - Weight sum
 
-**Data Model:**
-Reference `docs/data-model.md` → `orders.allocations`
+**Data Model:** Reference `docs/data-model.md` → `orders.allocations`
 
 **Acceptance Criteria:**
+
 - ✅ Only LCs can access allocation page
 - ✅ Weight sum validated
 - ✅ Loading dates within order date range
@@ -2196,11 +2380,13 @@ Reference `docs/data-model.md` → `orders.allocations`
 ---
 
 ### 4.3 Order Listing & Search
+
 **User Flow**: Implicit (view existing orders)
 
 **Goal**: Display all orders with search, filter, and status tracking.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/orders/page.tsx`
 - `src/components/orders/OrderListTable.tsx`
 - `src/components/orders/OrderCard.tsx`
@@ -2208,12 +2394,14 @@ Reference `docs/data-model.md` → `orders.allocations`
 - `src/components/orders/OrderStatusBadge.tsx`
 
 **Methods/Functions:**
+
 - `OrderService.getByCompany(companyId: string)` - All orders for company
 - `OrderService.getByStatus(companyId: string, status: OrderStatus)` - Filter by status
 - `OrderService.getMyAllocatedOrders(userId: string)` - Orders allocated to user's company
 - `OrderService.getExpiringOrders(companyId: string, daysThreshold: number)` - Orders expiring soon
 
 **UI Requirements:**
+
 - Search bar (useOptimizedSearch with config for orderNumber, productName, clientName)
 - Filters:
   - Status (All, Pending, Allocated, Completed, Cancelled)
@@ -2240,6 +2428,7 @@ Reference `docs/data-model.md` → `orders.allocations`
 - Click row to view details
 
 **Acceptance Criteria:**
+
 - ✅ Orders listed with all fields
 - ✅ Search by order number/product/client works
 - ✅ Filters work correctly
@@ -2251,11 +2440,13 @@ Reference `docs/data-model.md` → `orders.allocations`
 ---
 
 ### 4.4 Order Details & Tracking
+
 **User Flow**: Implicit (view order details)
 
 **Goal**: View full order details and track progress.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/orders/[id]/page.tsx`
 - `src/components/orders/OrderDetailsCard.tsx`
 - `src/components/orders/OrderProgressChart.tsx`
@@ -2264,6 +2455,7 @@ Reference `docs/data-model.md` → `orders.allocations`
 - `src/components/orders/WeighingRecordsList.tsx`
 
 **UI Requirements:**
+
 - Order details card:
   - Order number (large, prominent)
   - Status badge
@@ -2299,6 +2491,7 @@ Reference `docs/data-model.md` → `orders.allocations`
   - Export to PDF
 
 **Methods/Functions:**
+
 - `OrderService.getById(id: string)` - Fetch order
 - `OrderService.getProgress(id: string)` - Calculate completion stats
 - `OrderService.getPreBookings(orderId: string)` - Related pre-bookings
@@ -2306,6 +2499,7 @@ Reference `docs/data-model.md` → `orders.allocations`
 - `OrderService.cancel(id: string, reason: string)` - Cancel order
 
 **Acceptance Criteria:**
+
 - ✅ Order details display completely
 - ✅ Progress chart accurate
 - ✅ Allocations show correct data
@@ -2319,6 +2513,7 @@ Reference `docs/data-model.md` → `orders.allocations`
 ## Phase 5: Pre-Booking System
 
 ### Overview
+
 Implement truck pre-booking and scheduling for orders.
 
 **Implementation Pattern (Apply to All Phase 5 Features):**
@@ -2338,11 +2533,13 @@ Implement truck pre-booking and scheduling for orders.
 ---
 
 ### 5.1 Pre-Booking Creation
+
 **User Flow**: Flow 6 - Pre-Booking Process
 
 **Goal**: Allow LCs/transporters to schedule truck arrivals.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/pre-bookings/new/page.tsx`
 - `src/components/pre-bookings/PreBookingWizard.tsx`
 - `src/components/pre-bookings/wizard-steps/Step1OrderSelect.tsx`
@@ -2357,6 +2554,7 @@ Implement truck pre-booking and scheduling for orders.
 **Wizard Steps (per Flow 6):**
 
 **Step 1: Order Selection**
+
 - Dropdown: Active orders
   - Filter: Orders with available weight (allocatedWeight > completedWeight)
   - Display: Order number, product, remaining weight
@@ -2367,6 +2565,7 @@ Implement truck pre-booking and scheduling for orders.
 - Next button
 
 **Step 2: Date & Time Selection**
+
 - Calendar view showing order date range
 - Available dates highlighted (within order range)
 - Click date to select
@@ -2378,6 +2577,7 @@ Implement truck pre-booking and scheduling for orders.
 - Next button
 
 **Step 3: Truck Search & Selection**
+
 - Filters:
   - Transporter Company (dropdown)
   - Truck Type (dropdown: All, Truck only, Truck+Trailer)
@@ -2395,6 +2595,7 @@ Implement truck pre-booking and scheduling for orders.
 - Next button (disabled if no truck selected)
 
 **Step 4: Trip Configuration**
+
 - Trips per day (number input)
   - Default from order.tripLimit
   - Validation: Cannot exceed order.tripLimit
@@ -2405,6 +2606,7 @@ Implement truck pre-booking and scheduling for orders.
 - Next button
 
 **Step 5: Review & Submit**
+
 - Summary:
   - Order number
   - Scheduled date & time
@@ -2415,6 +2617,7 @@ Implement truck pre-booking and scheduling for orders.
 - Submit button
 
 **On Submit:**
+
 - Call `PreBookingService.create(preBookingData)`
 - Set status = 'pending'
 - Send notification to users with "preBooking.created" enabled
@@ -2423,15 +2626,16 @@ Implement truck pre-booking and scheduling for orders.
 - Redirect to pre-bookings list
 
 **Methods/Functions:**
+
 - `PreBookingService.create(data: PreBookingInput)` - Create pre-booking
 - `PreBookingService.checkTruckAvailability(assetId: string, date: string, time: string)` - Returns boolean
 - `PreBookingService.validateTripsAgainstLimit(orderId: string, tripsPerDay: number)` - Validate against order limit
 - `PreBookingService.scheduleReminder(preBookingId: string, scheduledTime: Date)` - Schedule 24h reminder
 
-**Data Model:**
-Reference `docs/data-model.md` → `pre_bookings` collection
+**Data Model:** Reference `docs/data-model.md` → `pre_bookings` collection
 
 **Acceptance Criteria:**
+
 - ✅ Orders with available weight shown
 - ✅ Date/time validated against site hours
 - ✅ Truck availability checked
@@ -2443,23 +2647,27 @@ Reference `docs/data-model.md` → `pre_bookings` collection
 ---
 
 ### 5.2 Pre-Booking Listing
+
 **User Flow**: Implicit (view pre-bookings)
 
 **Goal**: Display all pre-bookings with status tracking.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/pre-bookings/page.tsx`
 - `src/components/pre-bookings/PreBookingListTable.tsx`
 - `src/components/pre-bookings/PreBookingCalendar.tsx`
 - `src/components/pre-bookings/PreBookingStatusBadge.tsx`
 
 **Methods/Functions:**
+
 - `PreBookingService.getByCompany(companyId: string)` - All pre-bookings
 - `PreBookingService.getByDate(date: string)` - Daily schedule
 - `PreBookingService.getLateArrivals()` - Arrivals >24h late
 - `PreBookingService.updateStatus(id: string, status: PreBookingStatus, arrivalTime?: Date)` - Update status
 
 **UI Requirements:**
+
 - View toggle: List / Calendar
 - List view:
   - Search by order number / truck registration
@@ -2488,6 +2696,7 @@ Reference `docs/data-model.md` → `pre_bookings` collection
   - If arrival >24h after scheduled: Send notification to users with "preBooking.lateArrival" enabled
 
 **Acceptance Criteria:**
+
 - ✅ Pre-bookings listed correctly
 - ✅ Calendar view shows daily counts
 - ✅ Search and filters work
@@ -2498,16 +2707,19 @@ Reference `docs/data-model.md` → `pre_bookings` collection
 ## Phase 6: Dashboard
 
 ### Overview
+
 Implement role-based dashboards with different views for mine companies, transporter companies, and logistics coordinator companies. Each company type sees relevant metrics and data.
 
 ---
 
 ### 6.1 Dashboard for Mine Companies
+
 **User Flow**: Implicit - landing page after login for mine users
 
 **Goal**: Provide mine operators with operational overview and order/weighing metrics.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/page.tsx` (update with role-based rendering)
 - `src/components/dashboard/MineDashboard.tsx`
 - `src/components/dashboard/widgets/` (shared widget components)
@@ -2515,12 +2727,14 @@ Implement role-based dashboards with different views for mine companies, transpo
 **Dashboard Sections:**
 
 **Key Metrics (Top Cards):**
+
 - Today's total weight (tons)
 - Today's trip count
 - Active orders count
 - Pending pre-bookings count
 
 **Active Orders Widget:**
+
 - Table of active orders:
   - Order number
   - Client
@@ -2531,6 +2745,7 @@ Implement role-based dashboards with different views for mine companies, transpo
 - Link to view order details
 
 **Today's Weighing Activity Widget:**
+
 - Recent weighing records table (last 10):
   - Time
   - Ticket number
@@ -2540,15 +2755,18 @@ Implement role-based dashboards with different views for mine companies, transpo
 - Link to view all weighing records
 
 **7-Day Trends Widget:**
+
 - Line chart: Daily weight totals (last 7 days)
 - Bar chart: Daily trip counts (last 7 days)
 
 **Alerts & Notifications Widget:**
+
 - Recent security alerts (overloads, underweights, seal mismatches)
 - Orders expiring soon (within 7 days)
 - Count of pending alerts with link to details
 
 **Acceptance Criteria:**
+
 - ✅ Dashboard loads quickly (<2 seconds)
 - ✅ All metrics display correctly
 - ✅ Charts render properly
@@ -2558,23 +2776,25 @@ Implement role-based dashboards with different views for mine companies, transpo
 
 ---
 
-###7.2 Dashboard for Transporter Companies
-**User Flow**: Implicit - landing page after login for transporter users
+###7.2 Dashboard for Transporter Companies **User Flow**: Implicit - landing page after login for transporter users
 
 **Goal**: Provide transporters with asset utilization, assigned orders, and trip tracking.
 
 **Files to Create/Modify:**
+
 - `src/components/dashboard/TransporterDashboard.tsx`
 
 **Dashboard Sections:**
 
 **Key Metrics (Top Cards):**
+
 - Total active trucks
 - Trucks on trips today
 - Today's trips completed
 - Today's weight hauled (tons)
 
 **Assigned Orders Widget:**
+
 - Table of orders allocated to this transporter:
   - Order number
   - Collection site
@@ -2586,6 +2806,7 @@ Implement role-based dashboards with different views for mine companies, transpo
 - Link to view order details
 
 **Fleet Activity Widget:**
+
 - Table of today's truck activity:
   - Truck registration
   - Driver name
@@ -2596,6 +2817,7 @@ Implement role-based dashboards with different views for mine companies, transpo
 - Real-time status indicators (in transit, at site, idle)
 
 **Pre-Bookings Calendar Widget:**
+
 - Upcoming pre-bookings (next 7 days):
   - Date
   - Truck registration
@@ -2605,10 +2827,12 @@ Implement role-based dashboards with different views for mine companies, transpo
 - Link to create new pre-booking
 
 **Performance Metrics Widget:**
+
 - Pie chart: Weight by product (current month)
 - Bar chart: Trips per truck (top 10 trucks, current month)
 
 **Acceptance Criteria:**
+
 - ✅ Dashboard loads quickly
 - ✅ Fleet activity updates in real-time
 - ✅ Pre-bookings display correctly
@@ -2619,22 +2843,26 @@ Implement role-based dashboards with different views for mine companies, transpo
 ---
 
 ### 6.3 Dashboard for Logistics Coordinator Companies
+
 **User Flow**: Implicit - landing page after login for LC users
 
 **Goal**: Provide coordinators with order allocation overview, transporter performance, and pending allocations.
 
 **Files to Create/Modify:**
+
 - `src/components/dashboard/LogisticsCoordinatorDashboard.tsx`
 
 **Dashboard Sections:**
 
 **Key Metrics (Top Cards):**
+
 - Orders assigned to me (pending allocation)
 - Active orders under my coordination
 - Transporters managed
 - Today's total weight across all transporters
 
 **Pending Allocations Widget:**
+
 - Table of orders awaiting distribution to transporters:
   - Order number
   - Client
@@ -2646,6 +2874,7 @@ Implement role-based dashboards with different views for mine companies, transpo
 - Highlights orders approaching dispatch date (yellow/red)
 
 **Active Allocations Widget:**
+
 - Table of orders allocated to transporters:
   - Order number
   - Transporter name
@@ -2656,6 +2885,7 @@ Implement role-based dashboards with different views for mine companies, transpo
 - Filter by transporter
 
 **Transporter Performance Widget:**
+
 - Table of transporters under coordination:
   - Company name
   - Active orders
@@ -2666,11 +2896,13 @@ Implement role-based dashboards with different views for mine companies, transpo
 - Sortable columns
 
 **Pre-Booking Overview Widget:**
+
 - Calendar view of upcoming pre-bookings across all transporters
 - Color-coded by transporter company
 - Filter by date range and transporter
 
 **Acceptance Criteria:**
+
 - ✅ Dashboard loads quickly
 - ✅ Pending allocations prominently displayed
 - ✅ Performance metrics accurate
@@ -2681,17 +2913,20 @@ Implement role-based dashboards with different views for mine companies, transpo
 ---
 
 ### 6.4 Global Admin Dashboard (Optional Enhancement)
+
 **Goal**: System-wide overview for global administrators.
 
 **Dashboard Sections:**
 
 **System Health Metrics:**
+
 - Total companies in system
 - Total active users
 - Total active assets
 - Total active orders
 
 **Activity Feed:**
+
 - Recent system-wide actions:
   - Company created/updated
   - User added
@@ -2701,6 +2936,7 @@ Implement role-based dashboards with different views for mine companies, transpo
 - Timestamp and user info for each action
 
 **Company Performance:**
+
 - Table of all companies:
   - Company name
   - Type (mine/transporter/LC)
@@ -2710,6 +2946,7 @@ Implement role-based dashboards with different views for mine companies, transpo
 - Link to switch to company view
 
 **Acceptance Criteria:**
+
 - ✅ Global metrics accurate
 - ✅ Activity feed real-time
 - ✅ Company switcher integrated
@@ -2720,16 +2957,19 @@ Implement role-based dashboards with different views for mine companies, transpo
 ## Phase 7: Notifications
 
 ### Overview
+
 Implement automated email notification system triggered by events throughout the application.
 
 ---
 
 ### 7.1 Notification Sending Service
+
 **User Flow**: Flow 16 - Notification System Infrastructure (backend)
 
 **Goal**: Automated email sending based on events.
 
 **Files to Create/Modify:**
+
 - `src/services/notification.service.ts`
 - `src/lib/email-sender.ts`
 - `src/app/api/notifications/send/route.ts` (API endpoint)
@@ -2738,12 +2978,14 @@ Implement automated email notification system triggered by events throughout the
 **Trigger Points (from all phases):**
 
 **Asset Events:**
+
 - asset.added - When asset created in induction
 - asset.inactive - When asset marked inactive
 - asset.edited - When asset updated
 - asset.deleted - When asset hard deleted
 
 **Order Events:**
+
 - order.created - When order created
 - order.allocated - When order allocated to company/LC
 - order.cancelled - When order cancelled
@@ -2751,12 +2993,14 @@ Implement automated email notification system triggered by events throughout the
 - order.expiring - 7 days before dispatchEndDate
 
 **Weighbridge Events:**
+
 - weighbridge.overload - When overload detected
 - weighbridge.underweight - When underweight detected
 - weighbridge.violations - When daily limit exceeded
 - weighbridge.manualOverride - When weight manually overridden
 
 **Security Events:**
+
 - security.invalidLicense - Expired license scanned
 - security.unbookedArrival - No pre-booking found
 - security.noActiveOrder - No active order for company
@@ -2767,14 +3011,17 @@ Implement automated email notification system triggered by events throughout the
 - security.incompleteTruck - Truck exits without weighing
 
 **Pre-Booking Events:**
+
 - preBooking.created - New pre-booking made
 - preBooking.lateArrival - Arrival >24h late
 
 **Driver Events:**
+
 - driver.licenseExpiring7 - License expires in 7 days
 - driver.licenseExpiring30 - License expires in 30 days
 
 **Methods/Functions:**
+
 - `NotificationService.send(eventType: string, data: object)` - Main send function
   - Look up template by event type
   - Filter recipients by notification preferences
@@ -2788,11 +3035,13 @@ Implement automated email notification system triggered by events throughout the
   - `NotificationService.scheduleDriverLicenseExpiry()` - Cron job (daily) to check licenses expiring in 7/30 days
 
 **Email Provider Setup:**
+
 - Use environment variables for API keys
 - Recommended: Resend (modern, developer-friendly)
 - Configuration in `src/lib/email-config.ts`
 
 **Acceptance Criteria:**
+
 - ✅ All event types trigger notifications
 - ✅ Recipients filtered by preferences
 - ✅ Direct allocations always send (override preference)
@@ -2804,16 +3053,19 @@ Implement automated email notification system triggered by events throughout the
 ---
 
 ### 7.2 Notification History
+
 **User Flow**: Implicit (admin debugging)
 
 **Goal**: View log of all sent notifications.
 
 **Files to Create/Modify:**
+
 - `src/app/(authenticated)/admin/notifications/history/page.tsx`
 - `src/components/notifications/NotificationHistoryTable.tsx`
 - Create `notification_logs` collection (optional, or use audit_logs)
 
 **UI Requirements:**
+
 - Search by recipient email
 - Filters:
   - Date range
@@ -2830,11 +3082,13 @@ Implement automated email notification system triggered by events throughout the
 - Retry button for failed notifications
 
 **Methods/Functions:**
+
 - `NotificationService.logNotification(eventType: string, recipients: string[], status: string, error?: string)` - Log to Firestore
 - `NotificationService.getHistory(filters: object)` - Fetch logs
 - `NotificationService.retryFailed(id: string)` - Resend failed notification
 
 **Acceptance Criteria:**
+
 - ✅ All notifications logged
 - ✅ Search and filters work
 - ✅ Failed notifications can be retried
@@ -2847,22 +3101,26 @@ Implement automated email notification system triggered by events throughout the
 ## Phase 8: Audit Logging
 
 ### Overview
+
 Comprehensive audit logging system to track all user actions for compliance, debugging, and security.
 
 ---
 
 ### 8.1 Audit Logging Implementation
+
 **User Flow**: Implicit (compliance and debugging)
 
 **Goal**: Track all user actions for compliance.
 
 **Files to Create/Modify:**
+
 - `src/services/audit.service.ts`
 - `src/app/api/audit/route.ts` (API endpoint)
 - `src/app/(authenticated)/admin/audit-logs/page.tsx`
 - `src/components/audit/AuditLogTable.tsx`
 
 **Logged Actions:**
+
 - User login/logout
 - Company created/updated/deactivated
 - User created/updated/deactivated
@@ -2880,6 +3138,7 @@ Comprehensive audit logging system to track all user actions for compliance, deb
 - Permission override used
 
 **Audit Log Structure (per data-model.md):**
+
 ```typescript
 {
   id: string
@@ -2898,6 +3157,7 @@ Comprehensive audit logging system to track all user actions for compliance, deb
 ```
 
 **UI Requirements:**
+
 - Search by user, action, entity type
 - Filters:
   - Date range
@@ -2916,18 +3176,21 @@ Comprehensive audit logging system to track all user actions for compliance, deb
 - Retention policy UI (e.g., delete logs older than X days)
 
 **Methods/Functions:**
+
 - `AuditService.log(action: string, entityType: string, entityId: string, changes: object, userId: string)` - Create log
 - `AuditService.getLogs(filters: object)` - Fetch logs
 - `AuditService.getEntityHistory(entityType: string, entityId: string)` - History of single entity
 - `AuditService.deleteOldLogs(retentionDays: number)` - Cleanup (scheduled)
 
 **Implementation Pattern:**
+
 - Intercept all `createDocument`, `updateDocument`, `deleteDocument` calls
 - Extract changed fields by comparing old vs new
 - Capture IP and user agent from request
 - Write to `audit_logs` collection asynchronously (don't block user action)
 
 **Acceptance Criteria:**
+
 - ✅ All CRUD actions logged
 - ✅ Changes tracked accurately
 - ✅ IP and user agent captured
@@ -2937,7 +3200,6 @@ Comprehensive audit logging system to track all user actions for compliance, deb
 - ✅ Retention policy enforced
 
 ---
-
 
 ## Appendix A: File Structure Summary
 
@@ -3067,6 +3329,7 @@ Newton/
 For each phase, use this checklist:
 
 ### Pre-Implementation
+
 - [ ] Phase prerequisites completed (all dependencies ready)
 - [ ] Data model reviewed and understood
 - [ ] User flow reviewed
@@ -3074,6 +3337,7 @@ For each phase, use this checklist:
 - [ ] Service layer methods designed
 
 ### During Implementation
+
 - [ ] TypeScript types defined
 - [ ] All required fields from data-model.md included
 - [ ] Timestamps added correctly (client + server)
@@ -3087,6 +3351,7 @@ For each phase, use this checklist:
 - [ ] Firestore security rules updated (if needed)
 
 ### Post-Implementation
+
 - [ ] No TypeScript errors
 - [ ] No console errors
 - [ ] All CRUD operations work
@@ -3107,6 +3372,7 @@ For each phase, use this checklist:
 ## Appendix C: Common Patterns Reference
 
 ### Pattern: CRUD with firebase-utils
+
 ```typescript
 // Create
 import { createDocument } from "@/lib/firebase-utils"
@@ -3125,6 +3391,7 @@ await deleteDocument("collection_name", id, "Deleted successfully")
 ```
 
 ### Pattern: Reactive Data Service
+
 ```typescript
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
@@ -3141,15 +3408,16 @@ export default function MyComponent() {
 ```
 
 ### Pattern: Optimized Search
+
 ```typescript
 import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
 
-const { searchTerm, setSearchTerm, filteredItems, isSearching } =
-  useOptimizedSearch(dataArray, SEARCH_CONFIGS.entityName)
+const { searchTerm, setSearchTerm, filteredItems, isSearching } = useOptimizedSearch(dataArray, SEARCH_CONFIGS.entityName)
 ```
 
 ### Pattern: Permission Check
+
 ```typescript
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
@@ -3161,6 +3429,7 @@ if (!hasPermission) return <AccessDenied />
 ```
 
 ### Pattern: Wizard Navigation
+
 ```typescript
 const [step, setStep] = useState(1)
 const [formData, setFormData] = useState({})
@@ -3173,6 +3442,7 @@ const updateFormData = (field: string, value: any) => {
 ```
 
 ### Pattern: Notification Trigger
+
 ```typescript
 import { NotificationService } from "@/services/notification.service"
 
@@ -3186,17 +3456,12 @@ await NotificationService.send("asset.added", {
 ```
 
 ### Pattern: Audit Log
+
 ```typescript
 import { AuditService } from "@/services/audit.service"
 
 // Log action
-await AuditService.log(
-  "order.created",
-  "order",
-  orderId,
-  { status: "allocated", totalWeight: 500 },
-  user.id
-)
+await AuditService.log("order.created", "order", orderId, { status: "allocated", totalWeight: 500 }, user.id)
 ```
 
 ---
@@ -3262,10 +3527,11 @@ Phase 9 (Enhancements) ← Optional future features
 
 ## Document Change Log
 
-| Date       | Version | Changes                                      |
-|------------|---------|----------------------------------------------|
-| 2025-01-06 | 2.0.0   | Complete rewrite - MECE coverage, no code    |
-| 2024-XX-XX | 1.0.0   | Initial version (partial implementation code)|
+| Date       | Version | Changes                                                                                             |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------- |
+| 2025-01-22 | 3.0.0   | Updated to reflect actual codebase implementation status - all Phase 1, 2, and 3 features completed |
+| 2025-01-06 | 2.0.0   | Complete rewrite - MECE coverage, no code                                                           |
+| 2024-XX-XX | 1.0.0   | Initial version (partial implementation code)                                                       |
 
 ---
 
