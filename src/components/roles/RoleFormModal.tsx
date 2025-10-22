@@ -62,7 +62,7 @@ export function RoleFormModal({ open, onClose, onSuccess, role, viewOnly = false
       }}
       onPrepareData={() => ({
         name: name.trim(),
-        description: description.trim() || null,
+        description: description.trim() || undefined,
         permissionKeys,
         isActive,
       })}

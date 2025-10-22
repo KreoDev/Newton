@@ -1,13 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { useAuth } from "@/contexts/AuthContext"
 import { useViewPermission } from "@/hooks/useViewPermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
 import { Plus, Search, Package, Edit, ToggleLeft, ToggleRight, Trash2, FileText } from "lucide-react"
 import type { Product } from "@/types"
@@ -21,17 +20,16 @@ import { db } from "@/lib/firebase"
 import { updateDocument, deleteDocument } from "@/lib/firebase-utils"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
+import { useSimpleModalState } from "@/hooks/useModalState"
 
 export default function ProductsPage() {
   useSignals() // Required for reactivity
-  const { user } = useAuth()
   const { canView, canManage, isViewOnly, loading: permissionLoading } = useViewPermission(
     PERMISSIONS.ADMIN_PRODUCTS_VIEW,
     PERMISSIONS.ADMIN_PRODUCTS
   )
   const { showSuccess, showError, showConfirm } = useAlert()
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined)
+  const { showCreateModal, setShowCreateModal, editingEntity: editingProduct, setEditingEntity: setEditingProduct } = useSimpleModalState<Product>()
   const [filterStatus, setFilterStatus] = useState<string>("all")
 
   // Get products from centralized data service
@@ -182,7 +180,7 @@ export default function ProductsPage() {
                         <FileText className="h-4 w-4" />
                       </Button>
                     ) : null}
-                    <Badge variant={product.isActive ? "success" : "secondary"}>{product.isActive ? "Active" : "Inactive"}</Badge>
+                    <StatusBadge isActive={product.isActive} />
                   </div>
                 </div>
               ))}

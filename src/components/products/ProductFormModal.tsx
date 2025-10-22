@@ -60,7 +60,7 @@ export function ProductFormModal({ open, onClose, onSuccess, product, viewOnly =
       onPrepareData={() => ({
         name: name.trim(),
         code: code.trim(),
-        specifications: specifications.trim() || null,
+        specifications: specifications.trim() || undefined,
         isActive,
       })}
     >

@@ -1,6 +1,5 @@
 import { useMemo } from "react"
 import { useCompany } from "@/contexts/CompanyContext"
-import type { CompanyType } from "@/types"
 
 /**
  * Features that require specific company types
@@ -13,10 +12,11 @@ export type CompanyFeature = "assets" | "products" | "clients" | "sites" | "grou
  */
 export function useCompanyAccess(feature: CompanyFeature): {
   canAccess: boolean
-  companyType: CompanyType | null
+  companyType: "mine" | "transporter" | "logistics_coordinator" | null
   isLoading: boolean
 } {
-  const { company, loading } = useCompany()
+  const { company } = useCompany()
+  const loading = !company
 
   const canAccess = useMemo(() => {
     if (!company) return false
@@ -61,10 +61,11 @@ export function useCompanyAccessMultiple(features: CompanyFeature[]): {
   access: Record<CompanyFeature, boolean>
   canAccessAny: boolean
   canAccessAll: boolean
-  companyType: CompanyType | null
+  companyType: "mine" | "transporter" | "logistics_coordinator" | null
   isLoading: boolean
 } {
-  const { company, loading } = useCompany()
+  const { company } = useCompany()
+  const loading = !company
 
   const result = useMemo(() => {
     if (!company) {
@@ -117,8 +118,8 @@ export function useCompanyAccessMultiple(features: CompanyFeature[]): {
 /**
  * Utility function to get human-readable company type name
  */
-export function getCompanyTypeName(companyType: CompanyType): string {
-  const typeNames: Record<CompanyType, string> = {
+export function getCompanyTypeName(companyType: "mine" | "transporter" | "logistics_coordinator"): string {
+  const typeNames: Record<"mine" | "transporter" | "logistics_coordinator", string> = {
     mine: "Mine",
     transporter: "Transporter",
     logistics_coordinator: "Logistics Coordinator",
