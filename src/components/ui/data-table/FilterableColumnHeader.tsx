@@ -75,17 +75,18 @@ export function FilterableColumnHeader<TData, TValue>({
   }
 
   return (
-    <div className="flex items-center w-full gap-2">
+    <>
       <span>{title}</span>
 
-      {/* Filter Dropdown - positioned at absolute right edge of cell */}
+      {/* Filter Dropdown - positioned absolutely at far right of cell */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <div
             className={cn(
-              "cursor-pointer p-1 hover:opacity-70 transition-opacity ml-auto -mr-2",
+              "absolute right-2 cursor-pointer p-1 hover:opacity-70 transition-opacity",
               isFiltered && "text-primary"
             )}
+            onClick={(e) => e.stopPropagation()} // Prevent triggering parent button's sort
           >
             <Filter className={cn("h-4 w-4 opacity-50", isFiltered && "fill-primary opacity-100")} />
           </div>
@@ -124,6 +125,6 @@ export function FilterableColumnHeader<TData, TValue>({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
+    </>
   )
 }
