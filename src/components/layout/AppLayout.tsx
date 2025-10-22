@@ -18,6 +18,9 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { PERMISSIONS, type PermissionKey } from "@/lib/permissions"
 import { data as globalData } from "@/services/data.service"
 import type { Role } from "@/types"
+import { useCompanyStatusMonitor } from "@/hooks/useCompanyStatusMonitor"
+import { InactiveCompanyModal } from "@/components/company/InactiveCompanyModal"
+import { CompanySwitcherModal } from "@/components/company/CompanySwitcherModal"
 
 function AppBreadcrumbs() {
   const pathname = usePathname()
@@ -189,6 +192,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { company, companies, switchCompany } = useCompany()
   const activeCompanyName = company?.name || user?.companyId || "Select company"
   const canSwitchCompanies = Boolean(user?.isGlobal && companies.length > 0)
+
+  // Monitor company status for real-time deactivation handling
+  const { companyBecameInactive, isGlobalUser, availableCompanies, handleForceLogout, resetState } = useCompanyStatusMonitor()
 
   const switchableCompanies = useMemo(
     () => companies.filter(c => c.id !== user?.companyId),
@@ -375,6 +381,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <div className="glass-surface-floating glass-layer-gradient border border-[var(--glass-border-floating)] shadow-[var(--glass-shadow-xl)] min-h-full rounded-3xl px-6 py-5 animate-fade-up [animation-duration:400ms]">{children}</div>
           </main>
         </div>
+
+        {/* Company deactivation modals */}
+        {companyBecameInactive && !isGlobalUser && (
+          <InactiveCompanyModal
+            open={companyBecameInactive}
+            companyName={company?.name || "Your company"}
+            onLogout={handleForceLogout}
+          />
+        )}
+
+        {companyBecameInactive && isGlobalUser && (
+          <CompanySwitcherModal
+            open={companyBecameInactive}
+            inactiveCompanyName={company?.name || "Your company"}
+            availableCompanies={availableCompanies}
+            onSwitchCompany={async (companyId: string) => {
+              await switchCompany(companyId)
+              resetState()
+            }}
+            onLogout={handleForceLogout}
+          />
+        )}
       </div>
     )
   }
@@ -490,6 +518,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
         )}
         <div className="glass-surface-floating glass-layer-gradient border border-[var(--glass-border-floating)] shadow-[var(--glass-shadow-xl)] min-h-full rounded-3xl px-6 py-5 animate-fade-up [animation-duration:400ms]">{children}</div>
       </main>
+
+      {/* Company deactivation modals */}
+      {companyBecameInactive && !isGlobalUser && (
+        <InactiveCompanyModal
+          open={companyBecameInactive}
+          companyName={company?.name || "Your company"}
+          onLogout={handleForceLogout}
+        />
+      )}
+
+      {companyBecameInactive && isGlobalUser && (
+        <CompanySwitcherModal
+          open={companyBecameInactive}
+          inactiveCompanyName={company?.name || "Your company"}
+          availableCompanies={availableCompanies}
+          onSwitchCompany={async (companyId: string) => {
+            await switchCompany(companyId)
+            resetState()
+          }}
+          onLogout={handleForceLogout}
+        />
+      )}
     </div>
   )
 }

@@ -68,12 +68,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userDoc = await getDoc(doc(db, "users", userCredential.user.uid))
     if (userDoc.exists()) {
       const userData = userDoc.data() as User
+
+      // Check if user is inactive
       if (!userData.isActive) {
-        // Sign out if user is inactive
         await signOut(auth)
         const error: any = new Error("Your account has been deactivated. Please contact your administrator.")
         error.code = "auth/account-deactivated"
         throw error
+      }
+
+      // Check if company is inactive
+      const companyDoc = await getDoc(doc(db, "companies", userData.companyId))
+      if (companyDoc.exists()) {
+        const companyData = companyDoc.data()
+        if (!companyData.isActive) {
+          await signOut(auth)
+          const error: any = new Error(`Your company (${companyData.name}) has been deactivated. Please contact your administrator.`)
+          error.code = "auth/company-deactivated"
+          throw error
+        }
       }
     }
   }
