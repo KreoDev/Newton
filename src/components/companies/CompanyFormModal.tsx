@@ -176,7 +176,6 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
         })) as User[]
         setLocalUsers(usersList)
       } catch (error) {
-        console.error("Error fetching users for company:", error)
         showError("Error", "Failed to load users for this company")
         setLocalUsers([])
       } finally{
@@ -207,7 +206,6 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
         })) as Group[]
         setLocalGroups(groupsList)
       } catch (error) {
-        console.error("Error fetching groups for company:", error)
         showError("Error", "Failed to load groups for this company")
         setLocalGroups([])
       } finally {
@@ -432,7 +430,6 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
         }
       }
     } catch (error) {
-      console.error("Error saving groups:", error)
       showError("Failed to Save Groups", error instanceof Error ? error.message : "An unexpected error occurred.")
       throw error
     }
@@ -689,7 +686,6 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
       onClose()
       resetForm()
     } catch (error) {
-      console.error("Error saving company:", error)
       showError(`Failed to ${isEditing ? "Update" : "Create"} Company`, error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)
@@ -724,7 +720,6 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
       // Close the modal - useEffect will handle opening the next one
       setAssetListModalOpen(false)
     } catch (error) {
-      console.error(`Error removing ${modalField}s:`, error)
       toast.error(`Failed to remove ${modalField}s from some assets`)
       throw error // Re-throw to let modal handle it
     }

@@ -13,8 +13,7 @@ import { DataTable } from "@/components/ui/data-table"
 import { FilterableColumnHeader } from "@/components/ui/data-table/FilterableColumnHeader"
 import { useAlert } from "@/hooks/useAlert"
 import { useAuth } from "@/contexts/AuthContext"
-import { updateDoc, doc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
+import { updateDocument } from "@/lib/firebase-utils"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
 import { BulkActionsToolbar } from "./BulkActionsToolbar"
@@ -34,7 +33,7 @@ interface UsersTableProps {
 
 export function UsersTable({ users, canViewAllCompanies, canManage, canManagePermissions = false, isViewOnly = false, onEdit, onEditPermissions, onChangePassword, onChangeEmail, onMoveCompany }: UsersTableProps) {
   useSignals()
-  const { showSuccess, showError } = useAlert()
+  const { showSuccess, showError, showConfirm } = useAlert()
   const { user: currentUser } = useAuth()
   const [selectedUsers, setSelectedUsers] = useState<UserType[]>([])
   const [tableKey, setTableKey] = useState(0) // Key to force re-render and clear selection
@@ -47,13 +46,13 @@ export function UsersTable({ users, canViewAllCompanies, canManage, canManagePer
     }
 
     try {
-      await updateDoc(doc(db, "users", user.id), {
-        isActive: !user.isActive,
-        updatedAt: Date.now(),
-      })
-      showSuccess(`User ${user.isActive ? "Deactivated" : "Activated"}`, `${user.firstName} ${user.lastName} has been ${user.isActive ? "deactivated" : "activated"} successfully.`)
+      await updateDocument(
+        "users",
+        user.id,
+        { isActive: !user.isActive },
+        `User ${user.isActive ? "deactivated" : "activated"} successfully`
+      )
     } catch (error) {
-      console.error("Error toggling user status:", error)
       showError("Failed to Update User", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
@@ -66,7 +65,14 @@ export function UsersTable({ users, canViewAllCompanies, canManage, canManagePer
     }
 
     // Confirm deletion
-    if (!confirm(`Are you sure you want to permanently delete ${user.firstName} ${user.lastName}? This action cannot be undone.`)) {
+    const confirmed = await showConfirm(
+      "Delete User",
+      `Are you sure you want to permanently delete ${user.firstName} ${user.lastName}? This action cannot be undone.`,
+      "Delete",
+      "destructive"
+    )
+
+    if (!confirmed) {
       return
     }
 
@@ -85,7 +91,6 @@ export function UsersTable({ users, canViewAllCompanies, canManage, canManagePer
 
       showSuccess("User Deleted", `${user.firstName} ${user.lastName} has been permanently deleted.`)
     } catch (error) {
-      console.error("Error deleting user:", error)
       showError("Failed to Delete User", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }

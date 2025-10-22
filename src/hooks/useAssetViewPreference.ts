@@ -42,7 +42,6 @@ export function useAssetViewPreference() {
 
       toast.success(`Assets view changed to ${newView} view`)
     } catch (error) {
-      console.error("Error updating asset view preference:", error)
       toast.error("Failed to save view preference")
     } finally {
       setLoading(false)

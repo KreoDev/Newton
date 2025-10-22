@@ -79,7 +79,6 @@ export default function CompaniesPage() {
       )
       // Real-time listener will automatically update the list
     } catch (error) {
-      console.error("Error toggling company status:", error)
       showError("Failed to Update Company", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
@@ -107,26 +106,22 @@ export default function CompaniesPage() {
         return
       }
 
-      showConfirm(
+      const confirmed = await showConfirm(
         "Delete Company",
         `Are you sure you want to delete "${company.name}"? This action cannot be undone.`,
-        async () => {
-          try {
-            if (!user) return
-            await CompanyService.delete(company.id, user.companyId)
-            showSuccess("Company Deleted", `${company.name} has been permanently removed.`)
-            // Real-time listener will automatically update the list
-          } catch (error) {
-            console.error("Error deleting company:", error)
-            showError("Failed to Delete Company", error instanceof Error ? error.message : "An unexpected error occurred.")
-          }
-        },
-        undefined,
-        "Delete",
-        "Cancel"
+        "Delete"
       )
+      if (!confirmed) return
+
+      try {
+        if (!user) return
+        await CompanyService.delete(company.id, user.companyId)
+        showSuccess("Company Deleted", `${company.name} has been permanently removed.`)
+        // Real-time listener will automatically update the list
+      } catch (error) {
+        showError("Failed to Delete Company", error instanceof Error ? error.message : "An unexpected error occurred.")
+      }
     } catch (error) {
-      console.error("Error checking company usage:", error)
       showError("Error", "Failed to check if company can be deleted. Please try again.")
     }
   }

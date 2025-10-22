@@ -155,7 +155,6 @@ export function ClientFormModal({ open, onClose, onSuccess, client, viewOnly = f
       onClose()
       resetForm()
     } catch (error) {
-      console.error("Error saving client:", error)
       showError(`Failed to ${isEditing ? "Update" : "Create"} Client`, error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)

@@ -57,7 +57,6 @@ export function useAsyncOperation() {
           onError(err)
         }
 
-        console.error("Async operation error:", err)
         return null
       } finally {
         setLoading(false)
@@ -92,7 +91,6 @@ export function useSimpleAsyncOperation<T>() {
       setLoading(true)
       return await operation()
     } catch (error) {
-      console.error("Operation error:", error)
       return null
     } finally {
       setLoading(false)

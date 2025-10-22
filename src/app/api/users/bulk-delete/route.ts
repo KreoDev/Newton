@@ -18,7 +18,6 @@ export async function POST(req: NextRequest) {
         // Delete from Firestore
         await adminDb.collection("users").doc(userId).delete()
       } catch (error) {
-        console.error(`Error deleting user ${userId}:`, error)
         throw error
       }
     })
@@ -30,7 +29,6 @@ export async function POST(req: NextRequest) {
       message: `Successfully deleted ${userIds.length} user(s)`
     })
   } catch (error) {
-    console.error("Bulk delete error:", error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to delete users" },
       { status: 500 }

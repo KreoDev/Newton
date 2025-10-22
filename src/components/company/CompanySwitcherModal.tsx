@@ -31,7 +31,6 @@ export function CompanySwitcherModal({ open, inactiveCompanyName, availableCompa
       setSwitching(true)
       await onSwitchCompany(selectedCompanyId)
     } catch (error) {
-      console.error("Error switching company:", error)
     } finally {
       setSwitching(false)
     }

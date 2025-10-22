@@ -66,7 +66,6 @@ export function BulkSendNotificationModal({ open, onClose, users, onSuccess }: B
       setMessage("")
       onSuccess()
     } catch (error) {
-      console.error("Error sending notifications:", error)
       showError("Send Failed", error instanceof Error ? error.message : "Failed to send notifications.")
     } finally {
       setLoading(false)

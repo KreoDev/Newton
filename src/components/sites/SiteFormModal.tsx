@@ -182,7 +182,6 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
       onClose()
       resetForm()
     } catch (error) {
-      console.error("Error saving site:", error)
       showError(`Failed to ${isEditing ? "Update" : "Create"} Site`, error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)

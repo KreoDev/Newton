@@ -54,7 +54,6 @@ export function DeleteAssetModal({ asset, isOpen, onClose, onSuccess, onSwitchTo
         setStep("reason-input")
       }
     } catch (error) {
-      console.error("Error checking transactions:", error)
       toast.error("Failed to check transactions")
       onClose()
     } finally {
@@ -76,7 +75,6 @@ export function DeleteAssetModal({ asset, isOpen, onClose, onSuccess, onSwitchTo
       onSuccess()
       onClose()
     } catch (error) {
-      console.error("Error deleting asset:", error)
       toast.error("Failed to delete asset")
     } finally {
       setIsProcessing(false)

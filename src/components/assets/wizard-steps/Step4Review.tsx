@@ -68,12 +68,6 @@ export function Step4Review({ state, onComplete, onPrev }: Step4Props) {
     setIsSubmitting(true)
 
     try {
-      console.log("💾 Step9: Creating asset with following data:")
-      console.log("  Company ID:", state.companyId)
-      console.log("  Parsed Data:", state.parsedData)
-      console.log("  🔍 Step9: VehicleInfo in parsedData:", state.parsedData.vehicleInfo)
-      console.log("  🚨 Step9: Description in vehicleInfo:", state.parsedData.vehicleInfo?.description)
-      console.log("  Optional Fields:", { fleetNumber: state.fleetNumber, groupId: state.groupId })
 
       // Create the asset
       await AssetService.create(
@@ -102,7 +96,6 @@ export function Step4Review({ state, onComplete, onPrev }: Step4Props) {
 
       // TODO: Send notification to users with "asset.added" preference
     } catch (error) {
-      console.error("Error creating asset:", error)
       toast.error("Failed to induct asset. Please try again.")
       setIsSubmitting(false)
     }

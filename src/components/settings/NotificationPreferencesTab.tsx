@@ -62,7 +62,6 @@ export function NotificationPreferencesTab() {
       showSuccess("Saved", "Notification preferences updated successfully")
       setHasChanges(false)
     } catch (error) {
-      console.error("Error saving notification preferences:", error)
       showError("Error", "Failed to save notification preferences")
     } finally {
       setIsSaving(false)

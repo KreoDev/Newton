@@ -53,7 +53,6 @@ export default function ProductsPage() {
         `${product.name} has been ${product.isActive ? "deactivated" : "activated"} successfully.`
       )
     } catch (error) {
-      console.error("Error toggling product status:", error)
       showError("Failed to Update Product", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
@@ -72,23 +71,19 @@ export default function ProductsPage() {
         return
       }
 
-      showConfirm(
+      const confirmed = await showConfirm(
         "Delete Product",
         `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
-        async () => {
-          try {
-            await deleteDocument("products", product.id, "Product deleted successfully")
-          } catch (error) {
-            console.error("Error deleting product:", error)
-            showError("Failed to Delete Product", error instanceof Error ? error.message : "An unexpected error occurred.")
-          }
-        },
-        undefined,
-        "Delete",
-        "Cancel"
+        "Delete"
       )
+      if (!confirmed) return
+
+      try {
+        await deleteDocument("products", product.id, "Product deleted successfully")
+      } catch (error) {
+        showError("Failed to Delete Product", error instanceof Error ? error.message : "An unexpected error occurred.")
+      }
     } catch (error) {
-      console.error("Error checking product usage:", error)
       showError("Error", "Failed to check if product can be deleted. Please try again.")
     }
   }

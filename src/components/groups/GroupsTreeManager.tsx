@@ -7,9 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, ChevronRight, ChevronDown, Edit, Trash2, Save, X, Network } from "lucide-react"
 import type { Group } from "@/types"
-import { doc, updateDoc, deleteDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
-import { createDocument } from "@/lib/firebase-utils"
+import { createDocument, updateDocument, deleteDocument } from "@/lib/firebase-utils"
 import { useAlert } from "@/hooks/useAlert"
 import { cn } from "@/lib/utils"
 import { data as globalData } from "@/services/data.service"
@@ -96,12 +94,15 @@ export function GroupsTreeManager({ companyId }: GroupsTreeManagerProps) {
     try {
       if (editingGroupId) {
         // Update existing group
-        await updateDoc(doc(db, "groups", editingGroupId), {
-          name: formName.trim(),
-          description: formDescription.trim() || null,
-          updatedAt: Date.now(),
-        })
-        showSuccess("Group Updated", `Group "${formName.trim()}" has been updated successfully.`)
+        await updateDocument(
+          "groups",
+          editingGroupId,
+          {
+            name: formName.trim(),
+            description: formDescription.trim() || null,
+          },
+          `Group "${formName.trim()}" updated successfully`
+        )
       } else {
         // Create new group
         const parentGroup = addingParentId ? groups.find(g => g.id === addingParentId) : null
@@ -114,10 +115,6 @@ export function GroupsTreeManager({ companyId }: GroupsTreeManagerProps) {
           path,
           isActive: true,
           companyId,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          dbCreatedAt: null as any, // Will be set by createDocument
-          dbUpdatedAt: null as any,
         }
 
         // Only add optional fields if they have values
@@ -128,12 +125,11 @@ export function GroupsTreeManager({ companyId }: GroupsTreeManagerProps) {
           groupData.parentGroupId = addingParentId
         }
 
-        await createDocument("groups", groupData, `Group "${formName.trim()}" has been created successfully.`)
+        await createDocument("groups", groupData, `Group "${formName.trim()}" created successfully`)
       }
 
       cancelForm()
     } catch (error) {
-      console.error("Error saving group:", error)
       showError("Failed to Save Group", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
@@ -159,22 +155,18 @@ export function GroupsTreeManager({ companyId }: GroupsTreeManagerProps) {
       return
     }
 
-    showConfirm(
+    const confirmed = await showConfirm(
       "Delete Group",
       `Are you sure you want to delete "${group.name}"? This action cannot be undone.`,
-      async () => {
-        try {
-          await deleteDoc(doc(db, "groups", group.id))
-          showSuccess("Group Deleted", `Group "${group.name}" has been permanently removed.`)
-        } catch (error) {
-          console.error("Error deleting group:", error)
-          showError("Failed to Delete Group", error instanceof Error ? error.message : "An unexpected error occurred.")
-        }
-      },
-      undefined,
-      "Delete",
-      "Cancel"
+      "Delete"
     )
+    if (!confirmed) return
+
+    try {
+      await deleteDocument("groups", group.id, `Group "${group.name}" deleted successfully`)
+    } catch (error) {
+      showError("Failed to Delete Group", error instanceof Error ? error.message : "An unexpected error occurred.")
+    }
   }
 
   const renderTree = (nodes: TreeNode[], level: number = 0): React.ReactNode => {

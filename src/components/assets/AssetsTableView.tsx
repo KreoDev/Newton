@@ -15,6 +15,7 @@ import { getDriverColumns } from "./column-definitions/driverColumns"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { useCompany } from "@/contexts/CompanyContext"
+import { useSignals } from "@preact/signals-react/runtime"
 
 interface AssetsTableViewProps {
   assets: Asset[]
@@ -22,6 +23,7 @@ interface AssetsTableViewProps {
 }
 
 export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
+  useSignals()
   const router = useRouter()
   const { company } = useCompany()
   const [selectedType, setSelectedType] = useState<"truck" | "trailer" | "driver">("truck")

@@ -23,7 +23,6 @@ export abstract class BaseService<T extends { id: string }> {
 
       return { id: docSnap.id, ...docSnap.data() } as T
     } catch (error) {
-      console.error(`Error fetching ${collectionName} by ID:`, error)
       throw error
     }
   }
@@ -38,7 +37,6 @@ export abstract class BaseService<T extends { id: string }> {
 
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T))
     } catch (error) {
-      console.error(`Error fetching all ${collectionName}:`, error)
       throw error
     }
   }
@@ -53,7 +51,6 @@ export abstract class BaseService<T extends { id: string }> {
 
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T))
     } catch (error) {
-      console.error(`Error fetching ${collectionName} by company:`, error)
       throw error
     }
   }
@@ -68,7 +65,6 @@ export abstract class BaseService<T extends { id: string }> {
 
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T))
     } catch (error) {
-      console.error(`Error fetching active ${collectionName}:`, error)
       throw error
     }
   }
@@ -86,7 +82,6 @@ export abstract class BaseService<T extends { id: string }> {
 
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T))
     } catch (error) {
-      console.error(`Error fetching active ${collectionName} by company:`, error)
       throw error
     }
   }
@@ -98,7 +93,6 @@ export abstract class BaseService<T extends { id: string }> {
     try {
       return await createDocument(collectionName, data, successMessage)
     } catch (error) {
-      console.error(`Error creating ${collectionName}:`, error)
       throw error
     }
   }
@@ -110,7 +104,6 @@ export abstract class BaseService<T extends { id: string }> {
     try {
       await updateDocument(collectionName, id, data, successMessage)
     } catch (error) {
-      console.error(`Error updating ${collectionName}:`, error)
       throw error
     }
   }
@@ -122,7 +115,6 @@ export abstract class BaseService<T extends { id: string }> {
     try {
       await deleteDocument(collectionName, id, successMessage)
     } catch (error) {
-      console.error(`Error deleting ${collectionName}:`, error)
       throw error
     }
   }
@@ -136,7 +128,6 @@ export abstract class BaseService<T extends { id: string }> {
       const docSnap = await getDoc(docRef)
       return docSnap.exists()
     } catch (error) {
-      console.error(`Error checking if ${collectionName} exists:`, error)
       throw error
     }
   }
@@ -150,7 +141,6 @@ export abstract class BaseService<T extends { id: string }> {
       const snapshot = await getDocs(queryRef)
       return snapshot.size
     } catch (error) {
-      console.error(`Error counting ${collectionName}:`, error)
       throw error
     }
   }
@@ -163,7 +153,6 @@ export abstract class BaseService<T extends { id: string }> {
       const snapshot = await getDocs(q)
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T))
     } catch (error) {
-      console.error("Error fetching with custom query:", error)
       throw error
     }
   }
@@ -183,7 +172,6 @@ export abstract class BaseService<T extends { id: string }> {
 
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T))
     } catch (error) {
-      console.error(`Error fetching paginated ${collectionName}:`, error)
       throw error
     }
   }

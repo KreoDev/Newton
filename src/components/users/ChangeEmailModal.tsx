@@ -122,7 +122,6 @@ export function ChangeEmailModal({ isOpen, onClose }: ChangeEmailModalProps) {
       })
       onClose()
     } catch (error: any) {
-      console.error("Error changing email:", error)
 
       if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
         setErrors(prev => ({ ...prev, currentPassword: "Current password is incorrect" }))

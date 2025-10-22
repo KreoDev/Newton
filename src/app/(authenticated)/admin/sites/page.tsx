@@ -55,7 +55,6 @@ export default function SitesPage() {
         `${site.name} has been ${site.isActive ? "deactivated" : "activated"} successfully.`
       )
     } catch (error) {
-      console.error("Error toggling site status:", error)
       showError("Failed to Update Site", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
@@ -82,23 +81,19 @@ export default function SitesPage() {
         return
       }
 
-      showConfirm(
+      const confirmed = await showConfirm(
         "Delete Site",
         `Are you sure you want to delete "${site.name}"? This action cannot be undone.`,
-        async () => {
-          try {
-            await deleteDocument("sites", site.id, "Site deleted successfully")
-          } catch (error) {
-            console.error("Error deleting site:", error)
-            showError("Failed to Delete Site", error instanceof Error ? error.message : "An unexpected error occurred.")
-          }
-        },
-        undefined,
-        "Delete",
-        "Cancel"
+        "Delete"
       )
+      if (!confirmed) return
+
+      try {
+        await deleteDocument("sites", site.id, "Site deleted successfully")
+      } catch (error) {
+        showError("Failed to Delete Site", error instanceof Error ? error.message : "An unexpected error occurred.")
+      }
     } catch (error) {
-      console.error("Error checking site usage:", error)
       showError("Error", "Failed to check if site can be deleted. Please try again.")
     }
   }

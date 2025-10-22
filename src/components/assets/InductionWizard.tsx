@@ -51,7 +51,6 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
   }
 
   const prevStep = () => {
-    console.log("🔙 prevStep called - currentStep:", currentStep)
 
     // Navigation based on 4 user-facing steps:
     // Step 1 (QR Scan) → Back to Assets
@@ -61,14 +60,12 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
 
     if (currentStep === 1) {
       // From QR Scan → navigate to Assets page
-      console.log("🔙 From QR Scan - Back to Assets")
       handleBackToAssets()
       return
     }
 
     if (currentStep === 2) {
       // From License Scan → Back to QR Scan (step 1)
-      console.log("🔙 From License Scan - Back to Step 1 (QR Scan), clearing QR codes")
       updateState({
         firstQRCode: undefined,
         secondQRCode: undefined,
@@ -79,7 +76,6 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
 
     if (currentStep === 3) {
       // From Optional Fields → Back to License Scan (step 2)
-      console.log("🔙 From Optional Fields - Back to Step 2 (License Scan), clearing barcode data")
       updateState({
         firstBarcodeData: undefined,
         secondBarcodeData: undefined,
@@ -92,10 +88,8 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
     if (currentStep === 4) {
       // From Review → Back to Optional Fields (step 3) if shown, else License Scan (step 2)
       if (shouldShowOptionalFields()) {
-        console.log("🔙 From Review - Back to Optional Fields (Step 3)")
         goToStep(3)
       } else {
-        console.log("🔙 From Review - Back to Step 2 (License Scan), clearing barcode data")
         updateState({
           firstBarcodeData: undefined,
           secondBarcodeData: undefined,

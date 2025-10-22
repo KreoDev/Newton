@@ -59,7 +59,6 @@ export function usePermission(permission: PermissionKey): { hasPermission: boole
         setHasPermission(hasIt)
         setLoading(false)
       } catch (error) {
-        console.error("Error checking permission:", error)
         setHasPermission(false)
         setLoading(false)
       }

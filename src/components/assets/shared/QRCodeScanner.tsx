@@ -31,7 +31,6 @@ export function QRCodeScanner({
 
   // Handle scans coming from onscan.js
   const handleScannerScan = useCallback((scannedValue: string) => {
-    console.log("QRCodeScanner: New QR code scanned")
     setQrCode(scannedValue)
     setError("")
     setIsValidating(false)
@@ -137,7 +136,6 @@ export function QRCodeScanner({
         onScanSuccess(qrCode.trim())
       }
     } catch (error) {
-      console.error("QRCodeScanner: Error validating QR code:", error)
       setError("Failed to validate QR code. Please try again.")
       alert.showError("Validation Failed", "Failed to validate QR code. Please try again.", () => {
         setQrCode("")

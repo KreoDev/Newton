@@ -150,7 +150,6 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
       })
       onClose()
     } catch (error: any) {
-      console.error("Error changing password:", error)
 
       if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
         setErrors(prev => ({ ...prev, currentPassword: "Current password is incorrect" }))

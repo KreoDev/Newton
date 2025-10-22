@@ -68,7 +68,6 @@ export function GenericBulkActionModal<T>({ open, onClose, items, onSuccess, con
 
       onSuccess()
     } catch (error) {
-      console.error("Bulk action error:", error)
       showError(errorTitle, error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)

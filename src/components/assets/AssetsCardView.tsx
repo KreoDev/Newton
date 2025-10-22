@@ -58,7 +58,6 @@ export function AssetsCardView({ assets, loading }: AssetsCardViewProps) {
       )
       // Real-time listener will automatically update the list
     } catch (error) {
-      console.error("Error activating asset:", error)
       showError("Failed to Activate Asset", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }

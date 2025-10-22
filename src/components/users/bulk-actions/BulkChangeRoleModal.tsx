@@ -59,7 +59,6 @@ export function BulkChangeRoleModal({ open, onClose, users, onSuccess }: BulkCha
       )
       onSuccess()
     } catch (error) {
-      console.error("Error updating roles:", error)
       showError("Update Failed", error instanceof Error ? error.message : "Failed to update roles.")
     } finally {
       setLoading(false)

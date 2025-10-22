@@ -139,22 +139,22 @@ export function TemplateEditor({ open, onClose, onSuccess, template }: TemplateE
       await new Promise(resolve => setTimeout(resolve, 1000))
       showSuccess("Test Email Sent", `A test email has been sent to ${user.email}.`)
     } catch (error) {
-      console.error("Error sending test email:", error)
       showError("Failed to Send Test Email", error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleResetToDefault = () => {
-    showConfirm(
+  const handleResetToDefault = async () => {
+    const confirmed = await showConfirm(
       "Reset Template",
       "Are you sure you want to reset this template to its default values? This will discard all changes.",
-      () => {
-        resetForm()
-        showSuccess("Template Reset", "Template has been reset to defaults.")
-      }
+      "Reset"
     )
+    if (!confirmed) return
+
+    resetForm()
+    showSuccess("Template Reset", "Template has been reset to defaults.")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -204,7 +204,6 @@ export function TemplateEditor({ open, onClose, onSuccess, template }: TemplateE
       onClose()
       resetForm()
     } catch (error) {
-      console.error("Error saving template:", error)
       showError(`Failed to ${isEditing ? "Update" : "Create"} Template`, error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)

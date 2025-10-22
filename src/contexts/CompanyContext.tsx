@@ -52,7 +52,6 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
         const selectedCompany = globalData.companies.value.find(c => c.id === companyId) ?? null
         setCompany(selectedCompany)
       } catch (error) {
-        console.error("Failed to switch company", error)
       }
     },
     [user, refreshUser]

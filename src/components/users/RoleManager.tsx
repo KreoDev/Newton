@@ -54,7 +54,6 @@ export function RoleManager({ open, onClose, onSuccess, user, viewOnly = false }
       onSuccess()
       onClose()
     } catch (error) {
-      console.error("Error updating user role:", error)
       showError("Failed to Update Role", error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)

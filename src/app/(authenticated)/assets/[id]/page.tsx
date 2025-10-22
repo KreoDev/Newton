@@ -64,7 +64,6 @@ export default function AssetDetailsPage() {
       const data = await AssetService.getById(assetId)
       setAsset(data)
     } catch (error) {
-      console.error("Error fetching asset:", error)
     } finally {
       setLoading(false)
     }

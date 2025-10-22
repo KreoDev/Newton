@@ -49,7 +49,6 @@ export function AlertProvider() {
       try {
         await onConfirm()
       } catch (error) {
-        console.error("Alert confirm error:", error)
       } finally {
         setIsProcessing(false)
       }

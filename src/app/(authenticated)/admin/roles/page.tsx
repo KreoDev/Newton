@@ -62,7 +62,6 @@ export default function RolesPage() {
         `${role.name} has been ${role.isActive ? "deactivated" : "activated"} successfully.`
       )
     } catch (error) {
-      console.error("Error toggling role status:", error)
       showError("Failed to Update Role", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
@@ -96,7 +95,6 @@ export default function RolesPage() {
         `${role.name} is now ${isCurrentlyHidden ? "visible" : "hidden"} for your company.`
       )
     } catch (error) {
-      console.error("Error toggling company visibility:", error)
       showError("Failed to Update Visibility", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
@@ -122,23 +120,19 @@ export default function RolesPage() {
         return
       }
 
-      showConfirm(
+      const confirmed = await showConfirm(
         "Delete Role",
         `Are you sure you want to delete "${role.name}"? This action cannot be undone.`,
-        async () => {
-          try {
-            await deleteDocument("roles", role.id, "Role deleted successfully")
-          } catch (error) {
-            console.error("Error deleting role:", error)
-            showError("Failed to Delete Role", error instanceof Error ? error.message : "An unexpected error occurred.")
-          }
-        },
-        undefined,
-        "Delete",
-        "Cancel"
+        "Delete"
       )
+      if (!confirmed) return
+
+      try {
+        await deleteDocument("roles", role.id, "Role deleted successfully")
+      } catch (error) {
+        showError("Failed to Delete Role", error instanceof Error ? error.message : "An unexpected error occurred.")
+      }
     } catch (error) {
-      console.error("Error checking role usage:", error)
       showError("Error", "Failed to check if role can be deleted. Please try again.")
     }
   }

@@ -32,7 +32,6 @@ export function BulkDeleteModal({ open, onClose, users, onSuccess }: BulkDeleteM
       )
       onSuccess()
     } catch (error) {
-      console.error("Error deleting users:", error)
       showError("Delete Failed", error instanceof Error ? error.message : "Failed to delete users.")
     } finally {
       setLoading(false)

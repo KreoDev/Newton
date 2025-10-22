@@ -151,7 +151,6 @@ export function PermissionOverrideEditor({ open, onClose, onSuccess, user, viewO
       onSuccess()
       onClose()
     } catch (error) {
-      console.error("Error updating user permissions:", error)
       showError("Failed to Update Permissions", error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)

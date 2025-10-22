@@ -78,15 +78,9 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
   // Handle scans coming from onscan.js
   const handleScannerScan = useCallback(
     (scannedValue: string) => {
-      console.log("🔴 RAW SCANNER INPUT (first 200 chars):", scannedValue.substring(0, 200))
-      console.log("🔴 RAW SCANNER INPUT (full length):", scannedValue.length)
-      console.log("🔴 HAS SPACES?", scannedValue.includes(" "))
-      console.log("🔴 HAS SLASHES?", scannedValue.includes("/"))
-      console.log("Step2: Barcode scanned:", scannedValue.substring(0, 50))
 
       if (phase === "first-scan-waiting" || phase === "error") {
         // First scan
-        console.log("Step2: Processing first scan")
         setFirstBarcodeData(scannedValue)
         setSecondBarcodeData("")
         setParsedData(null)
@@ -94,7 +88,6 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
         setPhase("first-scan-processing")
       } else if (phase === "second-scan-waiting") {
         // Second scan (verification)
-        console.log("Step2: Processing second scan for verification")
         setSecondBarcodeData(scannedValue)
         setError("")
         setPhase("second-scan-verifying")
@@ -116,10 +109,6 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
       // Enter key = end of scan
       if (event.key === "Enter") {
         if (scanBuffer.length >= 6) {
-          console.log("🔴 CUSTOM SCANNER - Final buffer:", scanBuffer)
-          console.log("🔴 CUSTOM SCANNER - Length:", scanBuffer.length)
-          console.log("🔴 CUSTOM SCANNER - Has spaces?", scanBuffer.includes(" "))
-          console.log("🔴 CUSTOM SCANNER - Has slashes?", scanBuffer.includes("/"))
           handleScannerScan(scanBuffer)
           scanBuffer = ""
         }
@@ -142,7 +131,6 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
         if (scanTimeout) clearTimeout(scanTimeout)
         scanTimeout = setTimeout(() => {
           if (scanBuffer.length >= 6) {
-            console.log("🔴 CUSTOM SCANNER - Timeout triggered, final buffer:", scanBuffer)
             handleScannerScan(scanBuffer)
           }
           scanBuffer = ""
@@ -193,14 +181,12 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
   }, [phase, detectedType, fields])
 
   const processFirstScan = async () => {
-    console.log("Step2: Processing first scan - parsing and validating vehicle disk")
 
     try {
       // Parse as vehicle disk
       const vehicleResult = await AssetFieldMapper.parseVehicleDisk(firstBarcodeData.trim())
 
       if ("error" in vehicleResult) {
-        console.log("Step2: Failed to parse as vehicle disk:", vehicleResult.error)
         setError("Invalid vehicle license disk")
         setPhase("error")
         alert.showError(
@@ -212,13 +198,6 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
         )
         return
       }
-
-      console.log(
-        "Step2: Parsed as vehicle, registration:",
-        vehicleResult.registration,
-        "description:",
-        vehicleResult.description
-      )
 
       // Check if vehicle type is acceptable (truck or trailer only)
       const vehicleType = (vehicleResult.description || "").toLowerCase()
@@ -245,7 +224,6 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
       const isAcceptedType = acceptedTypes.some((type) => vehicleType.includes(type))
 
       if (!isAcceptedType) {
-        console.log("Step2: Invalid vehicle type detected:", vehicleResult.description)
         setError(`Invalid vehicle type: ${vehicleResult.description}`)
         setPhase("error")
         alert.showError(
@@ -259,11 +237,9 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
       }
 
       // Check for duplicates
-      console.log("Step2: Valid vehicle type, checking for duplicates")
       const validation = AssetService.validateRegistration(vehicleResult.registration)
 
       if (!validation.isValid) {
-        console.log("Step2: Duplicate vehicle detected")
         setError(validation.error || "Duplicate vehicle registration")
         setPhase("error")
         alert.showError(
@@ -277,14 +253,12 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
       }
 
       // Success - move to second scan
-      console.log("Step2: First scan valid, proceeding to verification")
       setParsedData({ type: "vehicle", data: vehicleResult })
       setPhase("first-scan-success")
       setTimeout(() => {
         setPhase("second-scan-waiting")
       }, 300)
     } catch (error) {
-      console.error("Error parsing/validating barcode:", error)
       setError("Failed to validate barcode")
       setPhase("error")
       alert.showError("Validation Failed", "Failed to validate barcode. Please try again.", () => {
@@ -294,24 +268,18 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
   }
 
   const verifySecondScan = () => {
-    console.log("Step2: Verifying second scan matches first")
 
     const normalizedScan1 = normalize(firstBarcodeData)
     const normalizedScan2 = normalize(secondBarcodeData)
 
-    console.log("  First (normalized):", normalizedScan1.substring(0, 50) + "...")
-    console.log("  Second (normalized):", normalizedScan2.substring(0, 50) + "...")
-    console.log("  Match:", normalizedScan1 === normalizedScan2)
 
     if (normalizedScan1 === normalizedScan2) {
-      console.log("Step2: Verification successful, proceeding to type detection")
       updateState({
         firstBarcodeData: firstBarcodeData.trim(),
         secondBarcodeData: secondBarcodeData.trim(),
       })
       setPhase("type-detection")
     } else {
-      console.log("Step2: Verification failed - barcodes don't match")
       setError("Barcode data does not match")
       setPhase("error")
       alert.showError("Barcode Mismatch", "The barcodes do not match. Please scan again.", () => {
@@ -321,13 +289,11 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
   }
 
   const detectAssetType = () => {
-    console.log("Step2: Detecting asset type from parsed vehicle data")
 
     const vehicleType = determineVehicleType(parsedData.data.description || "")
 
     if (!vehicleType) {
       const errorMsg = `Could not determine vehicle type. Description: "${parsedData.data.description}"`
-      console.error("Step2:", errorMsg)
       setError(errorMsg)
       setPhase("error")
       alert.showError(
@@ -340,7 +306,6 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
       return
     }
 
-    console.log("Step2: Detected vehicle type:", vehicleType)
     setDetectedType(vehicleType)
 
     // Populate fields for validation
@@ -361,7 +326,6 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
   }
 
   const validateFields = () => {
-    console.log("Step2: Validating fields and checking expiry")
 
     if (!hasAutoAdvanced.current) {
       // Check expiry
@@ -371,7 +335,6 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
         setIsExpired(info.status === "expired")
 
         if (info.status === "expired") {
-          console.log("Step2: License disk is expired, blocking advancement")
           setError("Expired license disk")
           setPhase("error")
           return
@@ -379,7 +342,6 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
       }
 
       // All validation passed - auto-advance
-      console.log("Step2: All validation passed, auto-advancing to next step")
       hasAutoAdvanced.current = true
       setPhase("complete")
       autoAdvance()
@@ -416,7 +378,6 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
   }
 
   const handleClear = () => {
-    console.log("Step2: Clearing all data for new scan")
     setFirstBarcodeData("")
     setSecondBarcodeData("")
     setParsedData(null)

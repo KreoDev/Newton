@@ -270,7 +270,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
     try {
       await logout()
     } catch (error) {
-      console.error("Logout error:", error)
     }
   }
 

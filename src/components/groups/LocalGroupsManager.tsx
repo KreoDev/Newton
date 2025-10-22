@@ -174,7 +174,6 @@ export function LocalGroupsManager({ groups, onChange, companyId, existingGroupI
               ...doc.data()
             })) as Site[]
           } catch (error) {
-            console.error("Error querying sites:", error)
             showError("Error", "Failed to check if sites are using this group. Please try again.")
             return
           }
@@ -188,16 +187,14 @@ export function LocalGroupsManager({ groups, onChange, companyId, existingGroupI
       }
     }
 
-    showConfirm(
+    const confirmed = await showConfirm(
       "Delete Group",
       `Are you sure you want to delete "${group.name}"? This action cannot be undone.`,
-      () => {
-        onChange(groups.filter(g => g.tempId !== group.tempId))
-      },
-      undefined,
-      "Delete",
-      "Cancel"
+      "Delete"
     )
+    if (!confirmed) return
+
+    onChange(groups.filter(g => g.tempId !== group.tempId))
   }
 
   const renderTree = (nodes: TreeNode[], level: number = 0): React.ReactNode => {

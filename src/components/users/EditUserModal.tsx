@@ -183,7 +183,6 @@ export function EditUserModal({ user, isOpen, onClose, roles, viewOnly = false }
       setPendingPassword("")
       onClose()
     } catch (error) {
-      console.error("Error updating user:", error)
       showError("Failed to Update User", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }

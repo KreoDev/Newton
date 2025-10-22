@@ -56,7 +56,6 @@ export default function ClientsPage() {
         `${client.name} has been ${client.isActive ? "deactivated" : "activated"} successfully.`
       )
     } catch (error) {
-      console.error("Error toggling client status:", error)
       showError("Failed to Update Client", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
@@ -77,23 +76,19 @@ export default function ClientsPage() {
       }
 
       // Only allow deletion if client has never been used
-      showConfirm(
+      const confirmed = await showConfirm(
         "Delete Client",
         `Are you sure you want to delete "${client.name}"? This action cannot be undone.`,
-        async () => {
-          try {
-            await deleteDocument("clients", client.id, "Client deleted successfully")
-          } catch (error) {
-            console.error("Error deleting client:", error)
-            showError("Failed to Delete Client", error instanceof Error ? error.message : "An unexpected error occurred.")
-          }
-        },
-        undefined,
-        "Delete",
-        "Cancel"
+        "Delete"
       )
+      if (!confirmed) return
+
+      try {
+        await deleteDocument("clients", client.id, "Client deleted successfully")
+      } catch (error) {
+        showError("Failed to Delete Client", error instanceof Error ? error.message : "An unexpected error occurred.")
+      }
     } catch (error) {
-      console.error("Error checking client usage:", error)
       showError("Error", "Failed to check if client can be deleted. Please try again.")
     }
   }

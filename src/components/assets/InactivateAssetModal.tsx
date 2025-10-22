@@ -61,7 +61,6 @@ export function InactivateAssetModal({ asset, isOpen, onClose, onSuccess, bulkAs
       onSuccess()
       onClose()
     } catch (error) {
-      console.error("Error inactivating assets:", error)
       toast.error(`Failed to mark ${isBulkOperation ? "assets" : "asset"} as inactive`)
     } finally {
       setIsProcessing(false)

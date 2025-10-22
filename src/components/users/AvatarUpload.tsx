@@ -117,7 +117,6 @@ export function AvatarUpload({ userId, currentAvatar, userName, onAvatarUpdated 
       setCrop(undefined)
       setCompletedCrop(undefined)
     } catch (error) {
-      console.error("Failed to save avatar:", error)
       showError("Failed to Save Avatar", error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setIsUploading(false)

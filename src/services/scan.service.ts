@@ -1,7 +1,5 @@
 import { log } from "@/services/console.service"
 
-const TAG = "Scan Service"
-
 class Scan {
   private static instance: Scan
 
@@ -28,7 +26,6 @@ class Scan {
       if (idArray.length > 11) {
         const idNumber = idArray[4]
         const dateOfBirthDateObject = this.parseDdMmmYyyyDate(idArray[5])
-        console.log(TAG, "Raw DOB:", idArray[5], "Parsed DOB:", dateOfBirthDateObject)
         const age = this.getPersonAge(dateOfBirthDateObject)
         const gender = this.getPersonGender(idArray[2])
         const description = this.getPersonDescription(gender, age)
@@ -85,25 +82,6 @@ class Scan {
     if (raw.includes("%")) {
       const licenceArray = raw.split("%")
 
-      // ========== DEBUG: Log all raw barcode data ==========
-      console.log("🔍 BARCODE DEBUG - Raw string:", raw.substring(0, 100) + "...")
-      console.log("🔍 BARCODE DEBUG - Array length:", licenceArray.length)
-      console.log("🔍 BARCODE DEBUG - All array values:")
-      licenceArray.forEach((value, index) => {
-        console.log(`  [${index}]: "${value}"`)
-      })
-      console.log("🔍 BARCODE DEBUG - Key fields:")
-      console.log(`  [5] licenceDiskNo: "${licenceArray[5]}"`)
-      console.log(`  [6] licenceNo: "${licenceArray[6]}"`)
-      console.log(`  [7] vehicleReg: "${licenceArray[7]}"`)
-      console.log(`  [8] description: "${licenceArray[8]}"`)
-      console.log(`  [9] make: "${licenceArray[9]}"`)
-      console.log(`  [10] model: "${licenceArray[10]}"`)
-      console.log(`  [11] colour: "${licenceArray[11]}"`)
-      console.log(`  [12] vin: "${licenceArray[12]}"`)
-      console.log(`  [13] engineNo: "${licenceArray[13]}"`)
-      console.log("====================================================")
-
       if (licenceArray.length > 14) {
         const rawDateOfExpiryString = licenceArray[14]
 
@@ -126,14 +104,11 @@ class Scan {
         }
 
         if (isNaN(expiryDateObject.getTime())) {
-          console.error(TAG, `Could not parse dateOfExpiry from string: ${rawDateOfExpiryString}. Attempting direct parse.`)
           // Fallback attempt, hoping it's a format new Date() can handle (might not be UTC based)
           const tempDate = new Date(rawDateOfExpiryString)
           // If parsed, convert to UTC date object
           if (!isNaN(tempDate.getTime())) {
             expiryDateObject = new Date(Date.UTC(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate()))
-          } else {
-            console.error(TAG, `Direct parse also failed for dateOfExpiry: ${rawDateOfExpiryString}`)
           }
         }
 
@@ -149,8 +124,6 @@ class Scan {
           expiryDateObjectForCompare.setUTCHours(0, 0, 0, 0)
           isExpired = expiryDateObjectForCompare.getTime() < todayDateObject.getTime()
           diffMonths = isExpired ? this.getMonthDifference(expiryDateObject, new Date()) : this.getMonthDifference(new Date(), expiryDateObject)
-        } else {
-          console.error(TAG, "Cannot determine expiry status due to invalid expiry date.")
         }
 
         const expiredStatus = isNaN(expiryDateObject.getTime()) ? "Unknown" : isExpired ? "Expired" : "Valid"
@@ -250,7 +223,7 @@ class Scan {
     } //end if (raw.includes('%'))
   }
 
-  private getPersonDescription(gender, age) {
+  private getPersonDescription(gender: string, age: number) {
     return gender + ", " + age + " YEARS OLD"
   }
 
@@ -260,9 +233,10 @@ class Scan {
     return Math.abs(ageDate.getUTCFullYear() - 1970)
   }
 
-  private getPersonGender(gender) {
+  private getPersonGender(gender: string): string {
     if (gender == "M") return "MALE"
     if (gender == "F") return "FEMALE"
+    return "UNKNOWN"
   }
 
   private getPersonDateOfBirth(idNumber: string): Date {
@@ -284,7 +258,6 @@ class Scan {
     const day = parseInt(dayStr, 10)
 
     if (isNaN(fullYear) || isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31 || fullYear < 1880 || fullYear > currentActualYear) {
-      console.error(TAG, `getPersonDateOfBirth: Invalid date components Y:${fullYear}, M:${month}, D:${day} from ID "${idNumber}"`)
       return new Date(NaN)
     }
     // JavaScript Date constructor month is 0-indexed (0-11)
@@ -297,7 +270,6 @@ class Scan {
 
   private formatDateToDdMmYyyy(date: Date): string {
     if (!(date instanceof Date) || isNaN(date.getTime())) {
-      // console.warn(TAG, "formatDateToDdMmYyyy: Received invalid date", date)
       return "N/A"
     }
     const day = String(date.getUTCDate()).padStart(2, "0")
@@ -309,7 +281,6 @@ class Scan {
   private parseDdMmmYyyyDate(dateString: string): Date {
     const parts = dateString.split(" ")
     if (parts.length !== 3) {
-      console.error(TAG, `_parseDdMmmYyyyDate: Invalid date string format "${dateString}"`)
       return new Date(NaN) // Return an invalid date
     }
 
@@ -336,7 +307,6 @@ class Scan {
 
     // Basic validation for parsed components
     if (isNaN(day) || month === undefined || isNaN(year) || day < 1 || day > 31 || year < 1880 || year > new Date().getFullYear() + 5) {
-      console.error(TAG, `parseDdMmmYyyyDate: Failed to parse components from "${dateString}". D:${day}, M:${monthStr}(${month}), Y:${year}`)
       return new Date(NaN) // Return an invalid date
     }
     return new Date(Date.UTC(year, month, day))

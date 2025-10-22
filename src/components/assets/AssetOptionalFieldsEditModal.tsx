@@ -62,7 +62,6 @@ export function AssetOptionalFieldsEditModal({ open, onClose, onSuccess, asset }
       onSuccess()
       onClose()
     } catch (error) {
-      console.error("Error updating optional fields:", error)
       toast.error("Failed to update optional fields")
     } finally {
       setLoading(false)

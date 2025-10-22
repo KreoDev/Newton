@@ -38,7 +38,6 @@ export function BarcodeScanner({
 
   // Handle scans coming from onscan.js
   const handleScannerScan = useCallback((scannedValue: string) => {
-    console.log("BarcodeScanner: New barcode scanned, resetting state")
     setBarcodeData(scannedValue)
     setError("")
     setParsedData(null)
@@ -122,7 +121,6 @@ export function BarcodeScanner({
       const vehicleResult = await AssetFieldMapper.parseVehicleDisk(trimmedData)
 
       if (!("error" in vehicleResult)) {
-        console.log("BarcodeScanner: Parsed as vehicle, registration:", vehicleResult.registration)
 
         const parsed: ParsedBarcodeData = { type: "vehicle", data: vehicleResult }
         setParsedData(parsed)
@@ -180,7 +178,6 @@ export function BarcodeScanner({
         onScanError("Parsing failed")
       }
     } catch (error) {
-      console.error("Error parsing/validating barcode:", error)
       setError("Failed to validate barcode. Please try again.")
       alert.showError("Validation Failed", "Failed to validate barcode. Please try again.", () => {
         setBarcodeData("")

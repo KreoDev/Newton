@@ -830,7 +830,6 @@ async function clearCollection(collectionName: string, sendProgress: (data: Prog
       try {
         await adminAuth.deleteUser(authUid)
       } catch (error) {
-        console.warn(`Failed to delete auth user ${authUid}:`, error)
       }
     }
   }
@@ -1512,7 +1511,6 @@ export async function GET() {
           message: `Seed summary -> Companies: ${results.seeded.companies}, Users: ${results.seeded.users}, Products: ${results.seeded.products}, Clients: ${results.seeded.clients}, Groups: ${results.seeded.groups}, Sites: ${results.seeded.sites}, Roles: ${results.seeded.roles}, Templates: ${results.seeded.templates}`,
         })
       } catch (error) {
-        console.error("Error seeding database:", error)
         sendProgress({
           stage: "error",
           message: error instanceof Error ? error.message : "Failed to seed database",

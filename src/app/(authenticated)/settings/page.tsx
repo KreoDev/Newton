@@ -75,7 +75,6 @@ export default function SettingsPage() {
       showSuccess("Profile Updated", "Your profile has been updated successfully!")
     } catch (error) {
       showError("Failed to Update Profile", error instanceof Error ? error.message : "An unexpected error occurred.")
-      console.error(error)
     } finally {
       setIsSubmitting(false)
     }

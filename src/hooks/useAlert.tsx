@@ -96,20 +96,26 @@ export function useAlert() {
   const showConfirm = (
     title: string,
     description?: string,
-    onConfirm?: () => void | Promise<void>,
-    onCancel?: () => void,
     confirmText = "Confirm",
-    cancelText = "Cancel"
-  ) => {
-    store.showAlert({
-      variant: "confirm",
-      title,
-      description,
-      confirmText,
-      cancelText,
-      showCancel: true,
-      onConfirm,
-      onCancel,
+    variant?: "default" | "destructive"
+  ): Promise<boolean> => {
+    return new Promise((resolve) => {
+      store.showAlert({
+        variant: "confirm",
+        title,
+        description,
+        confirmText,
+        cancelText: "Cancel",
+        showCancel: true,
+        onConfirm: () => {
+          resolve(true)
+          store.hideAlert()
+        },
+        onCancel: () => {
+          resolve(false)
+          store.hideAlert()
+        },
+      })
     })
   }
 

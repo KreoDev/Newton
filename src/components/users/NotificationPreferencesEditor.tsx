@@ -151,7 +151,6 @@ export function NotificationPreferencesEditor({ open, onClose, onSuccess, user }
       onSuccess()
       onClose()
     } catch (error) {
-      console.error("Error updating notification preferences:", error)
       showError("Failed to Update Preferences", error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)

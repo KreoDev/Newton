@@ -18,7 +18,6 @@ export const createDocument = async (collectionName: string, data: Record<string
 
     return docRef.id
   } catch (error) {
-    console.error(`Error creating ${collectionName}:`, error)
     throw error
   }
 }
@@ -33,7 +32,6 @@ export const updateDocument = async (collectionName: string, id: string, data: R
 
     await updateDoc(doc(db, collectionName, id), updateData)
   } catch (error) {
-    console.error(`Error updating ${collectionName}:`, error)
     throw error
   }
 }
@@ -42,7 +40,6 @@ export const deleteDocument = async (collectionName: string, id: string, success
   try {
     await deleteDoc(doc(db, collectionName, id))
   } catch (error) {
-    console.error(`Error deleting ${collectionName}:`, error)
     throw error
   }
 }
@@ -86,7 +83,6 @@ export function createCollectionListener<T>(
         }
       },
       error => {
-        console.error(`Error loading ${collectionName}:`, error)
         signal.value = []
         if (isFirstLoad && options?.onFirstLoad) {
           options.onFirstLoad()

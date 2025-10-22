@@ -54,7 +54,6 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
   }
 
   const handleBarcodeVerified = (barcodeData: string, parsed: ParsedBarcodeData) => {
-    console.log("EditAssetModal: Barcode verified for QR update")
     // Verify it matches the asset's barcode data (vehicle only)
     if (!("error" in parsed.data)) {
       if (asset.registration && parsed.data.registration !== asset.registration) {
@@ -68,7 +67,6 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
   }
 
   const handleQRVerified = (qrCode: string) => {
-    console.log("EditAssetModal: QR verified for barcode update")
     // Verify it matches the asset's QR code
     if (asset.ntCode !== qrCode) {
       alert.showError("Wrong Asset", "This QR code does not match the asset you are editing. Please scan the correct Newton QR code.")
@@ -80,7 +78,6 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
   }
 
   const handleNewQRScanned = (qrCode: string) => {
-    console.log("EditAssetModal: New QR code scanned:", qrCode)
 
     // Check if it's the same as current
     if (qrCode === asset.ntCode) {
@@ -100,8 +97,7 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
     handleSaveQRUpdate(qrCode)
   }
 
-  const handleNewBarcodeScanned = (barcodeData: string, parsed: ParsedBarcodeData) => {
-    console.log("EditAssetModal: New barcode scanned - vehicle only")
+  const handleNewBarcodeScanned = async (barcodeData: string, parsed: ParsedBarcodeData) => {
 
       if ("error" in parsed.data) {
         alert.showError("Parsing Error", "Failed to parse vehicle license disk barcode.")
@@ -183,23 +179,22 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
           )
 
           if (newDate <= currentDate) {
-            alert.showConfirm(
+            const confirmed = await alert.showConfirm(
               "Older Expiry Date",
               `The scanned disk expires on ${newExpiry}, which is not newer than the current expiry (${currentExpiry}). Do you want to proceed with this update?`,
-              () => {
-                // User confirmed, proceed to save
-                setNewBarcode(barcodeData)
-                setNewBarcodeData(parsed)
-                handleSaveBarcodeUpdate(barcodeData, parsed)
-              },
-              () => {
-                // User cancelled, reset
-                setNewBarcode("")
-                setNewBarcodeData(null)
-              },
-              "Yes, Update",
-              "Cancel"
+              "Yes, Update"
             )
+
+            if (confirmed) {
+              // User confirmed, proceed to save
+              setNewBarcode(barcodeData)
+              setNewBarcodeData(parsed)
+              handleSaveBarcodeUpdate(barcodeData, parsed)
+            } else {
+              // User cancelled, reset
+              setNewBarcode("")
+              setNewBarcodeData(null)
+            }
             return
           }
         }
@@ -228,7 +223,6 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
         }
       )
     } catch (error) {
-      console.error("Error updating QR code:", error)
       alert.showError("Update Failed", error instanceof Error ? error.message : "Failed to update QR code. Please try again.")
     } finally {
       setIsSaving(false)
@@ -263,7 +257,6 @@ export function AssetEditModal({ asset, isOpen, onClose, onSuccess }: AssetEditM
         }
       )
     } catch (error) {
-      console.error("Error updating barcode:", error)
       alert.showError("Update Failed", error instanceof Error ? error.message : "Failed to update barcode data. Please try again.")
     } finally {
       setIsSaving(false)

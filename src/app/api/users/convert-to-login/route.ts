@@ -57,7 +57,6 @@ export async function POST(request: NextRequest) {
       message: "User converted to login user successfully",
     })
   } catch (error) {
-    console.error("Error converting user to login:", error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to convert user" },
       { status: 500 }

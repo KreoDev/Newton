@@ -59,7 +59,6 @@ export function ProfilePictureUpload({ onUploadComplete }: ProfilePictureUploadP
           await deleteObject(oldRef)
         } catch (error) {
           // Ignore errors when deleting old image (might not exist)
-          console.log("Could not delete old profile picture:", error)
         }
       }
 
@@ -78,7 +77,6 @@ export function ProfilePictureUpload({ onUploadComplete }: ProfilePictureUploadP
         onUploadComplete()
       }
     } catch (error) {
-      console.error("Error uploading profile picture:", error)
       showError("Upload Failed", error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setUploading(false)

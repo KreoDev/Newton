@@ -41,8 +41,6 @@ export class AssetService {
    */
   static validateNTCode(ntCode: string, excludeId?: string): { isValid: boolean; error?: string; existingAsset?: Asset } {
     try {
-      console.log("AssetService: Validating NT code:", ntCode, "using in-memory assets")
-
       // Validate NT prefix
       if (!ntCode.toUpperCase().startsWith("NT")) {
         return {
@@ -56,15 +54,8 @@ export class AssetService {
       const existingAsset = assets.find(a => a.ntCode === ntCode && a.id !== excludeId)
 
       if (!existingAsset) {
-        console.log("AssetService: NT code is unique in this company")
         return { isValid: true }
       }
-
-      console.log("AssetService: Existing asset found:", {
-        id: existingAsset.id,
-        ntCode: existingAsset.ntCode,
-        companyId: existingAsset.companyId,
-      })
 
       return {
         isValid: false,
@@ -72,7 +63,6 @@ export class AssetService {
         existingAsset,
       }
     } catch (error) {
-      console.error("Error validating NT code:", error)
       throw error
     }
   }
@@ -82,8 +72,6 @@ export class AssetService {
    */
   static validateRegistration(registration: string, excludeId?: string): { isValid: boolean; error?: string; existingAsset?: Asset } {
     try {
-      console.log("AssetService: Validating registration using in-memory assets:", registration.trim())
-
       if (!registration || !registration.trim()) {
         return { isValid: true }
       }
@@ -93,16 +81,8 @@ export class AssetService {
       const existingAsset = assets.find(a => a.registration === registration.trim() && a.id !== excludeId)
 
       if (!existingAsset) {
-        console.log("AssetService: Registration is unique in this company")
         return { isValid: true }
       }
-
-      console.log("AssetService: Found existing asset:", {
-        id: existingAsset.id,
-        registration: existingAsset.registration,
-        type: existingAsset.type,
-        companyId: existingAsset.companyId,
-      })
 
       return {
         isValid: false,
@@ -110,7 +90,6 @@ export class AssetService {
         existingAsset,
       }
     } catch (error) {
-      console.error("Error validating registration:", error)
       throw error
     }
   }
@@ -120,10 +99,7 @@ export class AssetService {
    */
   static validateVIN(vin: string, excludeId?: string): { isValid: boolean; error?: string; existingAsset?: Asset } {
     try {
-      console.log("AssetService: Validating VIN using in-memory assets:", vin.trim())
-
       if (!vin || !vin.trim()) {
-        console.log("AssetService: VIN is empty, skipping validation")
         return { isValid: true }
       }
 
@@ -132,15 +108,8 @@ export class AssetService {
       const existingAsset = assets.find(a => a.vin === vin.trim() && a.id !== excludeId)
 
       if (!existingAsset) {
-        console.log("AssetService: VIN is unique in this company")
         return { isValid: true }
       }
-
-      console.log("AssetService: Existing asset found:", {
-        id: existingAsset.id,
-        vin: existingAsset.vin,
-        companyId: existingAsset.companyId,
-      })
 
       return {
         isValid: false,
@@ -148,7 +117,6 @@ export class AssetService {
         existingAsset,
       }
     } catch (error) {
-      console.error("Error validating VIN:", error)
       throw error
     }
   }
@@ -158,8 +126,6 @@ export class AssetService {
    */
   static validateIDNumber(idNumber: string, excludeId?: string): { isValid: boolean; error?: string; existingAsset?: Asset } {
     try {
-      console.log("AssetService: Validating ID number using in-memory assets:", idNumber.trim())
-
       if (!idNumber || !idNumber.trim()) {
         return { isValid: true }
       }
@@ -169,15 +135,8 @@ export class AssetService {
       const existingAsset = assets.find(a => a.idNumber === idNumber.trim() && a.id !== excludeId)
 
       if (!existingAsset) {
-        console.log("AssetService: ID number is unique in this company")
         return { isValid: true }
       }
-
-      console.log("AssetService: Existing asset found:", {
-        id: existingAsset.id,
-        idNumber: existingAsset.idNumber,
-        companyId: existingAsset.companyId,
-      })
 
       return {
         isValid: false,
@@ -185,7 +144,6 @@ export class AssetService {
         existingAsset,
       }
     } catch (error) {
-      console.error("Error validating ID number:", error)
       throw error
     }
   }
@@ -226,7 +184,6 @@ export class AssetService {
         id: docSnap.id,
       } as Asset
     } catch (error) {
-      console.error("Error fetching asset:", error)
       throw error
     }
   }
@@ -244,7 +201,6 @@ export class AssetService {
         id: doc.id,
       })) as Asset[]
     } catch (error) {
-      console.error("Error fetching assets:", error)
       throw error
     }
   }
@@ -262,7 +218,6 @@ export class AssetService {
         id: doc.id,
       })) as Asset[]
     } catch (error) {
-      console.error("Error fetching assets by type:", error)
       throw error
     }
   }
@@ -291,7 +246,6 @@ export class AssetService {
         return expiryDate >= now && expiryDate <= thresholdDate
       })
     } catch (error) {
-      console.error("Error fetching expiring assets:", error)
       throw error
     }
   }
@@ -317,7 +271,6 @@ export class AssetService {
         return expiryDate < now
       })
     } catch (error) {
-      console.error("Error fetching expired assets:", error)
       throw error
     }
   }
@@ -344,7 +297,6 @@ export class AssetService {
         count: totalCount,
       }
     } catch (error) {
-      console.error("Error checking asset transactions:", error)
       throw error
     }
   }
@@ -404,6 +356,5 @@ export class AssetService {
    */
   static async sendExpiryNotifications(asset: Asset, daysUntilExpiry: number): Promise<void> {
     // TODO: Implement notification system integration
-    console.log(`Would send expiry notification for asset ${asset.id}, expiring in ${daysUntilExpiry} days`)
   }
 }

@@ -46,7 +46,6 @@ export class AssetFieldMapper {
         description: result.description, // Vehicle type description
       }
     } catch (error) {
-      console.error("Error parsing vehicle disk:", error)
       return { error: "Failed to parse vehicle disk barcode" }
     }
   }
@@ -92,7 +91,6 @@ export class AssetFieldMapper {
         licence: licenceInfo,
       }
     } catch (error) {
-      console.error("Error parsing SADL driver license:", error)
       return { error: "Failed to parse SADL driver license data" }
     }
   }
@@ -170,7 +168,6 @@ export class AssetFieldMapper {
 
       return { error: "Invalid driver license or ID format" }
     } catch (error) {
-      console.error("Error parsing driver license:", error)
       return { error: "Failed to parse driver license barcode" }
     }
   }
@@ -237,7 +234,6 @@ export class AssetFieldMapper {
         daysUntilExpiry,
       }
     } catch (error) {
-      console.error("Error validating expiry:", error)
       return {
         isValid: false,
         error: "Failed to validate expiry date",
@@ -379,13 +375,6 @@ export class AssetFieldMapper {
     }
 
     if ((parsedData.type === "truck" || parsedData.type === "trailer") && parsedData.vehicleInfo) {
-      console.log("🔍 toAssetDocument - Vehicle Info:", {
-        registration: parsedData.vehicleInfo.registration,
-        description: parsedData.vehicleInfo.description,
-        hasDescription: !!parsedData.vehicleInfo.description,
-        fullVehicleInfo: parsedData.vehicleInfo
-      })
-
       const vehicleDocument = {
         ...baseData,
         // All vehicle-specific fields from barcode scan (matching Android app structure)
@@ -401,12 +390,7 @@ export class AssetFieldMapper {
         description: parsedData.vehicleInfo.description, // Android app field
       }
 
-      console.log("📝 toAssetDocument - Before removeUndefined:", vehicleDocument)
-      const finalDocument = removeUndefined(vehicleDocument)
-      console.log("✅ toAssetDocument - After removeUndefined:", finalDocument)
-      console.log("📋 Description in final document:", finalDocument.description)
-
-      return finalDocument
+      return removeUndefined(vehicleDocument)
     }
 
     return baseData

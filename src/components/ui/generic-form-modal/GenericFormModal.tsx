@@ -112,7 +112,6 @@ export function GenericFormModal<T>({
         onSuccess()
         onClose()
       } catch (error) {
-        console.error(`Error saving ${entityName.toLowerCase()}:`, error)
         showError(
           `Failed to ${isEditing ? "Update" : "Create"} ${entityName}`,
           error instanceof Error ? error.message : "An unexpected error occurred."

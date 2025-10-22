@@ -16,7 +16,6 @@ export class CompanyService {
 
       return { id: docSnap.id, ...(docSnap.data() as Partial<Company>) } as Company
     } catch (error) {
-      console.error("Error fetching company:", error)
       throw error
     }
   }
@@ -47,7 +46,6 @@ export class CompanyService {
         } as Company
       })
     } catch (error) {
-      console.error("Error fetching companies:", error)
       throw error
     }
   }
@@ -61,7 +59,6 @@ export class CompanyService {
       const id = await createDocument("companies", data, "Company created successfully")
       return id
     } catch (error) {
-      console.error("Error creating company:", error)
       throw error
     }
   }
@@ -73,7 +70,6 @@ export class CompanyService {
     try {
       await updateDocument("companies", id, data, "Company updated successfully")
     } catch (error) {
-      console.error("Error updating company:", error)
       throw error
     }
   }
@@ -138,7 +134,6 @@ export class CompanyService {
         details,
       }
     } catch (error) {
-      console.error("Error checking company usage:", error)
       throw error
     }
   }
@@ -164,7 +159,6 @@ export class CompanyService {
 
       await deleteDocument("companies", id, "Company deleted successfully")
     } catch (error) {
-      console.error("Error deleting company:", error)
       throw error
     }
   }
@@ -185,7 +179,6 @@ export class CompanyService {
         } as User
       })
     } catch (error) {
-      console.error("Error fetching company users:", error)
       throw error
     }
   }

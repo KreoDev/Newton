@@ -112,7 +112,6 @@ export function AddUserModal({ isOpen, onClose, companyId }: AddUserModalProps) 
       setPendingGlobalAdminAction(false)
       onClose()
     } catch (error) {
-      console.error("Error adding user:", error)
       showError("Failed to Add User", error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setIsSubmitting(false)

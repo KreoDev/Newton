@@ -67,7 +67,6 @@ export function MoveUserModal({ open, onClose, onSuccess, user }: MoveUserModalP
       onSuccess()
       onClose()
     } catch (error) {
-      console.error("Error moving user:", error)
       showError("Failed to Move User", error instanceof Error ? error.message : "An unexpected error occurred.")
     } finally {
       setLoading(false)

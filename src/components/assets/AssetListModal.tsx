@@ -27,7 +27,6 @@ export function AssetListModal({ open, onClose, assets, field, fieldLabel, onBul
       await onBulkRemove()
       onClose()
     } catch (error) {
-      console.error("Error during bulk removal:", error)
     } finally {
       setLoading(false)
     }

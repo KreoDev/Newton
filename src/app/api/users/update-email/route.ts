@@ -31,7 +31,6 @@ export async function POST(request: Request) {
       success: true,
     })
   } catch (error) {
-    console.error("Error updating email:", error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to update email" },
       { status: 500 }

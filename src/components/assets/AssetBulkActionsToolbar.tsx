@@ -20,7 +20,7 @@ export function AssetBulkActionsToolbar({
   onClearSelection,
   assetType,
 }: AssetBulkActionsToolbarProps) {
-  const { showSuccess, showError } = useAlert()
+  const { showSuccess, showError, showConfirm } = useAlert()
   const [loading, setLoading] = useState(false)
   const [inactivateModalOpen, setInactivateModalOpen] = useState(false)
   const [assetsToInactivate, setAssetsToInactivate] = useState<Asset[]>([])
@@ -36,8 +36,10 @@ export function AssetBulkActionsToolbar({
       return
     }
 
-    const confirmed = confirm(
-      `Are you sure you want to activate ${assetsToActivate.length} asset${assetsToActivate.length > 1 ? "s" : ""}?`
+    const confirmed = await showConfirm(
+      "Activate Assets",
+      `Are you sure you want to activate ${assetsToActivate.length} asset${assetsToActivate.length > 1 ? "s" : ""}?`,
+      "Activate"
     )
     if (!confirmed) return
 
@@ -60,7 +62,6 @@ export function AssetBulkActionsToolbar({
       )
       onClearSelection()
     } catch (error) {
-      console.error("Error activating assets:", error)
       showError("Failed to Activate Assets", error instanceof Error ? error.message : "An error occurred")
     } finally {
       setLoading(false)

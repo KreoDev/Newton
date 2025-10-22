@@ -55,7 +55,6 @@ export function ReauthenticateModal({
       setPassword("")
       onSuccess()
     } catch (err: any) {
-      console.error("Re-authentication error:", err)
 
       // Handle specific Firebase auth errors
       if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {

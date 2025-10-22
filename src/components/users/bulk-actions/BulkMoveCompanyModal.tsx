@@ -47,7 +47,6 @@ export function BulkMoveCompanyModal({ open, onClose, users, onSuccess }: BulkMo
       )
       onSuccess()
     } catch (error) {
-      console.error("Error moving users:", error)
       showError("Move Failed", error instanceof Error ? error.message : "Failed to move users.")
     } finally {
       setLoading(false)

@@ -35,7 +35,6 @@ export function Step1QRScan({ state, updateState, onNext, onPrev }: Step1Props) 
 
   // Handle scans coming from onscan.js
   const handleScannerScan = useCallback((scannedValue: string) => {
-    console.log(`Step1: Scan received in ${phase} phase`)
     if (phase === "first") {
       setFirstScan(scannedValue)
       setError("")
@@ -120,12 +119,9 @@ export function Step1QRScan({ state, updateState, onNext, onPrev }: Step1Props) 
     setError("")
 
     try {
-      console.log("Step1: Validating first QR code:", firstScan.trim())
       const validation = AssetService.validateNTCode(firstScan.trim())
-      console.log("Step1: Validation result:", validation)
 
       if (!validation.isValid) {
-        console.log("Step1: Invalid NT code")
         setError(validation.error || "Invalid QR code")
         alert.showError("Invalid QR Code", validation.error || "Invalid QR code", () => {
           setFirstScan("")
@@ -138,12 +134,10 @@ export function Step1QRScan({ state, updateState, onNext, onPrev }: Step1Props) 
       }
 
       // First scan valid - move to second scan
-      console.log("Step1: First scan valid, moving to verification phase")
       updateState({ firstQRCode: firstScan.trim() })
       setPhase("second")
       setIsValidating(false)
     } catch (error) {
-      console.error("Step1: Error validating QR code:", error)
       setError("Failed to validate QR code")
       alert.showError("Validation Failed", "Failed to validate QR code. Please try again.", () => {
         setFirstScan("")
@@ -162,21 +156,15 @@ export function Step1QRScan({ state, updateState, onNext, onPrev }: Step1Props) 
     const normalizedFirst = normalize(firstScan)
     const normalizedSecond = normalize(secondScan)
 
-    console.log("Step1: Verifying QR codes")
-    console.log("  First (normalized):", normalizedFirst.substring(0, 30) + "...")
-    console.log("  Second (normalized):", normalizedSecond.substring(0, 30) + "...")
-    console.log("  Match:", normalizedFirst === normalizedSecond)
 
     if (normalizedFirst === normalizedSecond) {
       // Match - proceed to next step
-      console.log("Step1: QR codes match, advancing")
       updateState({ secondQRCode: secondScan.trim() })
       setTimeout(() => {
         onNext()
       }, 300)
     } else {
       // Mismatch - reset and start over
-      console.log("Step1: QR codes mismatch")
       setError("QR codes do not match")
       alert.showError("QR Code Mismatch", "The QR codes do not match. Please scan again.")
 

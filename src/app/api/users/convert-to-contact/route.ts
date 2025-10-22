@@ -47,7 +47,6 @@ export async function POST(request: NextRequest) {
       message: "User converted to contact-only successfully",
     })
   } catch (error) {
-    console.error("Error converting user to contact:", error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to convert user" },
       { status: 500 }
