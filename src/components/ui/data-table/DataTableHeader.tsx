@@ -93,6 +93,8 @@ export function DataTableHeader<TData>({ header, table, enableResizing = true }:
       )}
       style={{
         width: header.getSize(),
+        minWidth: column.columnDef.minSize,
+        maxWidth: column.columnDef.maxSize,
       }}
     >
       <div className="flex items-center gap-2">
