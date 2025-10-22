@@ -85,6 +85,25 @@ class Scan {
     if (raw.includes("%")) {
       const licenceArray = raw.split("%")
 
+      // ========== DEBUG: Log all raw barcode data ==========
+      console.log("🔍 BARCODE DEBUG - Raw string:", raw.substring(0, 100) + "...")
+      console.log("🔍 BARCODE DEBUG - Array length:", licenceArray.length)
+      console.log("🔍 BARCODE DEBUG - All array values:")
+      licenceArray.forEach((value, index) => {
+        console.log(`  [${index}]: "${value}"`)
+      })
+      console.log("🔍 BARCODE DEBUG - Key fields:")
+      console.log(`  [5] licenceDiskNo: "${licenceArray[5]}"`)
+      console.log(`  [6] licenceNo: "${licenceArray[6]}"`)
+      console.log(`  [7] vehicleReg: "${licenceArray[7]}"`)
+      console.log(`  [8] description: "${licenceArray[8]}"`)
+      console.log(`  [9] make: "${licenceArray[9]}"`)
+      console.log(`  [10] model: "${licenceArray[10]}"`)
+      console.log(`  [11] colour: "${licenceArray[11]}"`)
+      console.log(`  [12] vin: "${licenceArray[12]}"`)
+      console.log(`  [13] engineNo: "${licenceArray[13]}"`)
+      console.log("====================================================")
+
       if (licenceArray.length > 14) {
         const rawDateOfExpiryString = licenceArray[14]
 

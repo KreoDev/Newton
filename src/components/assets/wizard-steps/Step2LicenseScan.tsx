@@ -79,6 +79,10 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
   // Handle scans coming from onscan.js
   const handleScannerScan = useCallback(
     (scannedValue: string) => {
+      console.log("🔴 RAW SCANNER INPUT (first 200 chars):", scannedValue.substring(0, 200))
+      console.log("🔴 RAW SCANNER INPUT (full length):", scannedValue.length)
+      console.log("🔴 HAS SPACES?", scannedValue.includes(" "))
+      console.log("🔴 HAS SLASHES?", scannedValue.includes("/"))
       console.log("Step2: Barcode scanned:", scannedValue.substring(0, 50))
 
       if (phase === "first-scan-waiting" || phase === "error") {
@@ -108,6 +112,13 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
       avgTimeByChar: 20,
       minLength: 6,
       reactToPaste: false,
+      // Capture more keys including space, slash, etc
+      onKeyDetect: function(_iKeyCode) {
+        // Return true to capture this key
+        // By default onscan.js only captures alphanumeric keys
+        // We need to also capture space (32), slash (47, 191), dash (45), etc
+        return true // Capture ALL keys
+      },
     })
 
     return () => {
