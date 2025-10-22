@@ -1087,6 +1087,81 @@ When column order is saved to localStorage but doesn't contain ALL current colum
 - [AssetsTableView.tsx](src/components/assets/AssetsTableView.tsx) - Complete implementation with conditional columns
 - [UsersTable.tsx](src/components/users/UsersTable.tsx) - Simple reference implementation
 
+### DataTable Context-Aware Exports
+
+Newton's DataTable export functions (CSV, Excel, PDF, Print) automatically adapt to table state, eliminating the need for separate export buttons in bulk actions toolbars.
+
+**How It Works:**
+
+Export functions in [DataTableToolbar.tsx](src/components/ui/data-table/DataTableToolbar.tsx) check for row selection before exporting:
+
+```typescript
+const exportToCSV = () => {
+  // Export selected rows if any, otherwise export all filtered rows
+  const rows = table.getSelectedRowModel().rows.length > 0
+    ? table.getSelectedRowModel().rows
+    : table.getFilteredRowModel().rows
+
+  // Export only visible columns
+  const data = rows.map((row) => {
+    const obj: any = {}
+    row.getVisibleCells().forEach((cell) => {
+      const columnId = cell.column.id
+      const header = cell.column.columnDef.header
+      const key = typeof header === "string" ? header : columnId
+      obj[key] = cell.getValue()
+    })
+    return obj
+  })
+
+  // Generate file...
+}
+```
+
+**Export Behavior:**
+
+- When rows are selected → exports only selected rows
+- When columns are hidden → exports only visible columns
+- When no rows selected → exports all filtered data
+- Same pattern applies to all formats: CSV, Excel, PDF, Print
+
+**Best Practice:**
+
+❌ **WRONG - Redundant Export Button:**
+```typescript
+// BulkActionsToolbar.tsx
+<Button onClick={handleExport}>
+  <Download className="h-4 w-4 mr-2" />
+  Export
+</Button>
+```
+
+✅ **CORRECT - No Export Button Needed:**
+```typescript
+// BulkActionsToolbar.tsx - only action buttons
+<Button onClick={handleActivate}>
+  <CheckCircle className="h-4 w-4 mr-2" />
+  Activate
+</Button>
+<Button onClick={handleDeactivate}>
+  <XCircle className="h-4 w-4 mr-2" />
+  Deactivate
+</Button>
+// Export functions in DataTableToolbar handle both selection and non-selection cases
+```
+
+**Benefits:**
+
+- Single set of export controls that adapt to user actions
+- Cleaner UX - no duplicate buttons
+- Column visibility always respected
+- Consistent behavior across all export formats
+
+**Implementation Reference:**
+- [DataTableToolbar.tsx](src/components/ui/data-table/DataTableToolbar.tsx) - Context-aware export functions
+- [BulkActionsToolbar.tsx](src/components/users/BulkActionsToolbar.tsx) - Users bulk actions (no export button)
+- [AssetBulkActionsToolbar.tsx](src/components/assets/AssetBulkActionsToolbar.tsx) - Assets bulk actions (no export button)
+
 ---
 
 ## Testing Approach
