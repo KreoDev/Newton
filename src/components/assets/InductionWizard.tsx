@@ -22,13 +22,32 @@ interface InductionWizardProps {
 export function InductionWizard({ onComplete }: InductionWizardProps) {
   const router = useRouter()
   const { company } = useCompany()
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState(1) // Internal step (1-8)
   const [wizardState, setWizardState] = useState<Partial<AssetInductionState>>({
     currentStep: 1,
     companyId: company?.id, // Auto-populate with current company
   })
 
-  const totalSteps = 8
+  const totalSteps = 8 // Internal total (includes hidden steps)
+
+  // Calculate visible steps dynamically based on whether Optional Fields is shown
+  const shouldShowOptionalFields = (): boolean => {
+    // Step 7 (Optional Fields) is shown if asset is a truck AND company has fleet/group settings
+    const isValidTruck = wizardState.type === "truck"
+    const fleetNumberEnabled = company?.systemSettings?.fleetNumberEnabled ?? false
+    const groupEnabled = company?.systemSettings?.transporterGroupEnabled ?? false
+    return isValidTruck && (fleetNumberEnabled || groupEnabled)
+  }
+
+  const visibleSteps = shouldShowOptionalFields() ? 4 : 3 // 4 steps with optional, 3 without
+
+  // Map internal step (1-8) to display step (1-4 or 1-3)
+  const getDisplayStep = (internalStep: number): number => {
+    if (internalStep <= 2) return 1 // QR Scan + Verification
+    if (internalStep <= 6) return 2 // License Scan + Verification + Detection + Confirmation
+    if (internalStep === 7) return 3 // Optional Fields (fleet/group)
+    return shouldShowOptionalFields() ? 4 : 3 // Review (step 4 if optional shown, step 3 if not)
+  }
 
   const updateState = (updates: Partial<AssetInductionState>) => {
     setWizardState(prev => ({ ...prev, ...updates }))
@@ -46,59 +65,59 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
   }
 
   const prevStep = () => {
-    console.log("🔙 prevStep called - currentStep:", currentStep)
-    if (currentStep > 1) {
-      let targetStep = currentStep - 1
-      let stateClear: Partial<AssetInductionState> = {}
+    console.log("🔙 prevStep called - currentStep:", currentStep, "displayStep:", getDisplayStep(currentStep))
 
-      // Navigation rules for Previous button (8 steps total, no company select):
-      // - Step 1: QR Scan (First)
-      // - Step 2: QR Verification (Second) - auto-advances
-      // - Step 3: License Scan (First)
-      // - Step 4: License Verification (Second) - auto-advances
-      // - Step 5: Asset Type Detection - auto-advances
-      // - Step 6: Field Confirmation
-      // - Step 7: Optional Fields (conditional)
-      // - Step 8: Review
-      //
-      // Previous button navigation:
-      // - From Step 3 → Step 1 (skip Step 2 QR Verification)
-      // - From Steps 6, 7, 8 → Step 3 (skip Steps 4 and 5)
+    // Navigation based on INTERNAL steps (1-8):
+    // Step 1-2 (Display 1: QR Scan) → Back to Assets
+    // Step 3-6 (Display 2: License Scan) → Back to Step 1 (QR Scan)
+    // Step 7 (Display 3: Optional Fields) → Back to Step 3 (License Scan)
+    // Step 8 (Display 3 or 4: Review) → Back to Step 7 if shown, else Step 3
 
-      if (currentStep === 3) {
-        // From License Scan → jump to QR Scan (skip Step 2 QR Verification)
-        // Clear QR codes so Step 1 doesn't auto-advance
-        console.log("🔙 From Step 3 - Jumping to Step 1 (skipping Step 2), clearing QR codes")
-        targetStep = 1
-        stateClear = {
-          firstQRCode: undefined,
-          secondQRCode: undefined,
-        }
-      } else if (currentStep === 6 || currentStep === 7 || currentStep === 8) {
-        // From Field Confirmation, Optional Fields, or Review → jump to License Scan
-        // Skip Steps 4 (License Verification) and 5 (Asset Type Detection)
-        // Clear barcode data and parsed data so Step 3 doesn't auto-advance
-        console.log(`🔙 From Step ${currentStep} - Jumping to Step 3 (skipping Steps 4, 5), clearing barcode data`)
-        targetStep = 3
-        stateClear = {
+    if (currentStep <= 2) {
+      // From QR Scan → navigate to Assets page
+      console.log("🔙 From QR Scan - Back to Assets")
+      handleBackToAssets()
+      return
+    }
+
+    if (currentStep >= 3 && currentStep <= 6) {
+      // From License Scan (any internal step 3-6) → Back to QR Scan (step 1)
+      console.log("🔙 From License Scan - Jumping to Step 1 (QR Scan), clearing QR codes")
+      updateState({
+        firstQRCode: undefined,
+        secondQRCode: undefined,
+      })
+      goToStep(1)
+      return
+    }
+
+    if (currentStep === 7) {
+      // From Optional Fields → Back to License Scan (step 3)
+      console.log("🔙 From Optional Fields - Jumping to Step 3 (License Scan), clearing barcode data")
+      updateState({
+        firstBarcodeData: undefined,
+        secondBarcodeData: undefined,
+        parsedData: undefined, // Clear parsed data since we're re-scanning
+      })
+      goToStep(3)
+      return
+    }
+
+    if (currentStep === 8) {
+      // From Review → Back to Optional Fields (step 7) if shown, else License Scan (step 3)
+      if (shouldShowOptionalFields()) {
+        console.log("🔙 From Review - Back to Optional Fields (Step 7)")
+        goToStep(7)
+      } else {
+        console.log("🔙 From Review - Jumping to Step 3 (License Scan), clearing barcode data")
+        updateState({
           firstBarcodeData: undefined,
           secondBarcodeData: undefined,
           parsedData: undefined, // Clear parsed data since we're re-scanning
-        }
-      } else {
-        // Default: go to previous step (Step 2 → Step 1)
-        targetStep = currentStep - 1
-        console.log(`🔙 From Step ${currentStep} - Default navigation to Step ${targetStep}`)
+        })
+        goToStep(3)
       }
-
-      console.log(`🔙 Final navigation: Step ${currentStep} → Step ${targetStep}`)
-      console.log("🔙 Clearing state:", stateClear)
-
-      // Clear state first, then navigate
-      if (Object.keys(stateClear).length > 0) {
-        updateState(stateClear)
-      }
-      goToStep(targetStep)
+      return
     }
   }
 
@@ -114,54 +133,51 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
     router.push("/assets")
   }
 
-  const getStepTitle = (step: number): string => {
-    switch (step) {
-      case 1:
-        return "Scan QR Code (First)"
-      case 2:
-        return "Verify QR Code (Second)"
-      case 3:
-        return "Scan License/Disk (First)"
-      case 4:
-        return "Verify License/Disk (Second)"
-      case 5:
-        return "Detect Asset Type"
-      case 6:
-        return "Confirm & Validate Fields"
-      case 7:
-        return "Optional Fields"
-      case 8:
-        return "Review & Submit"
-      default:
-        return "Asset Induction"
+  const getStepTitle = (internalStep: number): string => {
+    // All internal steps 1-2 show as "Scan QR Code"
+    if (internalStep <= 2) {
+      return "Scan QR Code"
     }
+    // All internal steps 3-6 show as "Scan License/Disk"
+    if (internalStep <= 6) {
+      return "Scan License/Disk"
+    }
+    // Internal step 7 shows as "Enter Fleet/Group" (optional)
+    if (internalStep === 7) {
+      return "Enter Fleet/Group"
+    }
+    // Internal step 8 shows as "Review & Submit"
+    return "Review & Submit"
   }
 
   return (
     <div className="space-y-6">
-      {/* Progress Indicator */}
+      {/* Progress Indicator - Shows only user-facing steps (3 or 4 depending on optional fields) */}
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            {Array.from({ length: totalSteps }, (_, i) => i + 1).map(step => (
-              <div key={step} className="flex items-center flex-1">
-                <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-colors ${
-                    step < currentStep
-                      ? "bg-green-500 text-white"
-                      : step === currentStep
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}>
-                  {step < currentStep ? <CheckCircle className="h-4 w-4" /> : step}
+            {Array.from({ length: visibleSteps }, (_, i) => i + 1).map(displayStep => {
+              const currentDisplayStep = getDisplayStep(currentStep)
+              return (
+                <div key={displayStep} className="flex items-center flex-1">
+                  <div
+                    className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-colors ${
+                      displayStep < currentDisplayStep
+                        ? "bg-green-500 text-white"
+                        : displayStep === currentDisplayStep
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                    {displayStep < currentDisplayStep ? <CheckCircle className="h-4 w-4" /> : displayStep}
+                  </div>
+                  {displayStep < visibleSteps && <div className={`h-1 flex-1 mx-2 ${displayStep < currentDisplayStep ? "bg-green-500" : "bg-muted"}`} />}
                 </div>
-                {step < totalSteps && <div className={`h-1 flex-1 mx-2 ${step < currentStep ? "bg-green-500" : "bg-muted"}`} />}
-              </div>
-            ))}
+              )
+            })}
           </div>
           <div className="mt-2">
             <p className="text-sm text-muted-foreground">
-              Step {currentStep} of {totalSteps}
+              Step {getDisplayStep(currentStep)} of {visibleSteps}
             </p>
           </div>
         </div>
@@ -173,7 +189,7 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
           <CardTitle>{getStepTitle(currentStep)}</CardTitle>
         </CardHeader>
         <CardContent className="min-h-[400px]">
-          {currentStep === 1 && <Step2QRScan state={wizardState} updateState={updateState} onNext={nextStep} onPrev={handleBackToAssets} />}
+          {currentStep === 1 && <Step2QRScan state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} />}
           {currentStep === 2 && <Step3QRVerification state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} onError={() => goToStep(1)} />}
           {currentStep === 3 && <Step4LicenseScan state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} />}
           {currentStep === 4 && <Step5LicenseVerification state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} onError={() => goToStep(3)} />}
