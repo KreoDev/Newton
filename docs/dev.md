@@ -137,10 +137,8 @@ All foundational systems are implemented and tested. The following components ar
   - UI shows current overrides with badges
   - Permissions organized by category (Asset Management, Order Management, Administrative)
 - Permission-based cross-company viewing (`admin.users.viewAllCompanies`)
-
-**Partial Implementation:**
-- Notification preferences UI needs full implementation (see Phase 2.6)
-- Global admin toggle UI needs implementation (currently requires database edit)
+- Global admin toggle (isGlobal field) can be set via EditUserModal
+- Notification preferences fully implemented (see Phase 2.8)
 
 ### 1.4 Centralized Data Management ✅
 **Technical Infrastructure**
