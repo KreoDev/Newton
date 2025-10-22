@@ -54,8 +54,18 @@ This document provides a comprehensive, phase-by-phase implementation guide for 
 ### Critical Patterns
 
 - **ALWAYS use centralized `src/services/data.service.ts`** for companies, users, roles, products, groups, sites, clients, and assets (NO duplicate queries or listeners)
-- **ALWAYS use `updateDocument`, `createDocument`, `deleteDocument`** from `@/lib/firebase-utils` for ALL CRUD operations (automatic timestamps)
+- **ALWAYS use `updateDocument`, `createDocument`, `deleteDocument`** from `@/lib/firebase-utils` for ALL CRUD operations (automatic timestamps including `dbUpdatedAt`)
+  - **NEVER use direct Firebase operations** (`updateDoc`, `deleteDoc`, `addDoc`) - 100% firebase-utils compliance enforced
 - **For validation**, check in-memory data from `globalData.{collection}.value` instead of making Firebase queries
+- **Alert vs Toast Strategy**:
+  - **Validation errors** (user input, missing fields, duplicates) → Use `alert.showError()` from `useAlert()` hook (prominent full-screen dialog)
+  - **Operational errors** (backend failures, network issues) → Use `toast.error()` from sonner (less intrusive notification)
+- **Confirmation API**: All confirmations MUST use Promise-based `await showConfirm()` API
+  - **NEVER use `window.confirm()`** - native confirm dialogs not allowed
+  - Pattern: `const confirmed = await showConfirm(title, message, confirmText, variant?)`
+  - Returns `Promise<boolean>` - must be called from async functions
+- **Console Logging Policy**: Console statements removed from production code (use `console.service.ts` for debugging only)
+- **Company Deactivation Monitoring**: Real-time monitoring via `useCompanyStatusMonitor()` hook with automatic logout/company switching
 - Use `useOptimizedSearch` hook from `src/hooks/useOptimizedSearch.ts` with configs from `src/config/search-configs.ts`
 - All loading states must use components from `src/components/ui/loading-spinner.tsx`
 - Follow timestamp convention: `createdAt`/`updatedAt` (client), `dbCreatedAt`/`dbUpdatedAt` (server) - firebase-utils handles this automatically
@@ -120,6 +130,45 @@ All foundational systems are implemented and tested. The following components ar
 - Real-time updates via Preact Signals
 
 **Note:** Roles are **global** and shared across all companies. They do not have a `companyId` field.
+
+### 1.2.1 Company Deactivation Monitoring ✅
+
+**Goal**: Real-time detection and handling when a company becomes inactive, ensuring users are logged out or switched to active companies.
+
+**Completed Components:**
+
+- `src/hooks/useCompanyStatusMonitor.ts` - Real-time company status monitoring hook
+- `src/components/company/InactiveCompanyModal.tsx` - Force logout modal for standard users
+- `src/components/company/CompanySwitcherModal.tsx` - Company switcher for global admin users
+- Integration with `src/contexts/AuthContext.tsx` and `src/contexts/CompanyContext.tsx`
+
+**Completed Features:**
+
+- **Real-time Monitoring**: Preact Signals-based monitoring of current company's `isActive` status
+- **Non-Global Users**: Automatic logout with informational modal explaining company deactivation
+- **Global Admin Users**: Option to switch to another active company instead of being logged out
+- **Company Switcher**:
+  - Lists all active companies available to the user
+  - Shows company type badges (Mine, Transporter, Logistics)
+  - Allows selection and switching without logout
+- **Graceful Handling**: Modal prevents outside clicks, requires explicit user action
+- **State Cleanup**: Automatic cleanup of listeners on unmount or company switch
+
+**Methods:**
+
+- `useCompanyStatusMonitor()` - Hook that monitors current company status and triggers appropriate modals
+- `handleForceLogout()` - Logs out non-global users when company becomes inactive
+- `switchCompany(companyId)` - Switches global users to selected active company
+- `resetState()` - Cleans up state when company changes
+
+**Acceptance Criteria:**
+
+- ✅ Company status monitored in real-time via Preact Signals
+- ✅ Non-global users logged out when company deactivated
+- ✅ Global users presented with company switcher option
+- ✅ Modal shows clear explanation of why action is required
+- ✅ Company switcher lists only active companies
+- ✅ State cleaned up properly on logout/switch
 
 ### 1.3 User Management ✅
 
@@ -406,20 +455,29 @@ export default function MyComponent() {
   // Error alert
   showError("Error Title", "Error description")
 
-  // Confirmation dialog
-  showConfirm(
-    "Delete Item",
-    "Are you sure? This cannot be undone.",
-    async () => {
+  // Confirmation dialog (Promise-based API - must be called from async functions)
+  const handleDelete = async () => {
+    const confirmed = await showConfirm(
+      "Delete Item",
+      "Are you sure? This cannot be undone.",
+      "Delete",
+      "destructive" // optional variant: "default" | "destructive"
+    )
+
+    if (confirmed) {
       await deleteItem()
       showSuccess("Deleted", "Item removed successfully.")
-    },
-    undefined,
-    "Delete",
-    "Cancel"
-  )
+    }
+  }
 }
 ```
+
+**Important Notes:**
+
+- `showConfirm()` returns `Promise<boolean>` (true if confirmed, false if cancelled)
+- Must be called from async functions (requires `await` keyword)
+- Replaces all callback-based patterns and native `window.confirm()` calls
+- Signature: `showConfirm(title: string, message: string, confirmText?: string, variant?: "default" | "destructive")`
 
 **Design Specifications:**
 
@@ -499,6 +557,81 @@ export default function MyComponent() {
 - ✅ Navigation to sub-pages works from cards
 - ✅ Admin menu item shows in sidebar
 - ✅ Exact path matching prevents double-highlight
+
+### 1.11 Codebase Consistency Enforcement ✅
+
+**Technical Infrastructure & Code Quality**
+
+**Goal**: Enforce uniform patterns, eliminate inconsistencies, and ensure production-ready code quality across the entire codebase.
+
+**Files Modified**: 68 files including:
+
+- `src/components/users/UsersTable.tsx`
+- `src/components/groups/GroupsTreeManager.tsx`
+- `src/components/assets/AssetBulkActionsToolbar.tsx`
+- `src/components/assets/AssetEditModal.tsx`
+- `src/components/assets/AssetsTableView.tsx`
+- `src/services/scan.service.ts`
+- 62 additional files with console log removal across services, components, hooks, pages, and API routes
+
+**Completed Improvements:**
+
+**1. Firebase Utils Compliance (100% Adoption)**
+
+- Replaced all direct Firebase operations with firebase-utils functions
+- **Files fixed**: UsersTable.tsx, GroupsTreeManager.tsx
+- **Pattern enforced**:
+  - NEVER use `updateDoc()` directly → ALWAYS use `updateDocument()` from firebase-utils
+  - NEVER use `deleteDoc()` directly → ALWAYS use `deleteDocument()` from firebase-utils
+  - NEVER use `addDoc()` directly → ALWAYS use `createDocument()` from firebase-utils
+- **Benefits**: Automatic timestamp handling (createdAt, updatedAt, dbCreatedAt, dbUpdatedAt), consistent error handling
+
+**2. Alert/Notification Standardization**
+
+- Replaced all `window.confirm()` calls with `useAlert().showConfirm()`
+- Converted showConfirm API from callback-based to Promise-based across 10 files
+- **Files updated**: UsersTable.tsx, AssetBulkActionsToolbar.tsx, AssetEditModal.tsx, and 7 other modal components
+- **Pattern enforced**:
+  - OLD (callback-based): `showConfirm(title, desc, onConfirm, onCancel, confirmText, cancelText)`
+  - NEW (Promise-based): `const confirmed = await showConfirm(title, message, confirmText, variant?)`
+- **Benefits**: Cleaner async/await code, better error handling, consistent UX
+
+**3. Console Logging Cleanup**
+
+- Removed 220+ console.log, console.error, console.warn, and console.info statements
+- Cleaned 62 files across:
+  - Service files (asset.service, scan.service, company.service, data.service, utility.service, BaseService)
+  - All component files (assets, users, groups, companies, clients, sites, roles, notifications, settings)
+  - All hooks (usePermission, useAsyncOperation, useAssetViewPreference, useAlert)
+  - All pages and API routes
+  - Lib utilities (firebase-utils, asset-field-mappings)
+- **Retained**: console.service.ts for centralized logging (debugging only)
+- **Benefits**: Clean production code, better performance, professional codebase
+
+**4. Preact Signals Reactivity**
+
+- Added missing `useSignals()` calls to components accessing globalData
+- **File fixed**: AssetsTableView.tsx
+- **Pattern enforced**: All components using `globalData.{collection}.value` must call `useSignals()` at the top
+- **Benefits**: Proper reactivity, prevents stale data, ensures real-time updates
+
+**5. TypeScript Strict Mode Compliance**
+
+- Fixed all implicit any types across codebase
+- Added type annotations and return types where missing
+- **File fixed**: scan.service.ts (getPersonGender, getPersonDescription methods)
+- **Pattern enforced**: All functions have explicit parameter types and return types
+- **Benefits**: Better IDE support, catch errors at compile time, self-documenting code
+
+**Acceptance Criteria:**
+
+- ✅ 100% firebase-utils adoption (zero direct Firebase operations)
+- ✅ All confirmations use Promise-based showConfirm API
+- ✅ Zero console statements in production code
+- ✅ All components with globalData include useSignals()
+- ✅ Codebase compiles with zero TypeScript errors in strict mode
+- ✅ Build completes successfully (`bun run build`)
+- ✅ All changes committed and pushed to repository
 
 ---
 
@@ -1777,6 +1910,23 @@ All asset management pages enforce granular permission checks to ensure users on
   - Send notification to users with "asset.inactive" enabled
   - Show success toast: "Asset marked as inactive"
   - Redirect to asset list
+
+**Error Handling Strategy:**
+
+- **Validation Errors** (user input issues):
+  - Missing required fields (reason textarea empty)
+  - Duplicate identifiers (QR code, registration, ID number)
+  - Invalid expiry dates
+  - **Use**: `alert.showError()` from `useAlert()` hook
+  - **Why**: Prominent full-screen dialog ensures users never miss critical errors
+  - **Pattern**: User must explicitly acknowledge error before continuing
+- **Operational Errors** (backend/network failures):
+  - Firebase write failures
+  - Network timeouts
+  - Authentication errors
+  - **Use**: `toast.error()` from sonner
+  - **Why**: Less intrusive notification for system-level issues user cannot directly fix
+  - **Pattern**: Appears briefly at top/bottom of screen, auto-dismisses
 
 **Data Model:** Reference `docs/data-model.md` → `assets` collection fields: `isActive`, `inactiveReason`, `inactiveDate`, `deletedReason`
 
