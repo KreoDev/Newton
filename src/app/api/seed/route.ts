@@ -103,6 +103,58 @@ const DEFAULT_COMPANY = {
   isActive: true,
 }
 
+const VR_CARGO_COMPANY_ID = "c_vr_cargo"
+const VR_CARGO_COMPANY = {
+  id: VR_CARGO_COMPANY_ID,
+  name: "VR Cargo (PTY) LTD",
+  companyType: "transporter",
+  registrationNumber: "2020/VRC/001",
+  vatNumber: "4123456789",
+  physicalAddress: "45 Transport Road, Johannesburg, 2000",
+  mainContactId: "", // Will be set after user is created
+  secondaryContactIds: [] as string[],
+  mineConfig: {},
+  transporterConfig: {
+    fleetSize: 50,
+    operatingRegions: ["Gauteng", "Limpopo", "North West"],
+  },
+  logisticsCoordinatorConfig: {},
+  orderConfig: {
+    orderNumberMode: "manualAllowed",
+    orderNumberPrefix: "VRC-",
+    defaultDailyTruckLimit: 20,
+    defaultDailyWeightLimit: 200,
+    defaultMonthlyLimit: 4000,
+    defaultTripLimit: 3,
+    defaultWeightPerTruck: 35,
+    preBookingMode: "optional",
+    advanceBookingHours: 12,
+    defaultSealRequired: true,
+    defaultSealQuantity: 2,
+  },
+  systemSettings: {
+    fleetNumberEnabled: true,
+    fleetNumberLabel: "Fleet No.",
+    transporterGroupEnabled: true,
+    transporterGroupLabel: "Division",
+    groupOptions: ["Johannesburg", "Pretoria", "Rustenburg"],
+  },
+  securityAlerts: {
+    primaryContactId: "", // Will be set after user is created
+    secondaryContactIds: [] as string[],
+    escalationMinutes: 20,
+    qrMismatchContacts: [] as string[],
+    documentFailureContacts: [] as string[],
+    sealDiscrepancyContacts: [] as string[],
+    requiredResponseMinutes: 10,
+  },
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+  dbCreatedAt: FieldValue.serverTimestamp(),
+  dbUpdatedAt: FieldValue.serverTimestamp(),
+  isActive: true,
+}
+
 const DEFAULT_USER_EMAIL = "dev@newton.co.za"
 const DEFAULT_USER_PASSWORD = process.env.SEED_DEFAULT_USER_PASSWORD || "NewtonDev123!"
 
@@ -142,6 +194,26 @@ const SECOND_USER_PROFILE = {
   companyId: DEFAULT_COMPANY_ID,
   isGlobal: false, // Regular user, not global admin
   notificationPreferences: getDefaultNotificationPreferences("mine"),
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+  dbCreatedAt: FieldValue.serverTimestamp(),
+  dbUpdatedAt: FieldValue.serverTimestamp(),
+  isActive: true,
+}
+
+const VR_CARGO_USER_EMAIL = "fleet@vrcargo.co.za"
+const VR_CARGO_USER_PASSWORD = "VRCargo123!"
+
+const VR_CARGO_USER_PROFILE = {
+  email: VR_CARGO_USER_EMAIL,
+  firstName: "Fleet",
+  lastName: "Manager",
+  displayName: "Fleet Manager",
+  phoneNumber: "+27823456789",
+  roleId: "r_site_admin", // Site admin role for transporter company
+  companyId: VR_CARGO_COMPANY_ID,
+  isGlobal: false,
+  notificationPreferences: getDefaultNotificationPreferences("transporter"),
   createdAt: Date.now(),
   updatedAt: Date.now(),
   dbCreatedAt: FieldValue.serverTimestamp(),
@@ -779,15 +851,26 @@ async function clearCollection(collectionName: string, sendProgress: (data: Prog
 }
 
 async function seedCompany(sendProgress: (data: ProgressData) => void) {
+  // Seed Dev Company (mine)
   await adminDb.collection("companies").doc(DEFAULT_COMPANY_ID).set(DEFAULT_COMPANY)
   sendProgress({
     stage: "seeding_companies",
     message: `Seeded company ${DEFAULT_COMPANY.name} (ID: ${DEFAULT_COMPANY_ID})`,
     collection: "companies",
     count: 1,
+  })
+
+  // Seed VR Cargo (transporter)
+  await adminDb.collection("companies").doc(VR_CARGO_COMPANY_ID).set(VR_CARGO_COMPANY)
+  sendProgress({
+    stage: "seeding_companies",
+    message: `Seeded company ${VR_CARGO_COMPANY.name} (ID: ${VR_CARGO_COMPANY_ID})`,
+    collection: "companies",
+    count: 2,
     completed: true,
   })
-  return 1
+
+  return 2
 }
 
 async function seedDefaultUser(sendProgress: (data: ProgressData) => void): Promise<string> {
@@ -839,7 +922,34 @@ async function seedSecondUser(sendProgress: (data: ProgressData) => void): Promi
     stage: "seeding_users",
     message: `Seeded second user (${SECOND_USER_EMAIL}) with uid ${createdUser.uid}`,
     collection: "users",
-    count: 1,
+    count: 2,
+  })
+  return createdUser.uid
+}
+
+async function seedVRCargoUser(sendProgress: (data: ProgressData) => void): Promise<string> {
+  const createdUser = await adminAuth.createUser({
+    email: VR_CARGO_USER_EMAIL,
+    password: VR_CARGO_USER_PASSWORD,
+    displayName: "Fleet Manager",
+    emailVerified: true,
+  })
+
+  await adminDb
+    .collection("users")
+    .doc(createdUser.uid)
+    .set({
+      ...VR_CARGO_USER_PROFILE,
+      id: createdUser.uid,
+      authUid: createdUser.uid,
+      isGlobal: VR_CARGO_USER_PROFILE.isGlobal,
+    })
+
+  sendProgress({
+    stage: "seeding_users",
+    message: `Seeded VR Cargo user (${VR_CARGO_USER_EMAIL}) with uid ${createdUser.uid}`,
+    collection: "users",
+    count: 3,
     completed: true,
   })
   return createdUser.uid
@@ -979,7 +1089,7 @@ async function seedAssets(sendProgress: (data: ProgressData) => void) {
     // Transform Android app field names to web app schema
     const transformedData: any = {
       ...data,
-      companyId: data.companyId ?? DEFAULT_COMPANY_ID,
+      companyId: data.companyId ?? VR_CARGO_COMPANY_ID, // All assets belong to VR Cargo (transporter company)
       // Note: 'type' field is kept as-is from Android app
       createdAt: data.createdAt ?? Date.now(),
       updatedAt: Date.now(),
@@ -1352,7 +1462,8 @@ export async function GET() {
         results.seeded.companies = await seedCompany(sendProgress)
         const userId = await seedDefaultUser(sendProgress)
         const secondUserId = await seedSecondUser(sendProgress)
-        results.seeded.users = 2 // Now we have 2 login users
+        const vrCargoUserId = await seedVRCargoUser(sendProgress)
+        results.seeded.users = 3 // Now we have 3 login users (2 for Dev Company, 1 for VR Cargo)
 
         // Seed contact users and collect their IDs for site assignment
         const contactUserIds: string[] = []
