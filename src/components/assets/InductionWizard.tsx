@@ -14,13 +14,17 @@ import { Step8OptionalFields } from "./wizard-steps/Step8OptionalFields"
 import { Step9Review } from "./wizard-steps/Step9Review"
 import type { AssetInductionState } from "@/types/asset-types"
 import { useRouter } from "next/navigation"
+import { data as globalData } from "@/services/data.service"
+import { useSignals } from "@preact/signals-react/runtime"
 
 interface InductionWizardProps {
   onComplete?: () => void
 }
 
 export function InductionWizard({ onComplete }: InductionWizardProps) {
+  useSignals()
   const router = useRouter()
+  const companies = globalData.companies.value
   const [currentStep, setCurrentStep] = useState(1)
   const [wizardState, setWizardState] = useState<Partial<AssetInductionState>>({
     currentStep: 1,
@@ -43,28 +47,62 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
     }
   }
 
+  // Helper function to check if Step 8 (Optional Fields) should be shown
+  // Step 8 is only shown if the asset is a truck AND company has fleet/group settings enabled
+  const shouldShowStep8 = (): boolean => {
+    const selectedCompany = companies.find(c => c.id === wizardState.companyId)
+    if (!selectedCompany || wizardState.type !== "truck") {
+      return false
+    }
+    const fleetNumberEnabled = selectedCompany?.systemSettings?.fleetNumberEnabled ?? false
+    const groupEnabled = selectedCompany?.systemSettings?.transporterGroupEnabled ?? false
+    return fleetNumberEnabled || groupEnabled
+  }
+
   const prevStep = () => {
+    console.log("🔙 prevStep called - currentStep:", currentStep)
     if (currentStep > 1) {
       let targetStep = currentStep - 1
+      let stateClear: Partial<AssetInductionState> = {}
 
-      // Skip automated verification steps when going backwards
-      // Step 3 (QR Verification) and Step 5 (License Verification) auto-advance
-      // So we skip them and go to the manual scan steps instead
+      // Navigation rules for Previous button:
+      // - From Step 4 → Step 2 (skip Step 3 QR Verification)
+      // - From Step 7, 8, 9 → Step 4 (skip Steps 5 and 6)
+      // - Step 6 is never manual (auto-advances), so no Previous from there
 
       if (currentStep === 4) {
-        // From License Scan → skip QR Verification → go to QR Scan
+        // From License Scan → jump to QR Scan (skip Step 3 QR Verification)
+        // Clear QR codes so Step 2 doesn't auto-advance
+        console.log("🔙 From Step 4 - Jumping to Step 2 (skipping Step 3), clearing QR codes")
         targetStep = 2
-      } else if (currentStep >= 6) {
-        // From Asset Type Detection onwards → skip License Verification → go to License Scan
+        stateClear = {
+          firstQRCode: undefined,
+          secondQRCode: undefined,
+        }
+      } else if (currentStep === 7 || currentStep === 8 || currentStep === 9) {
+        // From Field Confirmation, Optional Fields, or Review → jump to License Scan
+        // Skip Steps 5 (License Verification) and 6 (Asset Type Detection)
+        // Clear barcode data and parsed data so Step 4 doesn't auto-advance
+        console.log(`🔙 From Step ${currentStep} - Jumping to Step 4 (skipping Steps 5, 6), clearing barcode data`)
+        targetStep = 4
+        stateClear = {
+          firstBarcodeData: undefined,
+          secondBarcodeData: undefined,
+          parsedData: undefined, // Clear parsed data since we're re-scanning
+        }
+      } else {
+        // Default: go to previous step (Step 1 → nowhere, Step 2 → Step 1, Step 3 → Step 2)
         targetStep = currentStep - 1
-        if (targetStep === 5) {
-          targetStep = 4 // Skip Step 5 (License Verification)
-        }
-        if (targetStep === 3) {
-          targetStep = 2 // Skip Step 3 (QR Verification)
-        }
+        console.log(`🔙 From Step ${currentStep} - Default navigation to Step ${targetStep}`)
       }
 
+      console.log(`🔙 Final navigation: Step ${currentStep} → Step ${targetStep}`)
+      console.log("🔙 Clearing state:", stateClear)
+
+      // Clear state first, then navigate
+      if (Object.keys(stateClear).length > 0) {
+        updateState(stateClear)
+      }
       goToStep(targetStep)
     }
   }
