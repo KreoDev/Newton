@@ -9,8 +9,8 @@ import { useAlert } from "@/hooks/useAlert"
 import onScan from "onscan.js"
 
 export type ParsedBarcodeData =
-  | { type: "vehicle"; data: ReturnType<typeof AssetFieldMapper.parseVehicleDisk> }
-  | { type: "driver"; data: ReturnType<typeof AssetFieldMapper.parseDriverLicense> }
+  | { type: "vehicle"; data: Awaited<ReturnType<typeof AssetFieldMapper.parseVehicleDisk>> }
+  | { type: "driver"; data: Awaited<ReturnType<typeof AssetFieldMapper.parseDriverLicense>> }
 
 interface BarcodeScannerProps {
   onScanSuccess: (barcodeData: string, parsedData: ParsedBarcodeData) => void
@@ -83,8 +83,87 @@ export function BarcodeScanner({
     setError("")
 
     try {
+      const trimmedData = barcodeData.trim()
+
+      // Check if this is hex data (driver's license - 720 bytes = 1440 hex chars)
+      const isHexData = /^[0-9A-Fa-f]{1000,}$/.test(trimmedData) && trimmedData.length >= 1000
+
+      if (isHexData) {
+        console.log("BarcodeScanner: Detected hex data, attempting SADL decryption, length:", trimmedData.length)
+
+        // Import scan service dynamically to access SADL decryption
+        const { scan } = await import("@/services/scan.service")
+        const sadlResult = await scan.decryptDriverLicense(trimmedData)
+
+        if ("error" in sadlResult || !sadlResult.success) {
+          const errorMsg = sadlResult.error || "Failed to decrypt driver's license"
+          setError(errorMsg)
+          alert.showError("Decryption Failed", errorMsg, () => {
+            setBarcodeData("")
+            setError("")
+            setParsedData(null)
+            setIsProcessing(false)
+            setTimeout(() => inputRef.current?.focus(), 100)
+          })
+          setIsProcessing(false)
+          if (onScanError) onScanError(errorMsg)
+          return
+        }
+
+        // Parse the SADL decoded data
+        const driverResult = AssetFieldMapper.parseSADLDriverLicense(sadlResult)
+
+        if (!("error" in driverResult)) {
+          console.log("BarcodeScanner: SADL driver parsed successfully, ID:", driverResult.person.idNumber)
+
+          const parsed: ParsedBarcodeData = { type: "driver", data: driverResult }
+          setParsedData(parsed)
+
+          // Custom validation if provided
+          if (validateFn) {
+            const validation = validateFn(trimmedData, parsed)
+            if (!validation.isValid) {
+              setError(validation.error || "Validation failed")
+              alert.showError("Validation Failed", validation.error || "Validation failed", () => {
+                setBarcodeData("")
+                setError("")
+                setParsedData(null)
+                setIsProcessing(false)
+                setTimeout(() => inputRef.current?.focus(), 100)
+              })
+              setIsProcessing(false)
+              if (onScanError) onScanError(validation.error || "Validation failed")
+              return
+            }
+          }
+
+          // Success
+          setIsProcessing(false)
+          if (autoAdvance) {
+            setTimeout(() => onScanSuccess(trimmedData, parsed), 300)
+          } else {
+            onScanSuccess(trimmedData, parsed)
+          }
+          return
+        } else {
+          // SADL parsing failed
+          const errorMsg = driverResult.error || "Failed to parse driver's license data"
+          setError(errorMsg)
+          alert.showError("Parsing Failed", errorMsg, () => {
+            setBarcodeData("")
+            setError("")
+            setParsedData(null)
+            setIsProcessing(false)
+            setTimeout(() => inputRef.current?.focus(), 100)
+          })
+          setIsProcessing(false)
+          if (onScanError) onScanError(errorMsg)
+          return
+        }
+      }
+
       // Try to parse as vehicle disk first
-      const vehicleResult = AssetFieldMapper.parseVehicleDisk(barcodeData.trim())
+      const vehicleResult = await AssetFieldMapper.parseVehicleDisk(trimmedData)
 
       if (!("error" in vehicleResult)) {
         console.log("BarcodeScanner: Parsed as vehicle, registration:", vehicleResult.registration)
@@ -129,7 +208,7 @@ export function BarcodeScanner({
       }
 
       // Try to parse as driver license/ID
-      const driverResult = AssetFieldMapper.parseDriverLicense(barcodeData.trim())
+      const driverResult = await AssetFieldMapper.parseDriverLicense(barcodeData.trim())
 
       if (!("error" in driverResult)) {
         console.log("BarcodeScanner: Parsed as driver, ID number:", driverResult.person.idNumber)

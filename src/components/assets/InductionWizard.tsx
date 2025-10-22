@@ -167,7 +167,7 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
         </CardHeader>
         <CardContent className="min-h-[400px]">
           {currentStep === 1 && <Step1QRScan state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} />}
-          {currentStep === 2 && <Step2LicenseScan state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} />}
+          {currentStep === 2 && <Step2LicenseScan state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} testDriverHex={testDriver} />}
           {currentStep === 3 && shouldShowOptionalFields() && <Step3OptionalFields state={wizardState} updateState={updateState} onNext={nextStep} onPrev={prevStep} />}
           {currentStep === 3 && !shouldShowOptionalFields() && <Step4Review state={wizardState} onComplete={handleComplete} onPrev={prevStep} />}
           {currentStep === 4 && <Step4Review state={wizardState} onComplete={handleComplete} onPrev={prevStep} />}

@@ -3,7 +3,6 @@
  * Integrates with South African driver's license and vehicle disk standards
  */
 
-import { scan } from "@/services/scan.service"
 import type {
   VehicleInformation,
   PersonInformation,
@@ -14,13 +13,20 @@ import type {
   ExpiryStatus,
 } from "@/types/asset-types"
 
+// Dynamic import helper to avoid SSR issues with scan service
+async function getScanService() {
+  const { scan } = await import("@/services/scan.service")
+  return scan
+}
+
 export class AssetFieldMapper {
   /**
    * Parse vehicle disk barcode data
    * Returns extracted vehicle information
    */
-  static parseVehicleDisk(barcodeData: string): VehicleInformation | { error: string } {
+  static async parseVehicleDisk(barcodeData: string): Promise<VehicleInformation | { error: string }> {
     try {
+      const scan = await getScanService()
       const result = scan.getVehicleLicence(barcodeData)
 
       if ("error" in result) {
@@ -45,11 +51,59 @@ export class AssetFieldMapper {
   }
 
   /**
+   * Parse SADL decrypted driver's license data
+   * Handles data from expo-sadl decrypt result
+   */
+  static parseSADLDriverLicense(sadlData: any): { person: PersonInformation; licence: LicenceInformation } | { error: string } {
+    try {
+      if (!sadlData.success || !sadlData.idNumber) {
+        return { error: sadlData.error || "Invalid SADL data" }
+      }
+
+      // Check if expired
+      if (sadlData.expired) {
+        return { error: "Driver's license has expired" }
+      }
+
+      const personInfo: PersonInformation = {
+        idNumber: sadlData.idNumber,
+        name: sadlData.name || "",
+        surname: sadlData.surname || "",
+        initials: sadlData.initials || "",
+        gender: sadlData.gender,
+        birthDate: sadlData.birthDate, // Already formatted DD/MM/YYYY by expo-sadl
+        nationality: sadlData.sadcCountry,
+        countryOfBirth: sadlData.sadcCountry,
+        citizenshipStatus: sadlData.idType,
+      }
+
+      const licenceInfo: LicenceInformation = {
+        licenceNumber: sadlData.licenceNumber || sadlData.idNumber,
+        issueDate: sadlData.issueDate, // Already formatted DD/MM/YYYY
+        expiryDate: sadlData.expiryDate, // Already formatted DD/MM/YYYY
+        driverRestrictions: sadlData.vehicleCodes || sadlData.restrictions || "",
+        licenceType: sadlData.licenceType || "SADL",
+        ntCode: "",
+      }
+
+      return {
+        person: personInfo,
+        licence: licenceInfo,
+      }
+    } catch (error) {
+      console.error("Error parsing SADL driver license:", error)
+      return { error: "Failed to parse SADL driver license data" }
+    }
+  }
+
+  /**
    * Parse driver license or ID barcode data
    * Returns extracted person and license information
    */
-  static parseDriverLicense(barcodeData: string): { person: PersonInformation; licence?: LicenceInformation } | { error: string } {
+  static async parseDriverLicense(barcodeData: string): Promise<{ person: PersonInformation; licence?: LicenceInformation } | { error: string }> {
     try {
+      const scan = await getScanService()
+
       // First check if it's a driver's license with | delimiter
       if (barcodeData.includes("|")) {
         const result = scan.getID(barcodeData)

@@ -23,6 +23,7 @@ interface Step2Props {
   updateState: (updates: Partial<AssetInductionState>) => void
   onNext: () => void
   onPrev: () => void
+  testDriverHex?: string // Optional test driver hex string for testing
 }
 
 type ScanPhase =
@@ -62,7 +63,7 @@ function determineVehicleType(description: string): "truck" | "trailer" | null {
   return null
 }
 
-export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Props) {
+export function Step2LicenseScan({ state, updateState, onNext, onPrev, testDriverHex }: Step2Props) {
   const alert = useAlert()
   const [phase, setPhase] = useState<ScanPhase>("first-scan-waiting")
   const [firstBarcodeData, setFirstBarcodeData] = useState(state.firstBarcodeData || "")
@@ -156,7 +157,7 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
 
     try {
       // Try to parse as vehicle disk first
-      const vehicleResult = AssetFieldMapper.parseVehicleDisk(firstBarcodeData.trim())
+      const vehicleResult = await AssetFieldMapper.parseVehicleDisk(firstBarcodeData.trim())
 
       if (!("error" in vehicleResult)) {
         console.log(
@@ -233,7 +234,7 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
       }
 
       // Try to parse as driver license/ID
-      const driverResult = AssetFieldMapper.parseDriverLicense(firstBarcodeData.trim())
+      const driverResult = await AssetFieldMapper.parseDriverLicense(firstBarcodeData.trim())
 
       if (!("error" in driverResult)) {
         console.log("Step2: Parsed as driver, ID number:", driverResult.person.idNumber)
@@ -518,6 +519,30 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
     }
   }
 
+  // Test button handler - simulates scanning testDriver hex
+  const handleTestDriverScan = () => {
+    if (!testDriverHex) {
+      alert.showError("Test Data Missing", "No test driver hex data provided")
+      return
+    }
+
+    console.log("Step2: Test driver button clicked - simulating hex scan")
+
+    if (phase === "first-scan-waiting" || phase === "error") {
+      // Simulate first scan
+      setFirstBarcodeData(testDriverHex)
+      setSecondBarcodeData("")
+      setParsedData(null)
+      setError("")
+      setPhase("first-scan-processing")
+    } else if (phase === "second-scan-waiting") {
+      // Simulate second scan (verification)
+      setSecondBarcodeData(testDriverHex)
+      setError("")
+      setPhase("second-scan-verifying")
+    }
+  }
+
   const visualState = getVisualState()
 
   return (
@@ -530,6 +555,13 @@ export function Step2LicenseScan({ state, updateState, onNext, onPrev }: Step2Pr
               ? "Scan the same license/disk barcode again to verify."
               : "Processing barcode data..."}
         </p>
+
+        {/* Test button - only show when testDriverHex is provided and waiting for scan */}
+        {testDriverHex && (phase === "first-scan-waiting" || phase === "second-scan-waiting" || phase === "error") && (
+          <Button type="button" variant="outline" size="sm" onClick={handleTestDriverScan} className="mt-2">
+            Test with Sample Driver License
+          </Button>
+        )}
       </div>
 
       {/* Hidden input that captures scanner events */}

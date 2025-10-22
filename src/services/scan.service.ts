@@ -16,6 +16,54 @@ class Scan {
     return Scan.instance
   }
 
+  /**
+   * Decrypt SA Driver's License using SADL (expo-sadl)
+   * Expects hex string input (720 bytes = 1440 hex characters)
+   */
+  decryptDriverLicense = async (hexData: string) => {
+    try {
+      // Use expo-sadl/web to avoid SSR issues with React Native dependencies
+      const sadl: any = await import("expo-sadl/web").catch(() => null)
+
+      if (!sadl?.default?.decode && !(sadl as any).decode) {
+        console.error(TAG, "expo-sadl/web not available")
+        return {
+          success: false,
+          error: "Driver's license decryption not available in this environment",
+        }
+      }
+
+      console.log(TAG, "Decrypting driver's license, hex length:", hexData.length)
+
+      // Access the decode function (can be on default or directly on sadl)
+      const api: any = (sadl as any).default ?? sadl
+      const result = await api.decode(hexData)
+
+      if (result.success) {
+        console.log(TAG, "SADL decode successful:", {
+          idNumber: result.idNumber,
+          surname: result.surname,
+          name: result.name,
+          expired: result.expired,
+        })
+
+        return result
+      } else {
+        console.error(TAG, "SADL decode failed:", result.error)
+        return {
+          success: false,
+          error: result.error || "Failed to decrypt driver's license",
+        }
+      }
+    } catch (error) {
+      console.error(TAG, "SADL decrypt error:", error)
+      return {
+        success: false,
+        error: `Decryption error: ${error instanceof Error ? error.message : String(error)}`,
+      }
+    }
+  }
+
   getID = (raw: string) => {
     if (raw.charAt(0) == "*" && raw.charAt(raw.length - 1) == "*") {
       raw = raw.slice(1, -1)
