@@ -1,8 +1,8 @@
 # Newton Web Application - Testing Checklist
 
-## Phase 1 & Phase 2 User Acceptance Testing
+## Phase 1, 2 & 3 User Acceptance Testing
 
-**Purpose**: This checklist covers all functionality implemented in Phase 1 (Core Infrastructure) and Phase 2 (Administrative Configuration). Test items are organized in the order they appear in the application's side menu.
+**Purpose**: This checklist covers all functionality implemented in Phase 1 (Core Infrastructure), Phase 2 (Administrative Configuration), and Phase 3 (Asset Management). Test items are organized in the order they appear in the application's side menu.
 
 **Test Environment**: Web Application (Desktop & Mobile browsers)
 
@@ -140,14 +140,26 @@
 - [ ] Confirmation dialog appears with warning message
 - [ ] Can cancel deletion (company remains)
 - [ ] Can confirm deletion
-- [ ] **If company is in use** (has users, products, sites, etc.):
-  - [ ] Error message appears preventing deletion
-  - [ ] Toast notification explains why deletion failed
-  - [ ] Company remains in the list
+- [ ] **If company is in use** (has users, sites, orders, or assets):
+  - [ ] Cannot Delete dialog appears with detailed usage information
+  - [ ] Dialog lists what company has (e.g., "5 users, 3 sites, 12 assets")
+  - [ ] Dialog explains deactivation as alternative
+  - [ ] "Deactivate Instead" button is shown
+  - [ ] Can cancel (company remains active)
+  - [ ] Can click "Deactivate Instead"
+  - [ ] Company is deactivated successfully
+  - [ ] Company remains in list but shows as "Inactive"
+  - [ ] Success toast: "Company Deactivated"
 - [ ] **If company is not in use**:
+  - [ ] Standard deletion confirmation appears
+  - [ ] Can cancel deletion
+  - [ ] Can confirm deletion
   - [ ] Company is deleted successfully
   - [ ] Success toast notification appears
   - [ ] Company is removed from list
+- [ ] **Cannot delete currently active company**:
+  - [ ] If trying to delete own company: Error message appears
+  - [ ] Message explains must switch to different company first
 
 ### 1.8 Search & Filter Companies
 
@@ -166,6 +178,36 @@
 - [ ] Page refreshes/updates with new company context
 - [ ] Success toast shows company switch
 - [ ] Data on all pages now reflects new company
+
+### 1.10 Company Deactivation Monitoring
+
+- [ ] **When company is deactivated (Standard User)**:
+  - [ ] Real-time monitoring detects deactivation
+  - [ ] Inactive Company modal appears automatically
+  - [ ] Modal explains company has been deactivated
+  - [ ] Modal shows "Contact Administrator" message
+  - [ ] Only "Log Out" button is available
+  - [ ] Click "Log Out" logs user out
+  - [ ] User redirected to login page
+  - [ ] Cannot log back in to deactivated company
+- [ ] **When company is deactivated (Global Admin)**:
+  - [ ] Real-time monitoring detects deactivation
+  - [ ] Company Switcher modal appears automatically
+  - [ ] Modal explains current company is now inactive
+  - [ ] Modal shows list of other active companies
+  - [ ] Can select different active company
+  - [ ] Switching to new company reloads page with new context
+  - [ ] Data now shows selected company's information
+  - [ ] Can also choose to log out instead
+- [ ] **Login Prevention for Inactive Company**:
+  - [ ] Try to login with user from inactive company
+  - [ ] Login fails with error message
+  - [ ] Error explains company is inactive
+  - [ ] User remains on login page
+- [ ] **Company Reactivation**:
+  - [ ] Admin reactivates company (toggle status to active)
+  - [ ] Users can now log in again
+  - [ ] Logged-out users can log back in successfully
 
 ---
 
@@ -290,7 +332,431 @@
 
 ---
 
-## 3. Products Management (Mine Companies Only)
+## 3. Asset Management
+
+**Location**: Assets Menu
+
+**Note**: Asset Management is available for all company types (Mine, Transporter, Logistics Coordinator). Access is controlled by permissions.
+
+### 3.1 Access Control
+
+- [ ] **As user with assets.view permission**: Assets menu item is visible in sidebar
+- [ ] **As user without assets.view permission**: Assets menu item is NOT visible
+- [ ] Assets page enforces permission checks (view, add, edit, delete)
+- [ ] Action buttons only visible if user has corresponding permission
+
+### 3.2 Asset Induction Wizard
+
+**Location**: Assets → Induct Asset button
+
+#### 3.2.1 Step 1: QR Code Scan
+
+- [ ] Can click "Induct Asset" button (only visible with assets.add permission)
+- [ ] Wizard modal opens with Step 1: QR Code Scan
+- [ ] Text input field is visible for desktop scanner
+- [ ] Can scan/enter QR code
+- [ ] **QR Code Validation**:
+  - [ ] Must start with "NT" prefix (South African NaTIS standard)
+  - [ ] Error alert appears if missing NT prefix
+  - [ ] Real-time uniqueness check against existing assets
+  - [ ] Error alert if duplicate QR code found
+  - [ ] Can retry with different QR code
+- [ ] Valid QR code auto-advances to Step 2
+- [ ] Can go back to cancel induction
+
+#### 3.2.2 Step 2: Barcode Scan
+
+- [ ] Step 2: Barcode Scan screen displays
+- [ ] Text input field visible for desktop scanner
+- [ ] **First Scan**:
+  - [ ] Can scan driver's license barcode
+  - [ ] expo-sadl automatically parses driver license data
+  - [ ] Can scan vehicle license disk barcode
+  - [ ] scan.service parses vehicle disk data
+  - [ ] Barcode data displays for review
+- [ ] **Verification Scan**:
+  - [ ] Second scan required for verification
+  - [ ] Must match first scan exactly
+  - [ ] Error alert if scans don't match
+  - [ ] Can retry if mismatch
+- [ ] **Asset Type Detection**:
+  - [ ] Driver's license → Automatically selects "Driver" type
+  - [ ] Vehicle license disk → Shows truck/trailer selection
+  - [ ] Can select "Truck" or "Trailer" for vehicle
+- [ ] **Expiry Date Validation**:
+  - [ ] Expired documents: Red banner, Next button disabled, error alert
+  - [ ] <7 days to expiry: Orange warning, can proceed
+  - [ ] 7-30 days to expiry: Yellow warning, can proceed
+  - [ ] >30 days to expiry: Green valid, can proceed
+  - [ ] Cannot proceed with expired document
+- [ ] **Field Confirmation**:
+  - [ ] All extracted barcode fields display
+  - [ ] For vehicles: registration, make, model, colour, VIN, engine number, etc.
+  - [ ] For drivers: name, surname, ID number, license number, birth date, etc.
+  - [ ] Can review all fields before proceeding
+- [ ] Valid barcode advances to Step 3 (or Step 4 if no optional fields)
+
+#### 3.2.3 Step 3: Optional Fields (Conditional)
+
+- [ ] **Step 3 only shows for trucks with enabled settings**
+- [ ] Step 3 auto-skips for trailers and drivers
+- [ ] Step 3 auto-skips if both fleet/group settings disabled
+- [ ] **Fleet Number** (if systemSettings.fleetNumberEnabled):
+  - [ ] Fleet number text input visible
+  - [ ] Uses custom label from systemSettings.fleetNumberLabel
+  - [ ] Optional field (can leave blank)
+- [ ] **Transporter Group** (if systemSettings.transporterGroupEnabled):
+  - [ ] Group dropdown visible
+  - [ ] Shows active groups from company.systemSettings.groupOptions
+  - [ ] Uses custom label from systemSettings.transporterGroupLabel
+  - [ ] Optional field (can leave blank)
+- [ ] Can proceed to Step 4 (Review)
+
+#### 3.2.4 Step 4: Review & Submit
+
+- [ ] **Review screen displays all asset information**:
+  - [ ] Asset type with icon (🚚 truck, 🚛 trailer, driver photo/icon)
+  - [ ] Newton QR code (ntCode)
+  - [ ] All barcode-extracted fields
+  - [ ] Expiry date with color-coded badge
+  - [ ] Fleet number (if applicable)
+  - [ ] Transporter group (if applicable)
+- [ ] **Edit Capability**:
+  - [ ] Each section has "Edit" button
+  - [ ] Click Edit returns to relevant step
+  - [ ] Changes reflect in review screen
+- [ ] **Submit Button**:
+  - [ ] Can click "Submit" to create asset
+  - [ ] Success alert dialog appears
+  - [ ] Alert shows: "{AssetType} ({Identifier}) has been successfully inducted"
+  - [ ] Must click "OK" to close alert
+  - [ ] After OK, wizard closes
+  - [ ] Returns to assets list page
+  - [ ] New asset appears in list
+
+#### 3.2.5 Wizard Error Handling
+
+- [ ] **Validation errors use alert dialogs** (full-screen, impossible to miss)
+- [ ] **Duplicate QR code**: Alert dialog with retry option
+- [ ] **Expired document**: Alert dialog, cannot proceed
+- [ ] **Barcode mismatch**: Alert dialog with retry option
+- [ ] **Backend errors**: Toast notification (less intrusive)
+- [ ] Can cancel wizard at any step
+- [ ] Cancel confirmation if data already entered
+
+### 3.3 Asset List View
+
+**Location**: Assets page
+
+#### 3.3.1 View Toggle
+
+- [ ] View toggle button visible (Card/Table icons)
+- [ ] Can click to switch between Card and Table views
+- [ ] Selection persists (remembered for next visit)
+- [ ] Page updates immediately when toggling
+
+#### 3.3.2 Card View
+
+- [ ] Assets display in card layout
+- [ ] Each card shows:
+  - [ ] Asset icon: Driver photo (if available) or 🚚/🚛 emoji
+  - [ ] Registration number (vehicles) or Name (drivers)
+  - [ ] License number (drivers)
+  - [ ] Fleet number badge (if assigned)
+  - [ ] Active/Inactive status badge
+  - [ ] Asset type label (Truck/Trailer/Driver)
+  - [ ] Newton QR code (ntCode)
+  - [ ] Expiry date with color-coded badge
+- [ ] **Action buttons on card** (permission-based):
+  - [ ] View button (always visible)
+  - [ ] Toggle Active/Inactive button (visible with assets.edit)
+  - [ ] Edit dropdown menu (visible with assets.edit or assets.delete)
+- [ ] **Toggle Active/Inactive from card**:
+  - [ ] Click toggle button (ToggleRight/ToggleLeft icon)
+  - [ ] If deactivating: Reason modal appears
+  - [ ] Must enter deactivation reason
+  - [ ] Asset marked inactive, reason saved
+  - [ ] Card updates to show "Inactive" badge
+  - [ ] Toggle icon changes to ToggleLeft (gray)
+  - [ ] If reactivating: Confirm reactivation
+  - [ ] Asset marked active
+  - [ ] Card updates to show "Active" badge
+  - [ ] Toggle icon changes to ToggleRight (green)
+
+#### 3.3.3 Table View
+
+- [ ] Assets display in table with columns
+- [ ] **Columns shown** (vary by asset type):
+  - [ ] For vehicles: Registration, Make & Model, Type, Fleet Number, Expiry Date, Status
+  - [ ] For drivers: Name, License Number, ID Number, Expiry Date, Status
+- [ ] **Column Features**:
+  - [ ] Can sort by clicking column headers
+  - [ ] Can toggle column visibility
+  - [ ] Can reorder columns via drag-and-drop
+  - [ ] Column order persists (remembered)
+  - [ ] Column visibility persists
+- [ ] **Row Actions**:
+  - [ ] Dropdown menu button on each row
+  - [ ] View option (always visible)
+  - [ ] Edit option (visible with assets.edit)
+  - [ ] Mark Inactive/Reactivate (visible with assets.edit)
+  - [ ] Delete option (visible with assets.delete)
+- [ ] **Pagination**:
+  - [ ] Page size selector (10, 20, 50, 100)
+  - [ ] Previous/Next buttons
+  - [ ] Page number indicator
+
+#### 3.3.4 Search & Filters
+
+- [ ] **Search bar**:
+  - [ ] Can type to search
+  - [ ] Searches: registration, license number, ntCode, fleet number, name, surname
+  - [ ] Search is case-insensitive
+  - [ ] Real-time filtering as you type
+- [ ] **Asset Type Filter**:
+  - [ ] Dropdown shows: All, Truck, Trailer, Driver
+  - [ ] Filter applies immediately
+  - [ ] Can combine with other filters
+- [ ] **Status Filter**:
+  - [ ] Dropdown shows: All, Active, Inactive, Expired
+  - [ ] Filter applies immediately
+  - [ ] Can combine with search and type filter
+- [ ] **Combined Filtering**:
+  - [ ] All filters work together (search + type + status)
+  - [ ] Clear filters button resets all
+  - [ ] No results message if no matches
+
+#### 3.3.5 Expiry Status Indicators
+
+- [ ] **Color-coded expiry badges**:
+  - [ ] Green: >30 days until expiry
+  - [ ] Yellow: 7-30 days until expiry
+  - [ ] Orange: <7 days until expiry
+  - [ ] Red: Expired
+- [ ] Expiry date format: DD/MM/YYYY
+- [ ] Badge shows on both card and table views
+
+### 3.4 Asset Details Page
+
+**Location**: Assets → View Asset
+
+- [ ] Can click "View" button on asset card/row
+- [ ] Details page loads with asset ID in URL (/assets/[id])
+- [ ] **Page Header**:
+  - [ ] Asset type with large icon/emoji
+  - [ ] Status badges (Active/Inactive/Expired)
+  - [ ] Action buttons (permission-based):
+    - [ ] Edit (assets.edit permission)
+    - [ ] Edit Fleet/Group (assets.edit permission)
+    - [ ] Mark Inactive (assets.edit permission, if active)
+    - [ ] Reactivate (assets.edit permission, if inactive)
+    - [ ] Delete (assets.delete permission)
+- [ ] **Basic Information Card**:
+  - [ ] Newton QR Code (ntCode)
+  - [ ] Company name
+  - [ ] Fleet number (if assigned)
+  - [ ] Transporter group (if assigned)
+  - [ ] Created date and time
+  - [ ] Last updated date and time
+- [ ] **Vehicle Details Card** (for trucks/trailers):
+  - [ ] Registration number
+  - [ ] Make & Model
+  - [ ] Vehicle type (vehicleDescription)
+  - [ ] Description
+  - [ ] Colour
+  - [ ] License disk number
+  - [ ] Expiry date with color-coded badge
+  - [ ] Engine number
+  - [ ] VIN (Vehicle Identification Number)
+- [ ] **Driver Personal Information Card** (for drivers):
+  - [ ] Driver photo (if available)
+  - [ ] ID Number
+  - [ ] Full name (initials, name, surname)
+  - [ ] Gender
+  - [ ] Date of birth
+  - [ ] Age (calculated)
+  - [ ] Country
+  - [ ] Place issued
+  - [ ] ID type
+- [ ] **Driver License Information Card** (for drivers):
+  - [ ] License number
+  - [ ] License type
+  - [ ] Expiry date with color-coded badge
+  - [ ] Issue date
+  - [ ] License issue number
+  - [ ] Vehicle codes
+  - [ ] Vehicle class codes
+  - [ ] PrDP code, category, valid until
+  - [ ] Endorsement
+  - [ ] Driver restrictions
+  - [ ] Vehicle restrictions
+  - [ ] General restrictions
+  - [ ] Status badge (Valid/Expired)
+- [ ] All information displays correctly based on asset type
+
+### 3.5 Asset Editing
+
+#### 3.5.1 Edit QR Code or Barcode
+
+- [ ] Can click "Edit" button on asset details page
+- [ ] Edit modal opens with two options
+- [ ] **Option 1: Update QR Code** (for damaged/replaced QR codes):
+  - [ ] Select "Update QR Code" option
+  - [ ] Step 1: Verify existing barcode
+  - [ ] Must scan current barcode to verify correct asset
+  - [ ] Error if wrong asset scanned
+  - [ ] Step 2: Scan new QR code
+  - [ ] New QR code validated (NT prefix, uniqueness)
+  - [ ] Error if same as current QR code
+  - [ ] Success alert: "QR code for {identifier} has been successfully updated"
+  - [ ] Must click OK to close modal
+- [ ] **Option 2: Update Barcode** (for renewed license/disk):
+  - [ ] Select "Update Barcode" option
+  - [ ] Step 1: Verify existing QR code
+  - [ ] Must scan current QR code to verify correct asset
+  - [ ] Error if wrong QR code scanned
+  - [ ] Step 2: Scan new barcode (license/disk)
+  - [ ] **Validation Rules**:
+    - [ ] For vehicles: Registration must match existing asset
+    - [ ] For drivers: ID number must match existing asset
+    - [ ] Error if registration/ID mismatch
+    - [ ] Cannot update to expired document (error alert)
+    - [ ] Warning if new expiry is older than current (can override with confirmation)
+  - [ ] All barcode fields extracted and saved
+  - [ ] Success alert: "Asset updated successfully with new barcode data"
+  - [ ] Must click OK to close modal
+- [ ] Can cancel update at any step
+- [ ] Can go back to previous step
+
+#### 3.5.2 Edit Fleet Number & Group
+
+- [ ] Can click "Edit Fleet/Group" button
+- [ ] Modal opens with current values pre-filled
+- [ ] Can edit fleet number (if enabled)
+- [ ] Can change transporter group (if enabled)
+- [ ] Can save changes
+- [ ] Success toast notification
+- [ ] Changes reflect on details page
+
+### 3.6 Asset Deletion & Inactivation
+
+#### 3.6.1 Delete Asset
+
+- [ ] Can click "Delete" button (only with assets.delete permission)
+- [ ] Delete modal opens
+- [ ] **If asset has NO transactions** (not used in orders, weighing, security checks):
+  - [ ] Reason input field displays
+  - [ ] Must enter deletion reason
+  - [ ] Can cancel deletion
+  - [ ] Can confirm deletion with reason
+  - [ ] Asset is permanently deleted
+  - [ ] Success toast: "Asset deleted successfully"
+  - [ ] Redirected to assets list
+  - [ ] Asset removed from list
+- [ ] **If asset HAS transactions**:
+  - [ ] Cannot delete message appears
+  - [ ] Lists where asset is used (orders, weighing records, security checks)
+  - [ ] Suggests inactivation as alternative
+  - [ ] Can close modal (asset remains)
+  - [ ] Delete button disabled or not shown
+
+#### 3.6.2 Inactivate Asset
+
+- [ ] Can click "Mark Inactive" button (only with assets.edit permission)
+- [ ] Inactivate modal opens
+- [ ] **Reason input field** (required):
+  - [ ] Must enter inactivation reason
+  - [ ] Examples: "License expired", "Vehicle sold", "Driver resigned"
+  - [ ] Cannot proceed without reason
+- [ ] Can cancel inactivation
+- [ ] Can confirm inactivation with reason
+- [ ] Asset marked as inactive (isActive: false)
+- [ ] Reason and date saved to asset document
+- [ ] Success toast: "Asset inactivated successfully"
+- [ ] Details page updates to show "Inactive" badge
+- [ ] "Mark Inactive" button changes to "Reactivate"
+
+#### 3.6.3 Reactivate Asset
+
+- [ ] Can click "Reactivate" button (only with assets.edit permission)
+- [ ] Confirmation dialog appears
+- [ ] Can cancel reactivation
+- [ ] Can confirm reactivation
+- [ ] Asset marked as active (isActive: true)
+- [ ] Success toast: "Asset reactivated successfully"
+- [ ] Details page updates to show "Active" badge
+- [ ] "Reactivate" button changes to "Mark Inactive"
+
+### 3.7 Fleet Number & Transporter Groups
+
+#### 3.7.1 Company Settings
+
+- [ ] Open mine company in edit mode
+- [ ] Navigate to System Settings tab
+- [ ] **Fleet Number Settings**:
+  - [ ] Can toggle "Fleet Number Enabled" on/off
+  - [ ] Can customize fleet number label (default: "Fleet No.")
+  - [ ] If enabled: Fleet number field appears in induction wizard (Step 3)
+  - [ ] If disabled: Fleet number field hidden in wizard
+- [ ] **Transporter Group Settings**:
+  - [ ] Can toggle "Transporter Group Enabled" on/off
+  - [ ] Can customize group label (default: "Group")
+  - [ ] Can add group options (e.g., "North", "South", "East", "West")
+  - [ ] Can remove group options
+  - [ ] If enabled: Group dropdown appears in induction wizard (Step 3)
+  - [ ] If disabled: Group dropdown hidden in wizard
+
+#### 3.7.2 Wizard Conditional Display
+
+- [ ] **If both settings disabled**:
+  - [ ] Step 3 (Optional Fields) auto-skipped
+  - [ ] Wizard goes directly from Step 2 to Step 4
+- [ ] **If fleet enabled only**:
+  - [ ] Step 3 shows fleet number field
+  - [ ] Group dropdown not shown
+- [ ] **If group enabled only**:
+  - [ ] Step 3 shows group dropdown
+  - [ ] Fleet number field not shown
+- [ ] **If both enabled**:
+  - [ ] Step 3 shows both fleet number and group
+- [ ] **For trailers and drivers**:
+  - [ ] Step 3 always skipped (even if settings enabled)
+  - [ ] Fleet/group only applicable to trucks
+
+### 3.8 Asset Permission Enforcement
+
+- [ ] **View Assets** (assets.view permission):
+  - [ ] Can access assets page
+  - [ ] Can see asset list
+  - [ ] Can click view button
+  - [ ] Can view asset details
+  - [ ] Without permission: Assets menu not visible
+- [ ] **Add Assets** (assets.add permission):
+  - [ ] "Induct Asset" button visible
+  - [ ] Can access induction wizard
+  - [ ] Can complete induction
+  - [ ] Without permission: Button hidden
+- [ ] **Edit Assets** (assets.edit permission):
+  - [ ] "Edit" button visible on details page
+  - [ ] "Edit Fleet/Group" button visible
+  - [ ] "Mark Inactive" button visible (if active)
+  - [ ] "Reactivate" button visible (if inactive)
+  - [ ] Toggle active/inactive button visible on cards
+  - [ ] Can modify asset data
+  - [ ] Without permission: Buttons hidden
+- [ ] **Delete Assets** (assets.delete permission):
+  - [ ] "Delete" button visible on details page
+  - [ ] Can delete assets (if no transactions)
+  - [ ] Without permission: Button hidden
+- [ ] **View-Only Users**:
+  - [ ] Can see assets list
+  - [ ] Can view details
+  - [ ] Cannot see edit/delete buttons
+  - [ ] Cannot induct new assets
+
+---
+
+## 4. Products Management (Mine Companies Only)
 
 **Location**: Admin → Products
 
@@ -380,19 +846,19 @@
 
 ---
 
-## 4. Clients Management (Mine Companies Only)
+## 5. Clients Management (Mine Companies Only)
 
 **Location**: Admin → Clients
 
 **Note**: This menu item is only visible for users in Mine companies.
 
-### 4.1 Access Control by Company Type
+### 5.1 Access Control by Company Type
 
 - [ ] **As Mine company user**: Clients menu item is visible in sidebar
 - [ ] **As Transporter company user**: Clients menu item is NOT visible in sidebar
 - [ ] **As Logistics Coordinator company user**: Clients menu item is NOT visible in sidebar
 
-### 4.2 View Clients List
+### 5.2 View Clients List
 
 - [ ] Clients page loads without errors
 - [ ] Can see list of clients scoped to current company
@@ -400,7 +866,7 @@
 - [ ] Active/Inactive status is clearly visible
 - [ ] Search bar is visible at top
 
-### 4.3 Create Client
+### 5.3 Create Client
 
 - [ ] Can click "Add Client" button
 - [ ] Modal opens with "Add Client" title
@@ -418,7 +884,7 @@
 - [ ] New client appears in clients list
 - [ ] Modal closes after successful save
 
-### 4.4 Edit Client
+### 5.4 Edit Client
 
 - [ ] Can click "Edit" button on client card
 - [ ] Modal opens with "Edit Client" title
@@ -429,7 +895,7 @@
 - [ ] Success toast notification appears
 - [ ] Changes reflect in clients list
 
-### 4.5 View Client (Read-Only)
+### 5.5 View Client (Read-Only)
 
 - [ ] Can click "View" button on client card (FileText icon)
 - [ ] Modal opens with "View Client" title
@@ -437,7 +903,7 @@
 - [ ] Only "Close" button is visible
 - [ ] Modal closes when clicking Close
 
-### 4.6 Delete Client
+### 5.6 Delete Client
 
 - [ ] Can click "Delete" button on client card
 - [ ] Confirmation dialog appears
@@ -450,7 +916,7 @@
   - [ ] Success toast notification appears
   - [ ] Client is removed from list
 
-### 4.7 Search Clients
+### 5.7 Search Clients
 
 - [ ] Can type in search bar
 - [ ] Clients filter as you type (by name or contact person)
@@ -458,19 +924,19 @@
 
 ---
 
-## 5. Sites Management (Mine Companies Only)
+## 6. Sites Management (Mine Companies Only)
 
 **Location**: Admin → Sites
 
 **Note**: This menu item is only visible for users in Mine companies.
 
-### 5.1 Access Control by Company Type
+### 6.1 Access Control by Company Type
 
 - [ ] **As Mine company user**: Sites menu item is visible in sidebar
 - [ ] **As Transporter company user**: Sites menu item is NOT visible in sidebar
 - [ ] **As Logistics Coordinator company user**: Sites menu item is NOT visible in sidebar
 
-### 5.2 View Sites List
+### 6.2 View Sites List
 
 - [ ] Sites page loads without errors
 - [ ] Can see list of sites scoped to current company
@@ -478,7 +944,7 @@
 - [ ] Active/Inactive status is clearly visible
 - [ ] Search bar is visible at top
 
-### 5.3 Create Site
+### 6.3 Create Site
 
 - [ ] Can click "Add Site" button
 - [ ] Modal opens with "Add Site" title
@@ -503,7 +969,7 @@
 - [ ] New site appears in sites list
 - [ ] Site displays assigned group if selected
 
-### 5.4 Edit Site
+### 6.4 Edit Site
 
 - [ ] Can click "Edit" button on site card
 - [ ] Modal opens with "Edit Site" title
@@ -518,7 +984,7 @@
 - [ ] Can toggle active status
 - [ ] Can save changes successfully
 
-### 5.5 View Site (Read-Only)
+### 6.5 View Site (Read-Only)
 
 - [ ] Can click "View" button on site card (FileText icon)
 - [ ] Modal opens with "View Site" title
@@ -526,7 +992,7 @@
 - [ ] Can see group assignment (if any)
 - [ ] Only "Close" button is visible
 
-### 5.6 Delete Site
+### 6.6 Delete Site
 
 - [ ] Can click "Delete" button on site card
 - [ ] Confirmation dialog appears
@@ -537,7 +1003,7 @@
   - [ ] Site is deleted successfully
   - [ ] Success toast notification appears
 
-### 5.7 Site-Group Relationship
+### 6.7 Site-Group Relationship
 
 - [ ] Sites assigned to a group display the group name
 - [ ] Can filter/view sites by group (if implemented)
@@ -545,18 +1011,18 @@
 - [ ] Can change a site's group assignment
 - [ ] Can remove group assignment from a site (set to none)
 
-### 5.8 Search Sites
+### 6.8 Search Sites
 
 - [ ] Can type in search bar
 - [ ] Sites filter as you type (by name or code)
 
 ---
 
-## 6. Users Management
+## 7. Users Management
 
 **Location**: Admin → Users
 
-### 6.1 View Users List
+### 7.1 View Users List
 
 - [ ] Users page loads without errors
 - [ ] Can see list of users scoped to current company
@@ -566,7 +1032,7 @@
 - [ ] Search bar is visible at top
 - [ ] Can see user count
 
-### 6.2 Create User (Regular Login User)
+### 7.2 Create User (Regular Login User)
 
 - [ ] Can click "Add User" button
 - [ ] Modal opens with "Add User" title
@@ -598,7 +1064,7 @@
 - [ ] New user appears in users list
 - [ ] User receives email (if Firebase email configured)
 
-### 6.3 Create Contact-Only User (No Login)
+### 7.3 Create Contact-Only User (No Login)
 
 - [ ] Can click "Add User" button
 - [ ] Modal opens
@@ -613,7 +1079,7 @@
 - [ ] User appears in list with "Contact Only" indicator
 - [ ] No Firebase Auth account exists for this user
 
-### 6.4 Edit User - Basic Information
+### 7.4 Edit User - Basic Information
 
 - [ ] Can click "Edit" button on user row (or select "Edit User" from dropdown)
 - [ ] Modal opens with "Edit User" title
@@ -628,7 +1094,7 @@
 - [ ] To change email: Must use separate "Change Email" option
 - [ ] Can save changes successfully
 
-### 6.5 Edit User - Change Email
+### 7.5 Edit User - Change Email
 
 - [ ] Click dropdown menu on user row
 - [ ] Select "Change Email" option
@@ -640,14 +1106,14 @@
 - [ ] Success toast notification appears
 - [ ] User's email updates in list
 
-### 6.6 Edit User - Change Role
+### 7.6 Edit User - Change Role
 
 - [ ] Open user in edit mode
 - [ ] Can select different role from dropdown
 - [ ] Role change saves successfully
 - [ ] User's permissions update based on new role
 
-### 6.7 Edit User - Toggle Global Administrator
+### 7.7 Edit User - Toggle Global Administrator
 
 - [ ] Open user in edit mode
 - [ ] Can see "Global Administrator" checkbox
@@ -660,14 +1126,14 @@
   - [ ] Unchecking the checkbox removes global admin status (no re-auth needed)
 - [ ] Changes save successfully
 
-### 6.8 Edit User - Toggle Active Status
+### 7.8 Edit User - Toggle Active Status
 
 - [ ] Open user in edit mode
 - [ ] Can toggle "Active" status on/off
 - [ ] Inactive users cannot log in
 - [ ] Changes save successfully
 
-### 6.9 Edit User - Permission Overrides
+### 7.9 Edit User - Permission Overrides
 
 - [ ] Click dropdown menu on user row
 - [ ] Select "View/Edit Permissions" option (or Shield icon option)
@@ -686,7 +1152,7 @@
 - [ ] Success toast notification appears
 - [ ] Permission overrides apply immediately
 
-### 6.10 View User Details (Read-Only)
+### 7.10 View User Details (Read-Only)
 
 - [ ] Click dropdown menu on user row
 - [ ] Select "View Details" option (or FileText icon)
@@ -695,7 +1161,7 @@
 - [ ] Can see user's basic info, role, status
 - [ ] Only "Close" button is visible
 
-### 6.11 View User Roles (Read-Only)
+### 7.11 View User Roles (Read-Only)
 
 - [ ] Click dropdown menu on user row
 - [ ] Select "View Roles" option
@@ -704,7 +1170,7 @@
 - [ ] Read-only view (cannot edit)
 - [ ] Only "Close" button is visible
 
-### 6.12 View User Permissions (Read-Only)
+### 7.12 View User Permissions (Read-Only)
 
 - [ ] Click dropdown menu on user row
 - [ ] Select "View Permissions" option (or Lock icon)
@@ -713,7 +1179,7 @@
 - [ ] Read-only view (cannot edit)
 - [ ] Only "Close" button is visible
 
-### 6.13 Convert Login User to Contact-Only
+### 7.13 Convert Login User to Contact-Only
 
 - [ ] Select a user who has "Can Login" enabled
 - [ ] Click dropdown menu on user row
@@ -727,7 +1193,7 @@
 - [ ] Success toast notification appears
 - [ ] User now shows as "Contact Only" in list
 
-### 6.14 Convert Contact-Only to Login User
+### 7.14 Convert Contact-Only to Login User
 
 - [ ] Select a user who is contact-only (canLogin: false)
 - [ ] Click dropdown menu on user row
@@ -741,7 +1207,7 @@
 - [ ] Success toast notification appears
 - [ ] User can now log in with email and password
 
-### 6.15 Delete User
+### 7.15 Delete User
 
 - [ ] Click dropdown menu on user row
 - [ ] Select "Delete" option
@@ -758,13 +1224,13 @@
   - [ ] Success toast notification appears
   - [ ] User removed from list
 
-### 6.16 Search Users
+### 7.16 Search Users
 
 - [ ] Can type in search bar
 - [ ] Users filter as you type (by name or email)
 - [ ] Search is case-insensitive
 
-### 6.17 User Dropdown Menu (All Actions)
+### 7.17 User Dropdown Menu (All Actions)
 
 - [ ] Dropdown menu appears on user row
 - [ ] Shows 3 view options:
@@ -781,7 +1247,7 @@
 - [ ] Shows delete option:
   - [ ] Delete User (destructive action)
 
-### 6.18 Global Admin Restrictions
+### 7.18 Global Admin Restrictions
 
 - [ ] Regular users cannot see "Manage Global Admins" permission
 - [ ] Only global admins with "admin.users.manageGlobalAdmins" permission can:
@@ -791,11 +1257,11 @@
 
 ---
 
-## 7. Roles Management
+## 8. Roles Management
 
 **Location**: Admin → Roles
 
-### 7.1 View Roles List
+### 8.1 View Roles List
 
 - [ ] Roles page loads without errors
 - [ ] Can see list of all roles (roles are global, shared across companies)
@@ -803,7 +1269,7 @@
 - [ ] Default system roles are visible (Newton Admin, Allocation Officer, Security Guard, etc.)
 - [ ] Search bar is visible at top
 
-### 7.2 View Role Permissions
+### 8.2 View Role Permissions
 
 - [ ] Can click on role card to view details
 - [ ] Modal shows role name and description
@@ -811,7 +1277,7 @@
 - [ ] Permissions are organized by category
 - [ ] Can see which users have this role (user count)
 
-### 7.3 Create Role
+### 8.3 Create Role
 
 - [ ] Can click "Add Role" button
 - [ ] Modal opens with "Add Role" title in full-screen mode
@@ -843,7 +1309,7 @@
 - [ ] Success toast notification appears
 - [ ] New role appears in roles list
 
-### 7.4 Edit Role
+### 8.4 Edit Role
 
 - [ ] Can click "Edit" button on role card
 - [ ] Modal opens with "Edit Role" title in full-screen mode
@@ -856,7 +1322,7 @@
 - [ ] Can save changes successfully
 - [ ] Success toast notification appears
 
-### 7.5 View Role (Read-Only)
+### 8.5 View Role (Read-Only)
 
 - [ ] Can click "View" button on role card (FileText icon)
 - [ ] Modal opens with "View Role" title
@@ -865,7 +1331,7 @@
 - [ ] Can see all role data but cannot edit
 - [ ] Only "Close" button is visible
 
-### 7.6 Delete Role
+### 8.6 Delete Role
 
 - [ ] Can click "Delete" button on role card
 - [ ] Confirmation dialog appears
@@ -878,7 +1344,7 @@
   - [ ] Success toast notification appears
   - [ ] Role removed from list
 
-### 7.7 Permission Filtering by Company Type
+### 8.7 Permission Filtering by Company Type
 
 - [ ] **As Mine company user creating/editing role**:
   - [ ] Can see "Products Management" permission
@@ -900,7 +1366,7 @@
   - [ ] CAN see "Order Management" (coordination)
   - [ ] CAN see "Pre-Booking Management"
 
-### 7.8 "Manage Global Admins" Permission
+### 8.8 "Manage Global Admins" Permission
 
 - [ ] Regular users do NOT see "Manage Global Admins" permission
 - [ ] Only global admins with "admin.users.manageGlobalAdmins" permission can:
@@ -908,13 +1374,13 @@
   - [ ] Assign this permission to roles
 - [ ] This permission is in "Administrative" category
 
-### 7.9 Search Roles
+### 8.9 Search Roles
 
 - [ ] Can type in search bar
 - [ ] Roles filter as you type (by name or description)
 - [ ] Search is case-insensitive
 
-### 7.10 Default System Roles
+### 8.10 Default System Roles
 
 - [ ] "Newton Admin" role exists with full permissions
 - [ ] "Allocation Officer" role exists
@@ -927,11 +1393,11 @@
 
 ---
 
-## 8. Notification Templates Management
+## 9. Notification Templates Management
 
 **Location**: Admin → Notifications
 
-### 8.1 View Notification Templates List
+### 9.1 View Notification Templates List
 
 - [ ] Notification templates page loads without errors
 - [ ] Can see list of notification templates
@@ -939,7 +1405,7 @@
 - [ ] Enabled/Disabled status is clearly visible
 - [ ] Search bar is visible
 
-### 8.2 View Notification Template
+### 9.2 View Notification Template
 
 - [ ] Can click on template card to view
 - [ ] Modal shows template details
@@ -949,7 +1415,7 @@
 - [ ] Can see message body
 - [ ] Can see enabled/disabled status
 
-### 8.3 Edit Notification Template
+### 9.3 Edit Notification Template
 
 - [ ] Can click "Edit" button on template
 - [ ] Modal opens with template editor
@@ -960,7 +1426,7 @@
 - [ ] Can save changes
 - [ ] Success toast notification appears
 
-### 8.4 Test Notification Template (if implemented)
+### 9.4 Test Notification Template (if implemented)
 
 - [ ] Can see "Test" button on template
 - [ ] Click test button
@@ -968,12 +1434,12 @@
 - [ ] Test notification is sent
 - [ ] Success message confirms test sent
 
-### 8.5 Search Notification Templates
+### 9.5 Search Notification Templates
 
 - [ ] Can type in search bar
 - [ ] Templates filter as you type (by name or type)
 
-### 8.6 Template Variables Documentation
+### 9.6 Template Variables Documentation
 
 - [ ] Documentation or tooltip shows available template variables
 - [ ] Variables are clearly explained (what each one represents)
@@ -981,11 +1447,11 @@
 
 ---
 
-## 9. Settings
+## 10. Settings
 
 **Location**: Top Navigation → Settings Icon → Settings
 
-### 9.1 Profile Tab
+### 10.1 Profile Tab
 
 - [ ] Settings page loads with Profile tab active
 - [ ] **View Profile**:
@@ -1007,7 +1473,7 @@
   - [ ] Success toast notification appears
   - [ ] Changes reflect immediately in top navigation bar
 
-### 9.2 Appearance Tab
+### 10.2 Appearance Tab
 
 - [ ] Can navigate to Appearance tab
 - [ ] **Theme Selection**:
@@ -1025,7 +1491,7 @@
   - [ ] Current theme is visually indicated (checkmark or highlight)
   - [ ] Theme changes are smooth (no flash of unstyled content)
 
-### 9.3 Notifications Tab
+### 10.3 Notifications Tab
 
 - [ ] Can navigate to Notifications tab
 - [ ] **Notification Preferences** (filtered by company type):
@@ -1063,7 +1529,7 @@
   - [ ] Page description shows current company type
   - [ ] Example: "Notifications are filtered based on your company type (mine)"
 
-### 9.4 Security Tab
+### 10.4 Security Tab
 
 - [ ] Can navigate to Security tab
 - [ ] **Change Password**:
@@ -1085,7 +1551,7 @@
   - [ ] Can see list of active sessions
   - [ ] Can revoke sessions
 
-### 9.5 Settings Navigation & UI
+### 10.5 Settings Navigation & UI
 
 - [ ] Tab navigation is clear and intuitive
 - [ ] Active tab is visually highlighted
@@ -1095,9 +1561,9 @@
 
 ---
 
-## 10. Authentication & Session Management
+## 11. Authentication & Session Management
 
-### 10.1 Login Process
+### 11.1 Login Process
 
 - [ ] Can access login page at /login
 - [ ] Login page displays company branding/logo
@@ -1110,7 +1576,7 @@
 - [ ] **Inactive user**: Error message displays, login denied
 - [ ] **Contact-only user (canLogin: false)**: Error message displays, login denied
 
-### 10.2 Logout Process
+### 11.2 Logout Process
 
 - [ ] Can click user profile menu in top navigation
 - [ ] Can select "Log Out" option
@@ -1121,15 +1587,15 @@
 
 ---
 
-## 11. Security & Permissions
+## 12. Security & Permissions
 
-### 11.1 Permission Enforcement
+### 12.1 Permission Enforcement
 
 - [ ] Users without "admin.companies" permission cannot access Companies page
 - [ ] Users without "admin.users" permission cannot access Users page
 - [ ] Users without "admin.products" permission cannot access Products page (mine companies)
 
-### 11.2 Company Type Access Control
+### 12.2 Company Type Access Control
 
 - [ ] Transporter users do NOT see Products menu item
 - [ ] Transporter users do NOT see Clients menu item
@@ -1140,7 +1606,7 @@
 - [ ] Logistics Coordinator users do NOT see Sites menu item
 - [ ] Mine users see ALL menu items and features
 
-### 11.3 Global Admin Restrictions
+### 12.3 Global Admin Restrictions
 
 - [ ] Regular users cannot elevate themselves to global admin
 - [ ] Elevating another user to global admin requires re-authentication
@@ -1149,16 +1615,16 @@
   - [ ] See/assign "Manage Global Admins" permission
   - [ ] Grant global admin status to other users
 
-### 11.4 Data Scoping
+### 12.4 Data Scoping
 
 - [ ] Users see only data from their own company (unless global admin)
 - [ ] Global admins can switch companies and see all data
 
 ---
 
-## 12. Data Export (if implemented)
+## 13. Data Export (if implemented)
 
-### 12.1 Export to Excel
+### 13.1 Export to Excel
 
 - [ ] Can export companies list to Excel
 - [ ] Can export users list to Excel
@@ -1167,7 +1633,7 @@
 - [ ] Excel file contains all expected columns
 - [ ] Excel file contains correct data
 
-### 12.2 Export to PDF
+### 13.2 Export to PDF
 
 - [ ] Can export reports to PDF
 - [ ] PDF downloads correctly
@@ -1175,9 +1641,9 @@
 
 ---
 
-## 13. Final Smoke Test
+## 14. Final Smoke Test
 
-### 13.1 Complete User Journey - Mine Company
+### 14.1 Complete User Journey - Mine Company
 
 - [ ] Log in as global admin (mine company)
 - [ ] Create a new mine company
@@ -1185,6 +1651,23 @@
 - [ ] Create a product
 - [ ] Create a client
 - [ ] Create a site and assign it to a group
+- [ ] **Asset Management Journey**:
+  - [ ] Navigate to Assets page
+  - [ ] Induct a truck asset using the wizard:
+    - [ ] Scan/enter QR code (NT prefix)
+    - [ ] Scan/enter barcode (parse vehicle details)
+    - [ ] Add optional fields (fleet number, group)
+    - [ ] Review and submit
+  - [ ] Induct a driver asset using the wizard:
+    - [ ] Scan/enter QR code (NT prefix)
+    - [ ] Scan/enter driver's license barcode (expo-sadl parsing)
+    - [ ] Skip optional fields (driver has no fleet/group)
+    - [ ] Review and submit with photo
+  - [ ] View assets in both Card and Table views
+  - [ ] Edit an asset (change fleet number)
+  - [ ] Toggle view between active and inactive assets
+  - [ ] Inactivate an asset with reason
+  - [ ] Reactivate the asset
 - [ ] Create a new role with specific permissions
 - [ ] Create a new user with the new role
 - [ ] Log out
@@ -1192,20 +1675,26 @@
 - [ ] Verify user sees appropriate UI based on permissions
 - [ ] Log out
 
-### 13.2 Complete User Journey - Transporter Company
+### 14.2 Complete User Journey - Transporter Company
 
 - [ ] Log in as global admin
 - [ ] Switch to or create a transporter company
 - [ ] Verify Products menu is NOT visible
 - [ ] Verify Clients menu is NOT visible
 - [ ] Verify Sites menu is NOT visible
+- [ ] **Asset Management Journey** (Transporter owns their fleet):
+  - [ ] Navigate to Assets page (menu item IS visible)
+  - [ ] Induct a truck asset for transporter fleet
+  - [ ] Induct a driver asset
+  - [ ] Verify assets are scoped to transporter company only
 - [ ] Create a user for transporter company
 - [ ] Log out
 - [ ] Log in as transporter user
 - [ ] Verify limited menu and features
+- [ ] Verify Assets menu IS visible (own fleet management)
 - [ ] Log out
 
-### 13.3 Complete User Journey - Contact-Only User
+### 14.3 Complete User Journey - Contact-Only User
 
 - [ ] Create a contact-only user (canLogin: false)
 - [ ] Verify user appears in list with "Contact Only" indicator
