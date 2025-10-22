@@ -45,7 +45,27 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
 
   const prevStep = () => {
     if (currentStep > 1) {
-      goToStep(currentStep - 1)
+      let targetStep = currentStep - 1
+
+      // Skip automated verification steps when going backwards
+      // Step 3 (QR Verification) and Step 5 (License Verification) auto-advance
+      // So we skip them and go to the manual scan steps instead
+
+      if (currentStep === 4) {
+        // From License Scan → skip QR Verification → go to QR Scan
+        targetStep = 2
+      } else if (currentStep >= 6) {
+        // From Asset Type Detection onwards → skip License Verification → go to License Scan
+        targetStep = currentStep - 1
+        if (targetStep === 5) {
+          targetStep = 4 // Skip Step 5 (License Verification)
+        }
+        if (targetStep === 3) {
+          targetStep = 2 // Skip Step 3 (QR Verification)
+        }
+      }
+
+      goToStep(targetStep)
     }
   }
 
