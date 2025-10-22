@@ -225,6 +225,18 @@ export function Step4Review({ state, onComplete, onPrev }: Step4Props) {
                   <span className="font-mono">{state.parsedData.vehicleInfo.vin}</span>
                 </div>
               )}
+              {state.parsedData?.vehicleInfo?.licenceNo && (
+                <div className="grid grid-cols-2 gap-2">
+                  <span className="text-muted-foreground">Licence No:</span>
+                  <span className="font-mono">{state.parsedData.vehicleInfo.licenceNo}</span>
+                </div>
+              )}
+              {state.parsedData?.vehicleInfo?.vehicleDiskNo && (
+                <div className="grid grid-cols-2 gap-2">
+                  <span className="text-muted-foreground">Licence Disk No:</span>
+                  <span className="font-mono">{state.parsedData.vehicleInfo.vehicleDiskNo}</span>
+                </div>
+              )}
             </>
           )}
         </div>
