@@ -28,6 +28,7 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
   // Handle scans coming from onscan.js
   const handleScannerScan = useCallback((scannedValue: string) => {
     console.log("Step4: New barcode scanned, resetting state")
+    console.log("Step4: Scanned value:", scannedValue)
     setBarcodeData(scannedValue)
     setError("")
     setParsedData(null)
@@ -106,21 +107,17 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
         if (!isAcceptedType) {
           console.log("Step4: Invalid vehicle type detected:", vehicleResult.description)
           setError(`Invalid vehicle type: ${vehicleResult.description}`)
-          alert.showError(
-            "Invalid Vehicle Type",
-            `This barcode is for a ${vehicleResult.description || "passenger vehicle"}. Please scan a barcode for a truck, trailer, or driver's license only.`,
-            () => {
-              // Auto-clear when user clicks OK on the alert
-              console.log("Step4: User acknowledged error, clearing barcode for new scan")
-              setBarcodeData("")
-              setError("")
-              setParsedData(null)
-              setIsProcessing(false)
-              setTimeout(() => {
-                inputRef.current?.focus()
-              }, 100)
-            }
-          )
+          alert.showError("Invalid Vehicle Type", `This barcode is for a ${vehicleResult.description || "passenger vehicle"}. Please scan a barcode for a truck, trailer, or driver's license only.`, () => {
+            // Auto-clear when user clicks OK on the alert
+            console.log("Step4: User acknowledged error, clearing barcode for new scan")
+            setBarcodeData("")
+            setError("")
+            setParsedData(null)
+            setIsProcessing(false)
+            setTimeout(() => {
+              inputRef.current?.focus()
+            }, 100)
+          })
           setParsedData(null)
           setIsProcessing(false)
           return
@@ -272,19 +269,7 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
       </div>
 
       {/* Hidden input that captures scanner events */}
-      <Input
-        ref={inputRef}
-        id="barcode-input"
-        type="text"
-        value={barcodeData}
-        onKeyDown={handleKeyDown}
-        className="sr-only"
-        autoComplete="off"
-        readOnly
-        onPaste={e => e.preventDefault()}
-        onDrop={e => e.preventDefault()}
-        aria-label="Barcode Scanner Input"
-      />
+      <Input ref={inputRef} id="barcode-input" type="text" value={barcodeData} onKeyDown={handleKeyDown} className="sr-only" autoComplete="off" readOnly onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()} aria-label="Barcode Scanner Input" />
 
       {/* Visual placeholder */}
       <div className="flex flex-col items-center justify-center py-8">
@@ -296,8 +281,7 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
             ${visualState === "processing" ? "border-blue-500/50 bg-blue-500/10 animate-pulse" : ""}
             ${visualState === "success" ? "border-green-500 bg-green-500/20" : ""}
             ${visualState === "error" ? "border-red-500/50 bg-red-500/10" : ""}
-          `}
-        >
+          `}>
           {visualState === "waiting" && (
             <>
               <Barcode className="w-16 h-16 text-green-600 dark:text-green-400" />
@@ -315,9 +299,7 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
           {visualState === "success" && (
             <>
               <CheckCircle2 className="w-16 h-16 text-green-600 dark:text-green-400" />
-              <p className="mt-4 text-sm font-medium text-green-700 dark:text-green-300">
-                {parsedData?.type === "vehicle" ? "Vehicle Scanned" : "Driver Scanned"}
-              </p>
+              <p className="mt-4 text-sm font-medium text-green-700 dark:text-green-300">{parsedData?.type === "vehicle" ? "Vehicle Scanned" : "Driver Scanned"}</p>
             </>
           )}
 
@@ -332,9 +314,7 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
         {/* Show parsed data when captured */}
         {parsedData && (
           <div className="mt-4 p-3 bg-muted rounded-lg w-full max-w-md">
-            <p className="text-xs font-medium text-muted-foreground mb-2">
-              {parsedData.type === "vehicle" ? "Vehicle License Disk" : "Driver License"}
-            </p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">{parsedData.type === "vehicle" ? "Vehicle License Disk" : "Driver License"}</p>
             <div className="space-y-1 text-xs">
               {parsedData.type === "vehicle" ? (
                 <>
@@ -344,7 +324,9 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Make/Model:</span>
-                    <span>{parsedData.data.make} {parsedData.data.model}</span>
+                    <span>
+                      {parsedData.data.make} {parsedData.data.model}
+                    </span>
                   </div>
                 </>
               ) : (
@@ -355,7 +337,9 @@ export function Step4LicenseScan({ state, updateState, onNext, onPrev }: Step4Pr
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Name:</span>
-                    <span>{parsedData.data.person.name} {parsedData.data.person.surname}</span>
+                    <span>
+                      {parsedData.data.person.name} {parsedData.data.person.surname}
+                    </span>
                   </div>
                 </>
               )}
