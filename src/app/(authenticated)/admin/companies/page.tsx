@@ -99,10 +99,17 @@ export default function CompaniesPage() {
 
       if (usage.inUse) {
         const detailsText = usage.details.map(detail => `• ${detail}`).join('\n')
-        showError(
+
+        // Offer deactivation as alternative
+        const shouldDeactivate = await showConfirm(
           "Cannot Delete Company",
-          `This company cannot be deleted because it has:\n\n${detailsText}\n\nYou can deactivate the company instead to prevent it from being used.`
+          `This company cannot be deleted because it has:\n\n${detailsText}\n\nInstead of deleting, you can deactivate the company to prevent it from being used while preserving all data.\n\nWould you like to deactivate this company?`,
+          "Deactivate Instead"
         )
+
+        if (shouldDeactivate) {
+          await toggleCompanyStatus(company)
+        }
         return
       }
 
