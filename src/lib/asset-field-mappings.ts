@@ -38,6 +38,7 @@ export class AssetFieldMapper {
         make: result.make,
         model: result.model,
         colour: result.colour,
+        licenceNo: result.licenceNo,
         vehicleDiskNo: result.licenceDiskNo,
         expiryDate: result.dateOfExpiry,
         engineNo: result.engineNo,

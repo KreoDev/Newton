@@ -9,6 +9,7 @@ export interface VehicleInformation {
   make?: string
   model?: string
   colour?: string
+  licenceNo?: string // License number from disk
   vehicleDiskNo?: string // License disk number
   expiryDate?: string
   engineNo?: string
