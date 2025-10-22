@@ -319,8 +319,9 @@ export const getDriverColumns = (
         }
         return <Badge variant="success">Active</Badge>
       },
-      size: 130,
-      minSize: 130,
+      size: 160,
+      minSize: 160,
+      maxSize: 200,
       enableColumnFilter: true,
       filterFn: (row, columnId, filterValue) => {
         if (!filterValue || filterValue === "all") return true
