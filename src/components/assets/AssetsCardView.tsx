@@ -42,16 +42,24 @@ export function AssetsCardView({ assets, loading }: AssetsCardViewProps) {
 
   // Toggle asset active/inactive status
   const toggleAssetStatus = async (asset: Asset) => {
+    // If asset is active, show inactivate modal (requires reason)
+    if (asset.isActive) {
+      setAssetToDelete(asset)
+      setInactivateModalOpen(true)
+      return
+    }
+
+    // If asset is inactive, directly activate (no reason needed)
     try {
-      await AssetService.update(asset.id, { isActive: !asset.isActive })
+      await AssetService.update(asset.id, { isActive: true })
       showSuccess(
-        `Asset ${asset.isActive ? "Deactivated" : "Activated"}`,
-        `${getAssetIdentifier(asset)} has been ${asset.isActive ? "deactivated" : "activated"} successfully.`
+        "Asset Activated",
+        `${getAssetIdentifier(asset)} has been activated successfully.`
       )
       // Real-time listener will automatically update the list
     } catch (error) {
-      console.error("Error toggling asset status:", error)
-      showError("Failed to Update Asset", error instanceof Error ? error.message : "An unexpected error occurred.")
+      console.error("Error activating asset:", error)
+      showError("Failed to Activate Asset", error instanceof Error ? error.message : "An unexpected error occurred.")
     }
   }
 
