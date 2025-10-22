@@ -30,7 +30,7 @@ export class AssetFieldMapper {
       const result = scan.getVehicleLicence(barcodeData)
 
       if ("error" in result) {
-        return { error: result.error }
+        return { error: result.error ?? "Unknown error" }
       }
 
       return {

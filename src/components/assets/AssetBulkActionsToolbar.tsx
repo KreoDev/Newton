@@ -4,11 +4,10 @@ import { useState } from "react"
 import type { Asset } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { X, CheckCircle, XCircle, Download } from "lucide-react"
+import { X, CheckCircle, XCircle } from "lucide-react"
 import { updateDocument } from "@/lib/firebase-utils"
 import { useAlert } from "@/hooks/useAlert"
 import { InactivateAssetModal } from "./InactivateAssetModal"
-import { utils, writeFile } from "xlsx"
 
 interface AssetBulkActionsToolbarProps {
   selectedAssets: Asset[]
@@ -86,67 +85,6 @@ export function AssetBulkActionsToolbar({
     onClearSelection()
   }
 
-  const handleExport = () => {
-    try {
-      // Prepare data for export
-      const exportData = selectedAssets.map(asset => {
-        const baseData = {
-          "Type": asset.type,
-          "Newton QR": asset.ntCode || "",
-          "Active": asset.isActive ? "Yes" : "No",
-          "Fleet Number": asset.fleetNumber || "",
-          "Group": asset.groupId || "",
-          "Created At": new Date(asset.createdAt).toLocaleDateString(),
-          "Updated At": new Date(asset.updatedAt).toLocaleDateString(),
-        }
-
-        if (asset.type === "driver") {
-          return {
-            ...baseData,
-            "Name": asset.name || "",
-            "Surname": asset.surname || "",
-            "ID Number": asset.idNumber || "",
-            "License Number": asset.licenceNumber || "",
-            "License Type": asset.licenceType || "",
-            "License Expiry": asset.expiryDate || "",
-            "Gender": asset.gender || "",
-            "Date of Birth": asset.birthDate || "",
-            "Age": asset.age || "",
-          }
-        } else {
-          return {
-            ...baseData,
-            "Registration": asset.registration || "",
-            "Make": asset.make || "",
-            "Model": asset.model || "",
-            "VIN": asset.vin || "",
-            "Engine No": asset.engineNo || "",
-            "Colour": asset.colour || "",
-            "License Disk No": asset.licenceDiskNo || "",
-            "Expiry Date": asset.dateOfExpiry || "",
-          }
-        }
-      })
-
-      // Create workbook and worksheet
-      const ws = utils.json_to_sheet(exportData)
-      const wb = utils.book_new()
-      utils.book_append_sheet(wb, ws, `${assetType.charAt(0).toUpperCase() + assetType.slice(1)}s`)
-
-      // Generate filename with timestamp
-      const timestamp = new Date().toISOString().split('T')[0]
-      const filename = `assets_${assetType}_${timestamp}.xlsx`
-
-      // Download
-      writeFile(wb, filename)
-
-      showSuccess("Export Successful", `Exported ${selectedAssets.length} asset${selectedAssets.length > 1 ? "s" : ""} to ${filename}`)
-    } catch (error) {
-      console.error("Error exporting assets:", error)
-      showError("Export Failed", error instanceof Error ? error.message : "An error occurred")
-    }
-  }
-
   return (
     <>
       <div className="sticky top-0 z-50 glass-surface border border-[oklch(0.922_0_0_/_0.55)] rounded-lg backdrop-blur-[18px] shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.2),inset_0_-12px_30px_-24px_rgb(15_15_15_/_0.28),0_36px_80px_-36px_rgb(15_15_15_/_0.32)] p-4 mb-4 animate-in slide-in-from-top duration-200">
@@ -185,16 +123,6 @@ export function AssetBulkActionsToolbar({
                 Deactivate ({activeCount})
               </Button>
             )}
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              disabled={loading}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
           </div>
         </div>
       </div>

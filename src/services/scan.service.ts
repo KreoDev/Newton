@@ -245,7 +245,7 @@ class Scan {
           }
         }
 
-        const result = {
+        return {
           colour,
           dateOfExpiry: this.formatDateToDdMmYyyy(expiryDateObject),
           description,
@@ -261,8 +261,6 @@ class Scan {
           vehicleReg: licenceArray[7],
           vin: licenceArray[12],
         }
-
-        return result
       } else {
         return { error: "Not a Vehicle Licence Disc / Barcode does not contain enough data!" }
       } //end if (licenceArray.length > 14)
