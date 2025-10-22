@@ -9,7 +9,6 @@ import {
   Shield,
   CheckCircle,
   XCircle,
-  Download,
   Bell,
   X,
 } from "lucide-react"
@@ -20,7 +19,6 @@ import { BulkChangeRoleModal } from "./bulk-actions/BulkChangeRoleModal"
 import { BulkActivateModal } from "./bulk-actions/BulkActivateModal"
 import { BulkDeactivateModal } from "./bulk-actions/BulkDeactivateModal"
 import { BulkSendNotificationModal } from "./bulk-actions/BulkSendNotificationModal"
-import { exportUsersToCSV } from "@/services/user-bulk.service"
 
 interface BulkActionsToolbarProps {
   selectedUsers: UserType[]
@@ -53,10 +51,6 @@ export function BulkActionsToolbar({
     (u) => u.id !== currentUserId && u.isActive
   )
   const usersForActivate = selectedUsers.filter((u) => !u.isActive)
-
-  const handleExport = () => {
-    exportUsersToCSV(selectedUsers)
-  }
 
   if (selectedUsers.length === 0) return null
 
@@ -136,12 +130,6 @@ export function BulkActionsToolbar({
             >
               <Bell className="h-4 w-4 mr-2" />
               Send Notification
-            </Button>
-
-            {/* Export */}
-            <Button variant="secondary" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
             </Button>
 
             {/* Delete */}

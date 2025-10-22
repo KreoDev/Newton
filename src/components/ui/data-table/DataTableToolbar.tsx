@@ -29,7 +29,11 @@ export function DataTableToolbar<TData>({
   children,
 }: DataTableToolbarProps<TData>) {
   const exportToCSV = () => {
-    const rows = table.getFilteredRowModel().rows
+    // Export selected rows if any, otherwise export all filtered rows
+    const rows = table.getSelectedRowModel().rows.length > 0
+      ? table.getSelectedRowModel().rows
+      : table.getFilteredRowModel().rows
+
     const data = rows.map((row) => {
       const obj: any = {}
       row.getVisibleCells().forEach((cell) => {
@@ -48,7 +52,11 @@ export function DataTableToolbar<TData>({
   }
 
   const exportToExcel = () => {
-    const rows = table.getFilteredRowModel().rows
+    // Export selected rows if any, otherwise export all filtered rows
+    const rows = table.getSelectedRowModel().rows.length > 0
+      ? table.getSelectedRowModel().rows
+      : table.getFilteredRowModel().rows
+
     const data = rows.map((row) => {
       const obj: any = {}
       row.getVisibleCells().forEach((cell) => {
@@ -68,7 +76,10 @@ export function DataTableToolbar<TData>({
 
   const exportToPDF = () => {
     const doc = new jsPDF()
-    const rows = table.getFilteredRowModel().rows
+    // Export selected rows if any, otherwise export all filtered rows
+    const rows = table.getSelectedRowModel().rows.length > 0
+      ? table.getSelectedRowModel().rows
+      : table.getFilteredRowModel().rows
 
     // Get headers
     const headers = table.getVisibleFlatColumns()
@@ -99,7 +110,10 @@ export function DataTableToolbar<TData>({
   }
 
   const handlePrint = () => {
-    const rows = table.getFilteredRowModel().rows
+    // Export selected rows if any, otherwise export all filtered rows
+    const rows = table.getSelectedRowModel().rows.length > 0
+      ? table.getSelectedRowModel().rows
+      : table.getFilteredRowModel().rows
 
     // Get headers
     const headers = table.getVisibleFlatColumns()
