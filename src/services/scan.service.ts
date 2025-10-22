@@ -166,11 +166,9 @@ class Scan {
           Purple: "Pers",
         }
 
-        // Normalise Make & Model
-        const makeRaw = licenceArray[9] || ""
-        const modelRaw = licenceArray[10] || ""
-        const make = toSentenceCase(makeRaw)
-        const model = toSentenceCase(modelRaw)
+        // Make & Model - use raw values (matching Android app behavior)
+        const make = licenceArray[9] || ""
+        const model = licenceArray[10] || ""
 
         // Normalise Colour – take left part before '/' and sentence-case
         let colourRaw = licenceArray[11] || ""
