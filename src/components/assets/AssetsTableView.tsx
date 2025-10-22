@@ -15,9 +15,6 @@ import { getDriverColumns } from "./column-definitions/driverColumns"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { useCompany } from "@/contexts/CompanyContext"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 
 interface AssetsTableViewProps {
   assets: Asset[]
@@ -28,7 +25,6 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
   const router = useRouter()
   const { company } = useCompany()
   const [selectedType, setSelectedType] = useState<"truck" | "trailer" | "driver">("truck")
-  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive" | "expired">("all")
   const [selectedAssets, setSelectedAssets] = useState<Asset[]>([])
   const [tableKey, setTableKey] = useState(0) // Key to force re-render and clear selection
 
@@ -43,30 +39,10 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
   const { hasPermission: canEdit } = usePermission(PERMISSIONS.ASSETS_EDIT)
   const { hasPermission: canDelete } = usePermission(PERMISSIONS.ASSETS_DELETE)
 
-  // Filter assets by selected type and status
+  // Filter assets by selected type (status filtering is now handled by column header)
   const filteredAssets = useMemo(() => {
-    let filtered = assets.filter(asset => asset.type === selectedType)
-
-    // Filter by status
-    if (filterStatus !== "all") {
-      filtered = filtered.filter(asset => {
-        if (filterStatus === "active") return asset.isActive
-        if (filterStatus === "inactive") return !asset.isActive
-
-        if (filterStatus === "expired") {
-          const expiryDate = asset.type === "driver" ? asset.expiryDate : asset.dateOfExpiry
-          if (expiryDate) {
-            const expiryInfo = AssetFieldMapper.getExpiryInfo(expiryDate)
-            return expiryInfo.status === "expired"
-          }
-        }
-
-        return true
-      })
-    }
-
-    return filtered
-  }, [assets, selectedType, filterStatus])
+    return assets.filter(asset => asset.type === selectedType)
+  }, [assets, selectedType])
 
   // Handlers for column actions
   const handleView = (asset: Asset) => {
@@ -162,25 +138,6 @@ export function AssetsTableView({ assets, loading }: AssetsTableViewProps) {
             <span className="ml-1 text-xs text-muted-foreground">({driverCount})</span>
           </TabsTrigger>
         </TabsList>
-
-        {/* Status Filter */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex gap-2 items-center">
-              <span className="text-sm text-muted-foreground">Status:</span>
-              {["all", "active", "inactive", "expired"].map(status => (
-                <Button
-                  key={status}
-                  variant={filterStatus === status ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilterStatus(status as typeof filterStatus)}
-                >
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
 
         <TabsContent value="truck" className="space-y-4">
           {selectedAssets.length > 0 && (

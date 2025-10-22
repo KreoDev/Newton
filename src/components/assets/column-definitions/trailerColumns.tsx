@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { MoreHorizontal, Eye, Edit, Trash2, AlertTriangle } from "lucide-react"
 import { AssetFieldMapper } from "@/lib/asset-field-mappings"
 import { data as globalData } from "@/services/data.service"
+import { FilterableColumnHeader } from "@/components/ui/data-table/FilterableColumnHeader"
 
 export const getTrailerColumns = (
   canEdit: boolean,
@@ -143,7 +144,7 @@ export const getTrailerColumns = (
     {
       id: "status",
       accessorFn: (row) => {
-        // Return actual status text for searchability
+        // Return actual status text for searchability and filtering
         if (!row.isActive) return "Inactive"
         if (row.dateOfExpiry) {
           const expiryInfo = AssetFieldMapper.getExpiryInfo(row.dateOfExpiry)
@@ -151,7 +152,19 @@ export const getTrailerColumns = (
         }
         return "Active"
       },
-      header: "Status",
+      header: ({ column }) => (
+        <FilterableColumnHeader
+          column={column}
+          title="Status"
+          filterOptions={[
+            { label: "All", value: "all" },
+            { label: "Active", value: "Active" },
+            { label: "Inactive", value: "Inactive" },
+            { label: "Expired", value: "Expired" },
+          ]}
+          enableSorting={true}
+        />
+      ),
       cell: ({ row }) => {
         const asset = row.original
         if (!asset.isActive) {
@@ -164,6 +177,12 @@ export const getTrailerColumns = (
           }
         }
         return <Badge variant="success">Active</Badge>
+      },
+      enableColumnFilter: true,
+      filterFn: (row, columnId, filterValue) => {
+        if (!filterValue || filterValue === "all") return true
+        const status = row.getValue(columnId) as string
+        return status === filterValue
       },
     },
     {

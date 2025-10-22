@@ -29,7 +29,8 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "hover:bg-[oklch(1_0_0_/_0.18)] border-b transition-all duration-200",
+        // Only apply hover to tbody rows, not thead rows
+        "[tbody_&]:hover:bg-[oklch(1_0_0_/_0.18)] border-b transition-all duration-200",
         // Selected row styling - reusable across all tables
         "data-[state=selected]:bg-[oklch(0.7_0.1_240_/_0.12)]", // Subtle blue tint with 12% opacity
         "data-[state=selected]:border-l-2",
