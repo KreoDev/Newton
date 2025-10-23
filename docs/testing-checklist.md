@@ -209,6 +209,528 @@
   - [ ] Users can now log in again
   - [ ] Logged-out users can log back in successfully
 
+### 1.11 Fleet Number Feature (Transporter & Dual-Role Companies)
+
+**Location**: Company Edit Modal → Fleet Tab
+
+#### 1.11.1 Enable Fleet Number (No Assets)
+
+- [ ] Open transporter company in edit mode
+- [ ] Navigate to Fleet tab
+- [ ] Enable "Fleet Number" checkbox
+- [ ] Verify "Fleet Number Label" field appears
+- [ ] Change label to custom value (e.g., "Truck ID")
+- [ ] Save company
+- [ ] Verify feature is enabled in company settings
+- [ ] Verify custom label is saved
+
+#### 1.11.2 Enable Fleet Number (With Default Label)
+
+- [ ] Enable "Fleet Number" checkbox
+- [ ] Leave label as default "Fleet No."
+- [ ] Save company
+- [ ] Verify feature is enabled with default label
+
+#### 1.11.3 Disable Fleet Number (No Assets Using It)
+
+- [ ] Company has fleet number enabled
+- [ ] No assets have fleet numbers assigned
+- [ ] Disable "Fleet Number" checkbox
+- [ ] Click "Update Company"
+- [ ] Verify NO dialog appears (no cleanup needed)
+- [ ] Verify feature is disabled in company settings
+
+#### 1.11.4 Disable Fleet Number (Assets Using It) - Remove All
+
+- [ ] Company has fleet number enabled
+- [ ] Multiple assets have fleet numbers assigned
+- [ ] Disable "Fleet Number" checkbox
+- [ ] Click "Update Company"
+- [ ] Verify dialog appears showing affected assets
+- [ ] Dialog shows correct count of assets
+- [ ] Dialog lists all assets with fleet numbers
+- [ ] Click "Remove Fleet Number from all X assets and disable feature"
+- [ ] Verify toast notification shows successful removal
+- [ ] Verify all assets no longer have fleet numbers
+- [ ] Verify fleet number feature is disabled in company settings
+- [ ] Verify all other company changes were saved
+
+#### 1.11.5 Disable Fleet Number (Assets Using It) - Cancel
+
+- [ ] Company has fleet number enabled
+- [ ] Multiple assets have fleet numbers assigned
+- [ ] Disable "Fleet Number" checkbox
+- [ ] Click "Update Company"
+- [ ] Dialog appears
+- [ ] Click "Cancel" button
+- [ ] Verify dialog closes
+- [ ] Verify fleet number feature remains ENABLED
+- [ ] Verify checkbox reverts to enabled state
+- [ ] Verify all other company changes were saved (except fleet number)
+
+#### 1.11.6 Change Fleet Number Label Only
+
+- [ ] Fleet number is enabled
+- [ ] Change fleet number label from "Fleet No." to "Truck ID"
+- [ ] Do NOT disable the checkbox
+- [ ] Save company
+- [ ] Verify label updates successfully
+- [ ] Verify feature remains enabled
+- [ ] Verify no dialog appears
+
+### 1.12 Transporter Group Feature (Transporter & Dual-Role Companies)
+
+**Location**: Company Edit Modal → Fleet Tab
+
+#### 1.12.1 Enable Transporter Group (No Assets)
+
+- [ ] Open transporter company in edit mode
+- [ ] Navigate to Fleet tab
+- [ ] Enable "Transporter Group" checkbox
+- [ ] Verify "Transporter Group Label" field appears
+- [ ] Change label to custom value (e.g., "Division")
+- [ ] Verify "Group Options" section appears
+- [ ] Add group option "North"
+- [ ] Add group option "South"
+- [ ] Add group option "East"
+- [ ] Add group option "West"
+- [ ] Save company
+- [ ] Verify feature is enabled with custom label
+- [ ] Verify all group options are saved
+
+#### 1.12.2 Enable Transporter Group - Validation
+
+- [ ] Enable "Transporter Group" checkbox
+- [ ] Do NOT add any group options
+- [ ] Try to save company
+- [ ] Verify error message: "At least one group option is required when transporter group is enabled"
+- [ ] Add at least one group option
+- [ ] Verify save succeeds
+
+#### 1.12.3 Add Group Option
+
+- [ ] Group feature is enabled
+- [ ] Enter new group name in input field
+- [ ] Click "Add" button
+- [ ] Verify group appears in list
+- [ ] Verify group is marked as active
+- [ ] Save company
+- [ ] Verify group option persists
+
+#### 1.12.4 Delete Group Option (Not In Use)
+
+- [ ] Group feature is enabled
+- [ ] Have a group option that NO assets are using
+- [ ] Click delete (X) button on group option
+- [ ] Verify group is removed from list
+- [ ] Save company
+- [ ] Verify group option is deleted
+
+#### 1.12.5 Try to Delete Group Option (In Use by Assets)
+
+- [ ] Group feature is enabled
+- [ ] Have a group option that assets ARE using
+- [ ] Click delete (X) button on group option
+- [ ] Verify error dialog appears
+- [ ] Error message explains group is in use by assets
+- [ ] Verify group remains in list
+- [ ] Verify "Deactivate" button is shown instead of delete
+
+#### 1.12.6 Mark Group Option as Inactive (In Use)
+
+- [ ] Group feature is enabled
+- [ ] Have a group option in use by assets
+- [ ] Click "Deactivate" button
+- [ ] Verify group is marked as inactive (grayed out, "Inactive" badge)
+- [ ] Verify group remains in list
+- [ ] Verify assets still have this group assigned
+- [ ] Save company
+- [ ] Verify inactive status persists
+
+#### 1.12.7 Mark Inactive Group as Active
+
+- [ ] Have an inactive group option
+- [ ] Click "Activate" button
+- [ ] Verify group is marked as active (normal appearance)
+- [ ] Save company
+- [ ] Verify active status persists
+
+#### 1.12.8 Disable Transporter Group (No Assets Using It)
+
+- [ ] Company has transporter group enabled
+- [ ] No assets have groups assigned
+- [ ] Disable "Transporter Group" checkbox
+- [ ] Click "Update Company"
+- [ ] Verify NO dialog appears
+- [ ] Verify feature is disabled
+
+#### 1.12.9 Disable Transporter Group (Assets Using It) - Remove All
+
+- [ ] Company has transporter group enabled
+- [ ] Multiple assets have groups assigned
+- [ ] Disable "Transporter Group" checkbox
+- [ ] Click "Update Company"
+- [ ] Verify dialog appears showing affected assets
+- [ ] Dialog shows correct count of assets
+- [ ] Dialog lists all assets with groups
+- [ ] Click "Remove Group from all X assets and disable feature"
+- [ ] Verify toast notification shows successful removal
+- [ ] Verify all assets no longer have groups
+- [ ] Verify group feature is disabled in company settings
+- [ ] Verify all other company changes were saved
+
+#### 1.12.10 Disable Transporter Group (Assets Using It) - Cancel
+
+- [ ] Company has transporter group enabled
+- [ ] Multiple assets have groups assigned
+- [ ] Disable "Transporter Group" checkbox
+- [ ] Click "Update Company"
+- [ ] Dialog appears
+- [ ] Click "Cancel" button
+- [ ] Verify dialog closes
+- [ ] Verify group feature remains ENABLED
+- [ ] Verify checkbox reverts to enabled state
+- [ ] Verify all other company changes were saved (except group)
+
+#### 1.12.11 Change Group Label Only
+
+- [ ] Group feature is enabled
+- [ ] Change group label from "Group" to "Division"
+- [ ] Do NOT disable the checkbox
+- [ ] Save company
+- [ ] Verify label updates successfully
+- [ ] Verify feature remains enabled
+- [ ] Verify no dialog appears
+
+### 1.13 Sequential Dialog System (Both Features)
+
+**Note**: When both fleet number AND transporter group are disabled while assets are using them, dialogs appear SEQUENTIALLY (fleet first, then group).
+
+#### 1.13.1 Scenario: Cancel Fleet → Remove Group
+
+- [ ] Both features enabled with assets using both
+- [ ] Disable both "Fleet Number" and "Transporter Group" checkboxes
+- [ ] Click "Update Company"
+- [ ] **First Dialog - Fleet Number**:
+  - [ ] Verify fleet number dialog appears first
+  - [ ] Shows assets with fleet numbers
+  - [ ] Click "Cancel"
+- [ ] **Second Dialog - Group**:
+  - [ ] Verify group dialog appears next (automatically)
+  - [ ] Shows assets with groups
+  - [ ] Click "Remove Group from all X assets and disable feature"
+- [ ] **Verify Final State**:
+  - [ ] Fleet number feature ENABLED (canceled)
+  - [ ] Group feature DISABLED (removed)
+  - [ ] Assets keep their fleet numbers
+  - [ ] Assets no longer have groups
+  - [ ] All other company changes saved
+
+#### 1.13.2 Scenario: Remove Fleet → Remove Group
+
+- [ ] Both features enabled with assets using both
+- [ ] Disable both checkboxes
+- [ ] Click "Update Company"
+- [ ] **First Dialog - Fleet Number**:
+  - [ ] Fleet number dialog appears
+  - [ ] Click "Remove Fleet Number from all X assets and disable feature"
+  - [ ] Verify toast shows successful removal
+- [ ] **Second Dialog - Group**:
+  - [ ] Group dialog appears automatically after first completes
+  - [ ] Click "Remove Group from all X assets and disable feature"
+  - [ ] Verify toast shows successful removal
+- [ ] **Verify Final State**:
+  - [ ] Fleet number feature DISABLED
+  - [ ] Group feature DISABLED
+  - [ ] No assets have fleet numbers
+  - [ ] No assets have groups
+  - [ ] All other company changes saved
+
+#### 1.13.3 Scenario: Cancel Fleet → Cancel Group
+
+- [ ] Both features enabled with assets using both
+- [ ] Disable both checkboxes
+- [ ] Click "Update Company"
+- [ ] **First Dialog - Fleet Number**:
+  - [ ] Fleet number dialog appears
+  - [ ] Click "Cancel"
+- [ ] **Second Dialog - Group**:
+  - [ ] Group dialog appears automatically
+  - [ ] Click "Cancel"
+- [ ] **Verify Final State**:
+  - [ ] Fleet number feature ENABLED (canceled)
+  - [ ] Group feature ENABLED (canceled)
+  - [ ] Assets keep their fleet numbers
+  - [ ] Assets keep their groups
+  - [ ] All other company changes saved
+
+#### 1.13.4 Scenario: Remove Fleet → Cancel Group
+
+- [ ] Both features enabled with assets using both
+- [ ] Disable both checkboxes
+- [ ] Click "Update Company"
+- [ ] **First Dialog - Fleet Number**:
+  - [ ] Fleet number dialog appears
+  - [ ] Click "Remove Fleet Number from all X assets and disable feature"
+  - [ ] Verify toast shows successful removal
+- [ ] **Second Dialog - Group**:
+  - [ ] Group dialog appears automatically
+  - [ ] Click "Cancel"
+- [ ] **Verify Final State**:
+  - [ ] Fleet number feature DISABLED (removed)
+  - [ ] Group feature ENABLED (canceled)
+  - [ ] No assets have fleet numbers
+  - [ ] Assets keep their groups
+  - [ ] All other company changes saved
+
+### 1.14 Single Feature Enabled
+
+#### 1.14.1 Only Fleet Enabled - Disable with Assets
+
+- [ ] Fleet number enabled, group disabled
+- [ ] Assets using fleet numbers
+- [ ] Disable fleet number
+- [ ] Click "Update Company"
+- [ ] Verify fleet number dialog appears
+- [ ] NO group dialog should appear
+- [ ] Test both "Remove" and "Cancel" options
+- [ ] Verify single dialog works correctly
+
+#### 1.14.2 Only Group Enabled - Disable with Assets
+
+- [ ] Group enabled, fleet number disabled
+- [ ] Assets using groups
+- [ ] Disable group
+- [ ] Click "Update Company"
+- [ ] Verify group dialog appears
+- [ ] NO fleet number dialog should appear
+- [ ] Test both "Remove" and "Cancel" options
+- [ ] Verify single dialog works correctly
+
+#### 1.14.3 Enable Fleet When Group Already Enabled
+
+- [ ] Group is enabled
+- [ ] Fleet number is disabled
+- [ ] Enable fleet number
+- [ ] Add fleet number label
+- [ ] Save company
+- [ ] Verify fleet number enabled successfully
+- [ ] Verify group remains enabled
+
+#### 1.14.4 Enable Group When Fleet Already Enabled
+
+- [ ] Fleet number is enabled
+- [ ] Group is disabled
+- [ ] Enable group
+- [ ] Add group options
+- [ ] Add group label
+- [ ] Save company
+- [ ] Verify group enabled successfully
+- [ ] Verify fleet number remains enabled
+
+### 1.15 Asset List Modal
+
+#### 1.15.1 Asset List Modal - UI Elements
+
+- [ ] Trigger dialog by disabling feature with assets
+- [ ] Verify modal title: "Assets Using Fleet No." or "Assets Using Group"
+- [ ] Verify description explains what needs to be done
+- [ ] Verify asset count is correct in description
+- [ ] Verify scrollable list shows all affected assets
+- [ ] Verify each asset shows:
+  - [ ] Asset type icon (Truck/Trailer/Driver)
+  - [ ] Asset identifier (registration or name)
+  - [ ] Current field value (fleet number or group name)
+  - [ ] Active/Inactive badge
+- [ ] Verify "Remove from all X assets and disable feature" button
+- [ ] Verify "Cancel" button
+
+#### 1.15.2 Asset List Modal - Navigation
+
+- [ ] Click on an asset in the list
+- [ ] Verify navigates to asset details page
+- [ ] Verify modal closes
+- [ ] Navigate back to companies page
+- [ ] Open company edit modal again
+- [ ] Verify state is preserved
+
+#### 1.15.3 Asset List Modal - Button Behavior
+
+- [ ] Test "Remove" button:
+  - [ ] Click button
+  - [ ] Verify loading state shows
+  - [ ] Verify toast notification appears
+  - [ ] Verify modal closes after success
+  - [ ] Verify next dialog opens (if applicable)
+- [ ] Test "Cancel" button:
+  - [ ] Click button
+  - [ ] Verify modal closes immediately
+  - [ ] Verify next dialog opens (if applicable)
+  - [ ] Verify feature remains enabled
+
+### 1.16 Data Persistence
+
+#### 1.16.1 Fleet/Group Settings Persist After Save
+
+- [ ] Enable fleet number with custom label
+- [ ] Enable group with custom options
+- [ ] Save company
+- [ ] Close modal
+- [ ] Reopen company in edit mode
+- [ ] Verify fleet number checkbox is checked
+- [ ] Verify custom fleet label is preserved
+- [ ] Verify group checkbox is checked
+- [ ] Verify all group options are preserved
+- [ ] Verify inactive groups show inactive status
+
+#### 1.16.2 Canceled Fields Revert to Original
+
+- [ ] Fleet enabled, group enabled
+- [ ] Disable fleet (trigger dialog)
+- [ ] Cancel fleet dialog
+- [ ] Cancel group dialog (if triggered)
+- [ ] Close company modal
+- [ ] Reopen company
+- [ ] Verify fleet number is still enabled (original state)
+- [ ] Verify group is still enabled (original state)
+
+#### 1.16.3 Other Changes Save Even When Fleet/Group Canceled
+
+- [ ] Open company edit
+- [ ] Change company name to "Test Company Updated"
+- [ ] Change registration number
+- [ ] Disable fleet number (with assets)
+- [ ] Cancel fleet dialog
+- [ ] Verify company modal closes after save
+- [ ] Reopen company
+- [ ] Verify company name changed to "Test Company Updated"
+- [ ] Verify registration number changed
+- [ ] Verify fleet number still enabled (canceled change)
+
+### 1.17 Company Settings Edge Cases
+
+#### 1.17.1 Enable and Disable Immediately (No Assets)
+
+- [ ] Enable fleet number
+- [ ] Immediately disable fleet number (same session)
+- [ ] Save company
+- [ ] Verify no dialog appears
+- [ ] Verify feature is disabled
+
+#### 1.17.2 Enable, Add Assets, Then Disable
+
+- [ ] Enable fleet number
+- [ ] Save company
+- [ ] Create assets and assign fleet numbers
+- [ ] Edit company again
+- [ ] Disable fleet number
+- [ ] Save
+- [ ] Verify dialog appears
+- [ ] Test remove/cancel behavior
+
+#### 1.17.3 Change Label While Feature Is In Use
+
+- [ ] Fleet number enabled with assets using it
+- [ ] Change fleet label from "Fleet No." to "Vehicle ID"
+- [ ] Keep feature enabled
+- [ ] Save company
+- [ ] Verify no dialog appears
+- [ ] Verify label changes
+- [ ] Verify assets still have fleet numbers
+
+#### 1.17.4 Add Group Options While Feature In Use
+
+- [ ] Group enabled with existing options
+- [ ] Assets using existing groups
+- [ ] Add new group option "Central"
+- [ ] Save company
+- [ ] Verify new option is added
+- [ ] Verify existing assets maintain their groups
+
+#### 1.17.5 Empty/Whitespace Validation
+
+- [ ] Try to add group option with only spaces
+- [ ] Verify error or trimming behavior
+- [ ] Try to add duplicate group option
+- [ ] Verify error message
+
+#### 1.17.6 Company Type Change (Should Not Happen in Production)
+
+- [ ] Note: Company type is read-only after creation
+- [ ] Fleet tab only visible for transporters and dual-role LCs
+- [ ] If company type changes, fleet settings should be preserved but not accessible
+
+### 1.18 Multiple Companies
+
+#### 1.18.1 Different Settings Per Company
+
+- [ ] Create Company A (transporter)
+- [ ] Enable fleet with label "Truck ID"
+- [ ] Create Company B (transporter)
+- [ ] Enable fleet with label "Fleet No."
+- [ ] Enable group with options "North", "South"
+- [ ] Switch between companies
+- [ ] Verify each company has independent fleet/group settings
+
+#### 1.18.2 Global Admin Editing Different Company
+
+- [ ] Log in as global admin
+- [ ] Switch to Company A context
+- [ ] Edit Company B (different company)
+- [ ] Change fleet/group settings
+- [ ] Verify changes save correctly
+- [ ] Verify local users/assets data loads correctly for Company B
+
+### 1.19 Company Validation & Error Handling
+
+#### 1.19.1 Group Options Required When Enabled
+
+- [ ] Enable "Transporter Group"
+- [ ] Delete all group options
+- [ ] Try to save company
+- [ ] Verify error: "At least one group option is required when transporter group is enabled"
+- [ ] Add a group option
+- [ ] Verify save succeeds
+
+#### 1.19.2 Cannot Delete Group In Use
+
+- [ ] Have assets using group "North"
+- [ ] Try to delete "North" from group options
+- [ ] Verify error dialog
+- [ ] Verify suggestion to mark as inactive instead
+- [ ] Verify delete button is replaced with deactivate button
+
+#### 1.19.3 Dialog Appears Only When Needed
+
+- [ ] Disable feature with NO assets using it
+- [ ] Verify NO dialog appears
+- [ ] Disable feature WITH assets using it
+- [ ] Verify dialog DOES appear
+
+### 1.20 Company UI/UX
+
+#### 1.20.1 Fleet Tab Visibility
+
+- [ ] **Mine company**: Fleet tab NOT visible
+- [ ] **Transporter company**: Fleet tab visible
+- [ ] **Logistics Coordinator (not also transporter)**: Fleet tab NOT visible
+- [ ] **Logistics Coordinator (also transporter)**: Fleet tab visible
+
+#### 1.20.2 Loading States
+
+- [ ] Verify loading spinner when removing fleet numbers from assets
+- [ ] Verify loading spinner when removing groups from assets
+- [ ] Verify buttons disabled during loading
+- [ ] Verify toast notifications appear after completion
+
+#### 1.20.3 Modal Behavior
+
+- [ ] Verify modal closes on successful save
+- [ ] Verify modal stays open on validation error
+- [ ] Verify clicking outside modal does NOT close it (by design)
+- [ ] Verify ESC key does NOT close modal (by design)
+- [ ] Must use Cancel or Save buttons explicitly
+
 ---
 
 ## 2. Organizational Groups (Mine Companies Only)
@@ -723,6 +1245,34 @@
   - [ ] Step 3 always skipped (even if settings enabled)
   - [ ] Fleet/group only applicable to trucks
 
+#### 3.7.3 Asset Integration
+
+- [ ] **Asset Creation with Fleet Number**:
+  - [ ] Company has fleet number enabled
+  - [ ] Create new asset (truck)
+  - [ ] Verify fleet number field appears in asset form
+  - [ ] Verify field label matches company's custom label
+  - [ ] Assign fleet number to asset
+  - [ ] Save asset
+  - [ ] Verify fleet number is saved
+- [ ] **Asset Creation with Group**:
+  - [ ] Company has group enabled
+  - [ ] Create new asset (truck)
+  - [ ] Verify group dropdown appears in asset form
+  - [ ] Verify dropdown shows all active group options
+  - [ ] Verify inactive groups are NOT shown (or shown as disabled)
+  - [ ] Assign group to asset
+  - [ ] Save asset
+  - [ ] Verify group is saved
+- [ ] **Asset Displays Fleet Number in Lists**:
+  - [ ] Assets list page shows fleet number badge
+  - [ ] Badge displays correct fleet number value
+  - [ ] Badge uses secondary variant styling
+- [ ] **Asset Displays Group in Lists**:
+  - [ ] Assets list page shows group badge
+  - [ ] Badge displays correct group name
+  - [ ] Badge uses purple variant styling
+
 ### 3.8 Asset Permission Enforcement
 
 - [ ] **View Assets** (assets.view permission):
@@ -753,6 +1303,440 @@
   - [ ] Can view details
   - [ ] Cannot see edit/delete buttons
   - [ ] Cannot induct new assets
+
+### 3.9 Assets Restricted to Transporters
+
+#### 3.9.1 Mine Company - Assets Hidden
+
+- [ ] Log in as a mine company user
+- [ ] Verify Assets menu item is NOT visible in navigation
+- [ ] Attempt to navigate directly to `/assets`
+- [ ] Verify redirect to home page `/`
+- [ ] Attempt to navigate directly to `/assets/induct`
+- [ ] Verify redirect to home page `/`
+- [ ] Attempt to navigate directly to `/assets/[id]` with valid asset ID
+- [ ] Verify redirect to home page `/`
+
+#### 3.9.2 Transporter Company - Assets Visible
+
+- [ ] Log in as a transporter company user
+- [ ] Verify Assets menu item IS visible in navigation
+- [ ] Navigate to `/assets` page
+- [ ] Verify page loads successfully with asset list
+- [ ] Navigate to `/assets/induct` page
+- [ ] Verify induction wizard loads successfully
+- [ ] Navigate to `/assets/[id]` with valid asset ID
+- [ ] Verify asset detail page loads successfully
+
+#### 3.9.3 Logistics Coordinator (Not Transporter) - Assets Hidden
+
+- [ ] Log in as a logistics coordinator company with `isAlsoTransporter = false`
+- [ ] Verify Assets menu item is NOT visible in navigation
+- [ ] Attempt to navigate directly to `/assets`
+- [ ] Verify redirect to home page `/`
+- [ ] Attempt to navigate directly to `/assets/induct`
+- [ ] Verify redirect to home page `/`
+- [ ] Attempt to navigate directly to `/assets/[id]` with valid asset ID
+- [ ] Verify redirect to home page `/`
+
+#### 3.9.4 Logistics Coordinator (Is Transporter) - Assets Visible
+
+- [ ] Log in as a logistics coordinator company with `isAlsoTransporter = true`
+- [ ] Verify Assets menu item IS visible in navigation
+- [ ] Navigate to `/assets` page
+- [ ] Verify page loads successfully with asset list
+- [ ] Navigate to `/assets/induct` page
+- [ ] Verify induction wizard loads successfully
+- [ ] Navigate to `/assets/[id]` with valid asset ID
+- [ ] Verify asset detail page loads successfully
+
+#### 3.9.5 Logistics Coordinator Cannot Disable Transporter Role (Has Assets)
+
+- [ ] Create logistics coordinator company with `isAlsoTransporter = true`
+- [ ] Induct at least one asset (truck, trailer, or driver)
+- [ ] Open Company Form Modal to edit company
+- [ ] Verify "Is also a Transporter" checkbox is DISABLED
+- [ ] Verify checkbox is visually styled as disabled (opacity reduced, cursor not-allowed)
+- [ ] Verify helper text displays: "Cannot be disabled because this company has assets. Assets can only belong to transporters."
+- [ ] Verify cannot toggle checkbox
+- [ ] Attempt to save company (should work but checkbox remains checked)
+
+#### 3.9.6 Logistics Coordinator Can Disable Transporter Role (No Assets)
+
+- [ ] Create logistics coordinator company with `isAlsoTransporter = true`
+- [ ] Do NOT add any assets
+- [ ] Open Company Form Modal to edit company
+- [ ] Verify "Is also a Transporter" checkbox is ENABLED
+- [ ] Verify no helper text shown
+- [ ] Toggle checkbox to unchecked
+- [ ] Save company
+- [ ] Verify `isAlsoTransporter` is now `false`
+- [ ] Verify Assets menu disappears from navigation
+
+#### 3.9.7 Company Switch Clears Asset Data
+
+- [ ] Log in as user with access to multiple companies
+- [ ] Switch to a transporter company (Company A)
+- [ ] Navigate to Assets page
+- [ ] Note the assets displayed for Company A
+- [ ] Switch to different transporter company (Company B)
+- [ ] Verify assets from Company A are no longer visible
+- [ ] Verify assets from Company B load correctly
+- [ ] Verify no stale data from Company A appears
+- [ ] Verify other company-scoped data (users, products, groups, sites, clients) also clears correctly
+
+#### 3.9.8 Company Switch - Assets Menu Visibility Changes
+
+- [ ] Log in as user with access to multiple companies of different types
+- [ ] Switch from transporter to mine company
+- [ ] Verify Assets menu disappears immediately
+- [ ] Switch from mine to transporter company
+- [ ] Verify Assets menu appears immediately
+- [ ] Switch from LC (not transporter) to LC (is transporter)
+- [ ] Verify Assets menu appears immediately
+- [ ] Switch from LC (is transporter) to LC (not transporter)
+- [ ] Verify Assets menu disappears immediately
+- [ ] Verify navigation updates without requiring page refresh
+
+### 3.10 Bulk Fleet Number Update
+
+**Location**: Assets Page → Trucks Tab → Select Multiple Assets → Bulk Actions Toolbar
+
+#### 3.10.1 Bulk Update Fleet Number - Visibility
+
+- [ ] Company has fleet number feature **enabled**
+- [ ] Navigate to Assets page → Trucks tab
+- [ ] Select multiple truck assets (2 or more)
+- [ ] Verify bulk actions toolbar appears
+- [ ] Verify "Update Fleet #" button is visible
+- [ ] Switch to Trailers tab
+- [ ] Select multiple trailers
+- [ ] Verify "Update Fleet #" button is **NOT** visible
+- [ ] Switch to Drivers tab
+- [ ] Select multiple drivers
+- [ ] Verify "Update Fleet #" button is **NOT** visible
+
+#### 3.10.2 Bulk Update Fleet Number - Feature Disabled
+
+- [ ] Company has fleet number feature **disabled**
+- [ ] Navigate to Assets page → Trucks tab
+- [ ] Select multiple trucks
+- [ ] Verify bulk actions toolbar appears
+- [ ] Verify "Update Fleet #" button is **NOT** visible
+
+#### 3.10.3 Bulk Update Fleet Number - Assign New Value
+
+- [ ] Select 3+ trucks without fleet numbers
+- [ ] Click "Update Fleet #" button
+- [ ] Verify modal opens with title "Update Fleet Numbers"
+- [ ] Verify modal shows count of selected assets
+- [ ] Enter fleet number "FL-2024-001"
+- [ ] Click "Update" button
+- [ ] Verify confirmation dialog appears
+- [ ] Confirm action
+- [ ] Verify success toast shows count of updated assets
+- [ ] Verify all selected trucks now have fleet number "FL-2024-001"
+- [ ] Verify selection is cleared automatically
+
+#### 3.10.4 Bulk Update Fleet Number - Duplicate Validation
+
+- [ ] Have an existing truck with fleet number "FL-2024-001"
+- [ ] Select different trucks
+- [ ] Click "Update Fleet #" button
+- [ ] Enter "FL-2024-001" (duplicate)
+- [ ] Click "Update"
+- [ ] Verify error alert appears
+- [ ] Error shows: "Fleet number 'FL-2024-001' is already assigned to [registration]"
+- [ ] Verify no changes are made
+- [ ] Change to unique fleet number "FL-2024-002"
+- [ ] Verify update succeeds
+
+#### 3.10.5 Bulk Update Fleet Number - Clear Values
+
+- [ ] Select multiple trucks that have fleet numbers
+- [ ] Click "Update Fleet #" button
+- [ ] Check "Clear fleet number" checkbox
+- [ ] Verify input field is disabled
+- [ ] Verify button text changes to "Clear"
+- [ ] Click "Clear" button
+- [ ] Verify confirmation dialog asks about clearing
+- [ ] Confirm action
+- [ ] Verify success toast appears
+- [ ] Verify all selected trucks no longer have fleet numbers (null)
+
+#### 3.10.6 Bulk Update Fleet Number - Mixed Selection (Some with, Some without)
+
+- [ ] Select 5 trucks: 3 with fleet numbers, 2 without
+- [ ] Click "Update Fleet #" button
+- [ ] Enter new fleet number "FL-2024-NEW"
+- [ ] Update all assets
+- [ ] Verify all 5 trucks now have "FL-2024-NEW"
+- [ ] Verify previous fleet numbers are replaced
+
+#### 3.10.7 Bulk Update Fleet Number - Validation Errors
+
+- [ ] Select multiple trucks
+- [ ] Click "Update Fleet #" button
+- [ ] Leave fleet number input empty
+- [ ] Do NOT check "Clear fleet number"
+- [ ] Click "Update"
+- [ ] Verify error: "Please enter a fleet number or check 'Clear fleet number'"
+- [ ] Enter a fleet number
+- [ ] Verify update succeeds
+
+#### 3.10.8 Bulk Update Fleet Number - Cancel Action
+
+- [ ] Select multiple trucks
+- [ ] Click "Update Fleet #" button
+- [ ] Enter fleet number
+- [ ] Click "Cancel" button
+- [ ] Verify modal closes
+- [ ] Verify no changes are made to assets
+- [ ] Verify selection remains active (not cleared)
+
+### 3.11 Bulk Group Update
+
+**Location**: Assets Page → Trucks Tab → Select Multiple Assets → Bulk Actions Toolbar
+
+#### 3.11.1 Bulk Update Group - Visibility
+
+- [ ] Company has group feature **enabled**
+- [ ] Navigate to Assets page → Trucks tab
+- [ ] Select multiple truck assets (2 or more)
+- [ ] Verify bulk actions toolbar appears
+- [ ] Verify "Update [GroupLabel]" button is visible (uses custom label)
+- [ ] Switch to Trailers tab
+- [ ] Select multiple trailers
+- [ ] Verify "Update [GroupLabel]" button is **NOT** visible
+- [ ] Switch to Drivers tab
+- [ ] Select multiple drivers
+- [ ] Verify "Update [GroupLabel]" button is **NOT** visible
+
+#### 3.11.2 Bulk Update Group - Feature Disabled
+
+- [ ] Company has group feature **disabled**
+- [ ] Navigate to Assets page → Trucks tab
+- [ ] Select multiple trucks
+- [ ] Verify bulk actions toolbar appears
+- [ ] Verify "Update [GroupLabel]" button is **NOT** visible
+
+#### 3.11.3 Bulk Update Group - Assign Group
+
+- [ ] Company has groups: "North", "South", "East", "West"
+- [ ] Select 3+ trucks without groups
+- [ ] Click "Update [GroupLabel]" button
+- [ ] Verify modal opens with custom group label in title
+- [ ] Verify modal shows count of selected assets
+- [ ] Verify dropdown shows all active group options
+- [ ] Select "North" from dropdown
+- [ ] Click "Update" button
+- [ ] Verify confirmation dialog appears
+- [ ] Confirm action
+- [ ] Verify success toast shows count of updated assets
+- [ ] Verify all selected trucks now have group "North"
+- [ ] Verify selection is cleared automatically
+
+#### 3.11.4 Bulk Update Group - Inactive Groups Not Shown
+
+- [ ] Company has groups: "North" (active), "South" (active), "Legacy" (inactive)
+- [ ] Select multiple trucks
+- [ ] Click "Update [GroupLabel]" button
+- [ ] Verify dropdown shows "North" and "South"
+- [ ] Verify dropdown does NOT show "Legacy"
+
+#### 3.11.5 Bulk Update Group - Clear Groups
+
+- [ ] Select multiple trucks that have groups assigned
+- [ ] Click "Update [GroupLabel]" button
+- [ ] Check "Clear [group label]" checkbox
+- [ ] Verify dropdown is disabled
+- [ ] Verify button text changes to "Clear"
+- [ ] Click "Clear" button
+- [ ] Verify confirmation dialog asks about clearing
+- [ ] Confirm action
+- [ ] Verify success toast appears
+- [ ] Verify all selected trucks no longer have groups (null)
+
+#### 3.11.6 Bulk Update Group - Validation Errors
+
+- [ ] Select multiple trucks
+- [ ] Click "Update [GroupLabel]" button
+- [ ] Leave dropdown at "Select group..." (no selection)
+- [ ] Do NOT check "Clear group"
+- [ ] Click "Update"
+- [ ] Verify error: "Please select a group or check 'Clear group'"
+- [ ] Select a group
+- [ ] Verify update succeeds
+
+#### 3.11.7 Bulk Update Group - Cancel Action
+
+- [ ] Select multiple trucks
+- [ ] Click "Update [GroupLabel]" button
+- [ ] Select a group from dropdown
+- [ ] Click "Cancel" button
+- [ ] Verify modal closes
+- [ ] Verify no changes are made to assets
+- [ ] Verify selection remains active (not cleared)
+
+### 3.12 Bulk Actions Integration
+
+#### 3.12.1 Both Features Enabled - Both Buttons Visible
+
+- [ ] Company has both fleet number AND group enabled
+- [ ] Select multiple trucks
+- [ ] Verify bulk actions toolbar shows:
+  - [ ] "Update Fleet #" button
+  - [ ] "Update [GroupLabel]" button
+  - [ ] "Activate" button (if any inactive selected)
+  - [ ] "Deactivate" button (if any active selected)
+
+#### 3.12.2 Update Both Fleet and Group Sequentially
+
+- [ ] Select multiple trucks
+- [ ] Click "Update Fleet #"
+- [ ] Assign fleet number "FL-001"
+- [ ] Verify selection is cleared after success
+- [ ] Select same trucks again
+- [ ] Click "Update [GroupLabel]"
+- [ ] Assign group "North"
+- [ ] Verify both fleet number and group are now assigned
+
+#### 3.12.3 Bulk Actions with Single Asset
+
+- [ ] Select only 1 truck
+- [ ] Verify bulk actions toolbar appears
+- [ ] Verify buttons show "1 asset selected"
+- [ ] Click "Update Fleet #"
+- [ ] Verify modal shows "1 selected asset"
+- [ ] Update fleet number
+- [ ] Verify update works for single asset
+
+#### 3.12.4 Bulk Actions - Tab Switching Clears Selection
+
+- [ ] On Trucks tab, select 3 trucks
+- [ ] Verify bulk actions toolbar appears
+- [ ] Switch to Trailers tab
+- [ ] Verify selection is cleared
+- [ ] Verify bulk actions toolbar disappears
+- [ ] Switch back to Trucks tab
+- [ ] Verify selection remains cleared
+
+#### 3.12.5 Bulk Actions - Modal Close Behavior
+
+- [ ] Select multiple trucks
+- [ ] Click "Update Fleet #"
+- [ ] Try to click outside modal
+- [ ] Verify modal does NOT close (by design)
+- [ ] Try pressing ESC key
+- [ ] Verify modal does NOT close (by design)
+- [ ] Must use "Cancel" or "Update" button to close
+
+#### 3.12.6 Real-Time Data Updates
+
+- [ ] User A: Select trucks and update fleet number
+- [ ] User B: Open Assets page (same company)
+- [ ] Verify User B sees updated fleet numbers immediately (via real-time listeners)
+- [ ] Verify no page refresh required
+
+### 3.13 Bulk Actions UI/UX
+
+#### 3.13.1 Loading States
+
+- [ ] Select multiple trucks
+- [ ] Click "Update Fleet #"
+- [ ] Fill in fleet number
+- [ ] Click "Update"
+- [ ] Confirm action
+- [ ] Verify button shows "Updating..." during operation
+- [ ] Verify button is disabled during operation
+- [ ] Verify input fields are disabled during operation
+- [ ] Verify success state after completion
+
+#### 3.13.2 Error Handling
+
+- [ ] Simulate network failure
+- [ ] Attempt bulk fleet number update
+- [ ] Verify error alert displays with error message
+- [ ] Verify modal remains open
+- [ ] Verify user can retry operation
+- [ ] Fix network issue and retry
+- [ ] Verify update succeeds
+
+#### 3.13.3 Toolbar Styling
+
+- [ ] Select trucks
+- [ ] Verify bulk actions toolbar has:
+  - [ ] Glass morphism styling
+  - [ ] Proper z-index (stays on top when scrolling)
+  - [ ] Slide-in animation when appearing
+  - [ ] Count badge showing number of selected assets
+  - [ ] Clear button to deselect all
+  - [ ] Proper spacing between action buttons
+
+#### 3.13.4 Button Icons
+
+- [ ] Verify "Update Fleet #" button has Hash icon (# symbol)
+- [ ] Verify "Update [GroupLabel]" button has FolderTree icon
+- [ ] Verify "Activate" button has CheckCircle icon
+- [ ] Verify "Deactivate" button has XCircle icon
+- [ ] Verify "Clear" button has X icon
+
+### 3.14 Bulk Actions Edge Cases
+
+#### 3.14.1 Update Fleet Number to Existing Value (Same Asset)
+
+- [ ] Select trucks that already have fleet number "FL-001"
+- [ ] Update fleet number to "FL-001" again (same value)
+- [ ] Verify duplicate validation does NOT trigger (same assets)
+- [ ] Verify update succeeds (idempotent)
+
+#### 3.14.2 Large Selection (100+ Assets)
+
+- [ ] Select 100+ trucks (if available)
+- [ ] Update fleet number
+- [ ] Verify operation completes successfully
+- [ ] Verify performance is acceptable (< 5 seconds)
+- [ ] Verify all assets updated correctly
+
+#### 3.14.3 Company Settings Change While Modal Open
+
+- [ ] Select trucks and open "Update Fleet #" modal
+- [ ] In another tab, disable fleet number feature
+- [ ] Return to modal and try to update
+- [ ] Verify appropriate error handling
+- [ ] Verify modal closes gracefully
+
+#### 3.14.4 Whitespace in Fleet Number
+
+- [ ] Select trucks
+- [ ] Update fleet number to "  FL-001  " (leading/trailing spaces)
+- [ ] Verify spaces are trimmed
+- [ ] Verify saved as "FL-001"
+
+#### 3.14.5 Mixed Active/Inactive Assets
+
+- [ ] Select 5 trucks: 3 active, 2 inactive
+- [ ] Update fleet number
+- [ ] Verify all 5 trucks get updated regardless of active status
+- [ ] Verify inactive status is preserved
+
+### 3.15 Bulk Actions Permissions
+
+#### 3.15.1 Bulk Actions Require Edit Permission
+
+- [ ] Log in as user without ASSETS_EDIT permission
+- [ ] Navigate to Assets page
+- [ ] Select multiple trucks
+- [ ] Verify bulk actions toolbar does NOT appear
+- [ ] Verify cannot bulk update fleet numbers or groups
+
+#### 3.15.2 Read-Only User
+
+- [ ] Log in as user with ASSETS_VIEW only (no edit)
+- [ ] Navigate to Assets page
+- [ ] Verify can view assets
+- [ ] Verify row selection is disabled
+- [ ] Verify bulk actions are not accessible
 
 ---
 

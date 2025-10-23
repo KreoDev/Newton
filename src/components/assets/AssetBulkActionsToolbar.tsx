@@ -4,10 +4,14 @@ import { useState } from "react"
 import type { Asset } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { X, CheckCircle, XCircle } from "lucide-react"
+import { X, CheckCircle, XCircle, Hash, FolderTree } from "lucide-react"
 import { updateDocument } from "@/lib/firebase-utils"
 import { useAlert } from "@/hooks/useAlert"
+import { useCompany } from "@/contexts/CompanyContext"
+import { useSignals } from "@preact/signals-react/runtime"
 import { InactivateAssetModal } from "./InactivateAssetModal"
+import { BulkFleetNumberModal } from "./BulkFleetNumberModal"
+import { BulkGroupModal } from "./BulkGroupModal"
 
 interface AssetBulkActionsToolbarProps {
   selectedAssets: Asset[]
@@ -20,13 +24,21 @@ export function AssetBulkActionsToolbar({
   onClearSelection,
   assetType,
 }: AssetBulkActionsToolbarProps) {
+  useSignals()
+  const { company } = useCompany()
   const { showSuccess, showError, showConfirm } = useAlert()
   const [loading, setLoading] = useState(false)
   const [inactivateModalOpen, setInactivateModalOpen] = useState(false)
   const [assetsToInactivate, setAssetsToInactivate] = useState<Asset[]>([])
+  const [fleetNumberModalOpen, setFleetNumberModalOpen] = useState(false)
+  const [groupModalOpen, setGroupModalOpen] = useState(false)
 
   const activeCount = selectedAssets.filter(a => a.isActive).length
   const inactiveCount = selectedAssets.length - activeCount
+
+  // Check if bulk actions should be shown based on asset type and company settings
+  const showFleetNumberAction = assetType === "truck" && company?.systemSettings?.fleetNumberEnabled
+  const showGroupAction = assetType === "truck" && company?.systemSettings?.transporterGroupEnabled
 
   const handleBulkActivate = async () => {
     const assetsToActivate = selectedAssets.filter(a => !a.isActive)
@@ -86,6 +98,16 @@ export function AssetBulkActionsToolbar({
     onClearSelection()
   }
 
+  const handleFleetNumberSuccess = () => {
+    setFleetNumberModalOpen(false)
+    onClearSelection()
+  }
+
+  const handleGroupSuccess = () => {
+    setGroupModalOpen(false)
+    onClearSelection()
+  }
+
   return (
     <>
       <div className="sticky top-0 z-50 glass-surface border border-[oklch(0.922_0_0_/_0.55)] rounded-lg backdrop-blur-[18px] shadow-[inset_0_1px_0_0_rgb(255_255_255_/_0.2),inset_0_-12px_30px_-24px_rgb(15_15_15_/_0.28),0_36px_80px_-36px_rgb(15_15_15_/_0.32)] p-4 mb-4 animate-in slide-in-from-top duration-200">
@@ -101,6 +123,30 @@ export function AssetBulkActionsToolbar({
           </div>
 
           <div className="flex items-center gap-2">
+            {showFleetNumberAction && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFleetNumberModalOpen(true)}
+                disabled={loading}
+              >
+                <Hash className="h-4 w-4 mr-2" />
+                Update Fleet #
+              </Button>
+            )}
+
+            {showGroupAction && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setGroupModalOpen(true)}
+                disabled={loading}
+              >
+                <FolderTree className="h-4 w-4 mr-2" />
+                Update {company?.systemSettings?.transporterGroupLabel || "Group"}
+              </Button>
+            )}
+
             {inactiveCount > 0 && (
               <Button
                 variant="outline"
@@ -141,6 +187,22 @@ export function AssetBulkActionsToolbar({
           bulkAssets={assetsToInactivate}
         />
       )}
+
+      {/* Fleet Number Modal */}
+      <BulkFleetNumberModal
+        selectedAssets={selectedAssets}
+        isOpen={fleetNumberModalOpen}
+        onClose={() => setFleetNumberModalOpen(false)}
+        onSuccess={handleFleetNumberSuccess}
+      />
+
+      {/* Group Modal */}
+      <BulkGroupModal
+        selectedAssets={selectedAssets}
+        isOpen={groupModalOpen}
+        onClose={() => setGroupModalOpen(false)}
+        onSuccess={handleGroupSuccess}
+      />
     </>
   )
 }
