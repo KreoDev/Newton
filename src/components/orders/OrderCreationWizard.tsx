@@ -431,9 +431,18 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                         setEndDateOpen(false)
                       }}
                       disabled={date => {
-                        const today = new Date(new Date().setHours(0, 0, 0, 0))
-                        const startDate = formData.dispatchStartDate ? new Date(formData.dispatchStartDate) : today
-                        return date < startDate
+                        if (!formData.dispatchStartDate) {
+                          // If no start date selected, disable dates before today
+                          const today = new Date(new Date().setHours(0, 0, 0, 0))
+                          return date < today
+                        }
+                        // Normalize both dates to midnight for proper comparison
+                        const startDate = new Date(formData.dispatchStartDate)
+                        startDate.setHours(0, 0, 0, 0)
+                        const compareDate = new Date(date)
+                        compareDate.setHours(0, 0, 0, 0)
+                        // Allow dates >= start date (same day or after)
+                        return compareDate < startDate
                       }}
                     />
                   </PopoverContent>
