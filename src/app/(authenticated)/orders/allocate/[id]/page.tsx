@@ -9,6 +9,8 @@ import { PERMISSIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft } from "lucide-react"
 import { OrderService } from "@/services/order.service"
 import { data as globalData } from "@/services/data.service"
@@ -17,6 +19,7 @@ import Link from "next/link"
 import { useAlert } from "@/hooks/useAlert"
 import { toast } from "sonner"
 import type { Allocation } from "@/types"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function OrderAllocationPage() {
   useSignals()
@@ -49,7 +52,9 @@ export default function OrderAllocationPage() {
         <div className="glass-surface rounded-lg p-8 text-center">
           <p className="text-muted-foreground">Order not found</p>
           <Link href="/orders">
-            <Button variant="outline" className="mt-4">Back to Orders</Button>
+            <Button variant="outline" className="mt-4">
+              Back to Orders
+            </Button>
           </Link>
         </div>
       </div>
@@ -62,7 +67,9 @@ export default function OrderAllocationPage() {
         <div className="glass-surface rounded-lg p-8 text-center">
           <p className="text-muted-foreground">You do not have permission to allocate this order</p>
           <Link href="/orders">
-            <Button variant="outline" className="mt-4">Back to Orders</Button>
+            <Button variant="outline" className="mt-4">
+              Back to Orders
+            </Button>
           </Link>
         </div>
       </div>
@@ -73,13 +80,16 @@ export default function OrderAllocationPage() {
   const remainingWeight = order.totalWeight - totalAllocated
 
   const handleAddAllocation = () => {
-    setAllocations([...allocations, {
-      companyId: "",
-      allocatedWeight: 0,
-      loadingDates: [order.dispatchStartDate],
-      completedWeight: 0,
-      status: "pending",
-    }])
+    setAllocations([
+      ...allocations,
+      {
+        companyId: "",
+        allocatedWeight: 0,
+        loadingDates: [order.dispatchStartDate],
+        completedWeight: 0,
+        status: "pending",
+      },
+    ])
   }
 
   const handleRemoveAllocation = (index: number) => {
@@ -110,10 +120,7 @@ export default function OrderAllocationPage() {
     try {
       await OrderService.allocate(orderId, allocations, "Order allocated successfully")
 
-      await showSuccess(
-        "Order Allocated",
-        `Order ${order.orderNumber} has been successfully allocated to ${allocations.length} transporter(s).`
-      )
+      await showSuccess("Order Allocated", `Order ${order.orderNumber} has been successfully allocated to ${allocations.length} transporter(s).`)
 
       router.push(`/orders/${orderId}`)
     } catch (error) {
@@ -149,7 +156,9 @@ export default function OrderAllocationPage() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Date Range</p>
-            <p className="font-medium text-sm">{order.dispatchStartDate} to {order.dispatchEndDate}</p>
+            <p className="font-medium text-sm">
+              {order.dispatchStartDate} to {order.dispatchEndDate}
+            </p>
           </div>
         </div>
       </div>
@@ -160,19 +169,16 @@ export default function OrderAllocationPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Total Allocated</span>
-            <span className="font-medium">{totalAllocated} / {order.totalWeight} tons</span>
+            <span className="font-medium">
+              {totalAllocated} / {order.totalWeight} tons
+            </span>
           </div>
           <div className="w-full bg-muted rounded-full h-3">
-            <div
-              className={`h-3 rounded-full transition-all ${remainingWeight === 0 ? "bg-green-500" : remainingWeight < 0 ? "bg-red-500" : "bg-primary"}`}
-              style={{ width: `${Math.min((totalAllocated / order.totalWeight) * 100, 100)}%` }}
-            />
+            <div className={`h-3 rounded-full transition-all ${remainingWeight === 0 ? "bg-green-500" : remainingWeight < 0 ? "bg-red-500" : "bg-primary"}`} style={{ width: `${Math.min((totalAllocated / order.totalWeight) * 100, 100)}%` }} />
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Remaining:</span>
-            <span className={`font-medium ${remainingWeight === 0 ? "text-green-600" : remainingWeight < 0 ? "text-red-600" : ""}`}>
-              {remainingWeight.toFixed(1)} tons
-            </span>
+            <span className={`font-medium ${remainingWeight === 0 ? "text-green-600" : remainingWeight < 0 ? "text-red-600" : ""}`}>{remainingWeight.toFixed(1)} tons</span>
           </div>
         </div>
       </div>
@@ -192,46 +198,33 @@ export default function OrderAllocationPage() {
               <div className="space-y-4">
                 <div>
                   <Label>Transporter Company</Label>
-                  <select
-                    value={allocation.companyId}
-                    onChange={e => handleUpdateAllocation(index, "companyId", e.target.value)}
-                    className="w-full mt-2 px-4 py-2 rounded-md border bg-background"
-                  >
-                    <option value="">Select transporter...</option>
-                    {transporterCompanies.map(comp => (
-                      <option key={comp.id} value={comp.id}>{comp.name}</option>
-                    ))}
-                  </select>
+                  <Select value={allocation.companyId || undefined} onValueChange={value => handleUpdateAllocation(index, "companyId", value)}>
+                    <SelectTrigger className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                      <SelectValue placeholder="Select transporter..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {transporterCompanies.map(comp => (
+                        <SelectItem key={comp.id} value={comp.id}>
+                          {comp.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
                   <Label>Allocated Weight (tons)</Label>
-                  <Input
-                    type="number"
-                    value={allocation.allocatedWeight || ""}
-                    onChange={e => handleUpdateAllocation(index, "allocatedWeight", parseFloat(e.target.value) || 0)}
-                    className="mt-2"
-                    placeholder="0"
-                  />
+                  <Input type="number" value={allocation.allocatedWeight || ""} onChange={e => handleUpdateAllocation(index, "allocatedWeight", parseFloat(e.target.value) || 0)} className="mt-2" placeholder="0" />
                 </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleRemoveAllocation(index)}
-                  className="text-destructive hover:text-destructive"
-                >
+                <Button variant="outline" size="sm" onClick={() => handleRemoveAllocation(index)} className="text-destructive hover:text-destructive">
                   Remove
                 </Button>
               </div>
             </div>
           ))}
 
-          {allocations.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No allocations yet. Click &ldquo;Add Allocation&rdquo; to start.
-            </div>
-          )}
+          {allocations.length === 0 && <div className="text-center py-8 text-muted-foreground">No allocations yet. Click &ldquo;Add Allocation&rdquo; to start.</div>}
         </div>
       </div>
 
@@ -240,11 +233,7 @@ export default function OrderAllocationPage() {
         <Link href={`/orders/${orderId}`}>
           <Button variant="outline">Cancel</Button>
         </Link>
-        <Button
-          onClick={handleSubmit}
-          disabled={loading || allocations.length === 0 || remainingWeight !== 0}
-          className="bg-green-600 hover:bg-green-700"
-        >
+        <Button onClick={handleSubmit} disabled={loading || allocations.length === 0 || remainingWeight !== 0} className="bg-green-600 hover:bg-green-700">
           {loading ? "Allocating..." : "Submit Allocation"}
         </Button>
       </div>

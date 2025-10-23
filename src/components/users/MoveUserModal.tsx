@@ -10,6 +10,7 @@ import { useAlert } from "@/hooks/useAlert"
 import { updateDocument } from "@/lib/firebase-utils"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface MoveUserModalProps {
   open: boolean
@@ -84,29 +85,25 @@ export function MoveUserModal({ open, onClose, onSuccess, user }: MoveUserModalP
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Current Company</Label>
-            <div className="px-3 py-2 border rounded-md bg-muted/50">
-              {currentCompany?.name || "Unknown"}
-            </div>
+            <div className="px-3 py-2 border rounded-md bg-muted/50">{currentCompany?.name || "Unknown"}</div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="newCompanyId">
               New Company <span className="text-destructive">*</span>
             </Label>
-            <select
-              id="newCompanyId"
-              value={newCompanyId}
-              onChange={e => setNewCompanyId(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 bg-background"
-              required
-            >
-              <option value="">-- Select Company --</option>
-              {availableCompanies.map((company: Company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
+            <Select value={newCompanyId || undefined} onValueChange={value => setNewCompanyId(value)} required>
+              <SelectTrigger id="newCompanyId" className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                <SelectValue placeholder="-- Select Company --" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableCompanies.map((company: Company) => (
+                  <SelectItem key={company.id} value={company.id}>
+                    {company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="border rounded-md p-4 bg-destructive/10">

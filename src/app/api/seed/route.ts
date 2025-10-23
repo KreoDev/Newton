@@ -68,6 +68,7 @@ const DEFAULT_COMPANY = {
   orderConfig: {
     orderNumberMode: "autoOnly",
     orderNumberPrefix: "DEV-",
+    orderHistoryDays: 60,
     defaultDailyTruckLimit: 10,
     defaultDailyWeightLimit: 100,
     defaultMonthlyLimit: 2000,
@@ -122,6 +123,7 @@ const VR_CARGO_COMPANY = {
   orderConfig: {
     orderNumberMode: "manualAllowed",
     orderNumberPrefix: "VRC-",
+    orderHistoryDays: 60,
     defaultDailyTruckLimit: 20,
     defaultDailyWeightLimit: 200,
     defaultMonthlyLimit: 4000,

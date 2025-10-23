@@ -14,6 +14,7 @@ import { useSignals } from "@preact/signals-react/runtime"
 import { useAlert } from "@/hooks/useAlert"
 import { toast } from "sonner"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface OrderCreationWizardProps {
   company: Company
@@ -86,8 +87,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
   // Generate order number on mount or when mode changes to auto
   useEffect(() => {
     if (orderNumberMode === "auto") {
-      OrderService.generateOrderNumber(company.orderConfig?.orderNumberPrefix || "ORD-")
-        .then(num => setFormData(prev => ({ ...prev, orderNumber: num })))
+      OrderService.generateOrderNumber(company.orderConfig?.orderNumberPrefix || "ORD-").then(num => setFormData(prev => ({ ...prev, orderNumber: num })))
     }
   }, [orderNumberMode, company.orderConfig?.orderNumberPrefix])
 
@@ -241,13 +241,15 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
       let allocations: Allocation[] = []
 
       if (formData.allocationMode === "lc" && formData.lcCompanyId) {
-        allocations = [{
-          companyId: formData.lcCompanyId,
-          allocatedWeight: formData.totalWeight,
-          loadingDates: [formData.dispatchStartDate],
-          completedWeight: 0,
-          status: "pending" as const,
-        }]
+        allocations = [
+          {
+            companyId: formData.lcCompanyId,
+            allocatedWeight: formData.totalWeight,
+            loadingDates: [formData.dispatchStartDate],
+            completedWeight: 0,
+            status: "pending" as const,
+          },
+        ]
       } else if (formData.allocationMode === "transporters") {
         allocations = formData.allocations
       }
@@ -278,10 +280,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
       const orderId = await OrderService.create(orderData, "Order created successfully")
 
       // Show success alert
-      await showSuccess(
-        "Order Created",
-        `Order ${formData.orderNumber} has been successfully created and saved to the system.`
-      )
+      await showSuccess("Order Created", `Order ${formData.orderNumber} has been successfully created and saved to the system.`)
 
       // Redirect to order details
       router.push(`/orders/${orderId}`)
@@ -314,13 +313,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                   <Label>Order Number Mode</Label>
                   <div className="mt-2 space-y-2">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="orderNumberMode"
-                        checked={orderNumberMode === "auto"}
-                        onChange={() => setOrderNumberMode("auto")}
-                        className="cursor-pointer"
-                      />
+                      <input type="radio" name="orderNumberMode" checked={orderNumberMode === "auto"} onChange={() => setOrderNumberMode("auto")} className="cursor-pointer" />
                       <span>Use Auto-Generated</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -341,13 +334,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
                 <div>
                   <Label>Order Number</Label>
-                  <Input
-                    value={formData.orderNumber}
-                    onChange={e => setFormData(prev => ({ ...prev, orderNumber: e.target.value }))}
-                    disabled={orderNumberMode === "auto"}
-                    className="mt-2"
-                    placeholder={orderNumberMode === "auto" ? "Auto-generated..." : "Enter order number..."}
-                  />
+                  <Input value={formData.orderNumber} onChange={e => setFormData(prev => ({ ...prev, orderNumber: e.target.value }))} disabled={orderNumberMode === "auto"} className="mt-2" placeholder={orderNumberMode === "auto" ? "Auto-generated..." : "Enter order number..."} />
                 </div>
               </div>
             )}
@@ -364,60 +351,47 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
             <div>
               <Label>Order Type</Label>
-              <select
-                value={formData.orderType}
-                onChange={e => setFormData(prev => ({ ...prev, orderType: e.target.value as "receiving" | "dispatching" }))}
-                className="w-full mt-2 px-4 py-2 rounded-md border border-white/20 bg-background/70 backdrop-blur-md"
-              >
-                <option value="receiving">Receiving</option>
-                <option value="dispatching">Dispatching</option>
-              </select>
+              <Select value={formData.orderType} onValueChange={value => setFormData(prev => ({ ...prev, orderType: value as "receiving" | "dispatching" }))}>
+                <SelectTrigger className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                  <SelectValue placeholder="Select order type" className="capitalize" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="receiving">Receiving</SelectItem>
+                  <SelectItem value="dispatching">Dispatching</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <Label>Client</Label>
-              <select
-                value={formData.clientCompanyId}
-                onChange={e => setFormData(prev => ({ ...prev, clientCompanyId: e.target.value }))}
-                className="w-full mt-2 px-4 py-2 rounded-md border border-white/20 bg-background/70 backdrop-blur-md"
-              >
-                <option value="">Select client...</option>
-                {clients.map(client => (
-                  <option key={client.id} value={client.id}>{client.name}</option>
-                ))}
-              </select>
+              <Select value={formData.clientCompanyId || undefined} onValueChange={value => setFormData(prev => ({ ...prev, clientCompanyId: value }))}>
+                <SelectTrigger className="mt-2 !w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                  <SelectValue placeholder="Select client..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map(client => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Dispatch Start Date</Label>
-                <Input
-                  type="date"
-                  value={formData.dispatchStartDate}
-                  onChange={e => setFormData(prev => ({ ...prev, dispatchStartDate: e.target.value }))}
-                  className="mt-2"
-                />
+                <Input type="date" value={formData.dispatchStartDate} onChange={e => setFormData(prev => ({ ...prev, dispatchStartDate: e.target.value }))} className="mt-2" />
               </div>
               <div>
                 <Label>Dispatch End Date</Label>
-                <Input
-                  type="date"
-                  value={formData.dispatchEndDate}
-                  onChange={e => setFormData(prev => ({ ...prev, dispatchEndDate: e.target.value }))}
-                  className="mt-2"
-                />
+                <Input type="date" value={formData.dispatchEndDate} onChange={e => setFormData(prev => ({ ...prev, dispatchEndDate: e.target.value }))} className="mt-2" />
               </div>
             </div>
 
             <div>
               <Label>Total Weight (tons)</Label>
-              <Input
-                type="number"
-                value={formData.totalWeight || ""}
-                onChange={e => setFormData(prev => ({ ...prev, totalWeight: parseFloat(e.target.value) || 0 }))}
-                className="mt-2"
-                placeholder="0"
-              />
+              <Input type="number" value={formData.totalWeight || ""} onChange={e => setFormData(prev => ({ ...prev, totalWeight: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="0" />
             </div>
           </div>
         )
@@ -432,30 +406,34 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
             <div>
               <Label>Collection Site</Label>
-              <select
-                value={formData.collectionSiteId}
-                onChange={e => setFormData(prev => ({ ...prev, collectionSiteId: e.target.value }))}
-                className="w-full mt-2 px-4 py-2 rounded-md border border-white/20 bg-background/70 backdrop-blur-md"
-              >
-                <option value="">Select collection site...</option>
-                {collectionSites.map(site => (
-                  <option key={site.id} value={site.id}>{site.name}</option>
-                ))}
-              </select>
+              <Select value={formData.collectionSiteId || undefined} onValueChange={value => setFormData(prev => ({ ...prev, collectionSiteId: value }))}>
+                <SelectTrigger className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                  <SelectValue placeholder="Select collection site..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {collectionSites.map(site => (
+                    <SelectItem key={site.id} value={site.id}>
+                      {site.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <Label>Destination Site</Label>
-              <select
-                value={formData.destinationSiteId}
-                onChange={e => setFormData(prev => ({ ...prev, destinationSiteId: e.target.value }))}
-                className="w-full mt-2 px-4 py-2 rounded-md border border-white/20 bg-background/70 backdrop-blur-md"
-              >
-                <option value="">Select destination site...</option>
-                {destinationSites.map(site => (
-                  <option key={site.id} value={site.id}>{site.name}</option>
-                ))}
-              </select>
+              <Select value={formData.destinationSiteId || undefined} onValueChange={value => setFormData(prev => ({ ...prev, destinationSiteId: value }))}>
+                <SelectTrigger className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                  <SelectValue placeholder="Select destination site..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {destinationSites.map(site => (
+                    <SelectItem key={site.id} value={site.id}>
+                      {site.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         )
@@ -470,18 +448,18 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
             <div>
               <Label>Product</Label>
-              <select
-                value={formData.productId}
-                onChange={e => setFormData(prev => ({ ...prev, productId: e.target.value }))}
-                className="w-full mt-2 px-4 py-2 rounded-md border border-white/20 bg-background/70 backdrop-blur-md"
-              >
-                <option value="">Select product...</option>
-                {products.map(product => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} ({product.code})
-                  </option>
-                ))}
-              </select>
+              <Select value={formData.productId || undefined} onValueChange={value => setFormData(prev => ({ ...prev, productId: value }))}>
+                <SelectTrigger className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                  <SelectValue placeholder="Select product..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.map(product => (
+                    <SelectItem key={product.id} value={product.id}>
+                      {product.name} ({product.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         )
@@ -495,24 +473,14 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             </div>
 
             <div className="flex items-center gap-2">
-              <Checkbox
-                id="sealRequired"
-                checked={formData.sealRequired}
-                onCheckedChange={checked => setFormData(prev => ({ ...prev, sealRequired: checked as boolean }))}
-              />
+              <Checkbox id="sealRequired" checked={formData.sealRequired} onCheckedChange={checked => setFormData(prev => ({ ...prev, sealRequired: checked as boolean }))} />
               <Label htmlFor="sealRequired">Seal Required</Label>
             </div>
 
             {formData.sealRequired && (
               <div>
                 <Label>Seal Quantity</Label>
-                <Input
-                  type="number"
-                  value={formData.sealQuantity}
-                  onChange={e => setFormData(prev => ({ ...prev, sealQuantity: parseInt(e.target.value) || 0 }))}
-                  className="mt-2"
-                  placeholder="0"
-                />
+                <Input type="number" value={formData.sealQuantity} onChange={e => setFormData(prev => ({ ...prev, sealQuantity: parseInt(e.target.value) || 0 }))} className="mt-2" placeholder="0" />
               </div>
             )}
           </div>
@@ -528,35 +496,17 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
             <div>
               <Label>Daily Truck Limit</Label>
-              <Input
-                type="number"
-                value={formData.dailyTruckLimit}
-                onChange={e => setFormData(prev => ({ ...prev, dailyTruckLimit: parseInt(e.target.value) || 0 }))}
-                className="mt-2"
-                placeholder="0"
-              />
+              <Input type="number" value={formData.dailyTruckLimit} onChange={e => setFormData(prev => ({ ...prev, dailyTruckLimit: parseInt(e.target.value) || 0 }))} className="mt-2" placeholder="0" />
             </div>
 
             <div>
               <Label>Daily Weight Limit (tons)</Label>
-              <Input
-                type="number"
-                value={formData.dailyWeightLimit}
-                onChange={e => setFormData(prev => ({ ...prev, dailyWeightLimit: parseFloat(e.target.value) || 0 }))}
-                className="mt-2"
-                placeholder="0"
-              />
+              <Input type="number" value={formData.dailyWeightLimit} onChange={e => setFormData(prev => ({ ...prev, dailyWeightLimit: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="0" />
             </div>
 
             <div>
               <Label>Monthly Limit (tons, optional)</Label>
-              <Input
-                type="number"
-                value={formData.monthlyLimit}
-                onChange={e => setFormData(prev => ({ ...prev, monthlyLimit: parseFloat(e.target.value) || 0 }))}
-                className="mt-2"
-                placeholder="0"
-              />
+              <Input type="number" value={formData.monthlyLimit} onChange={e => setFormData(prev => ({ ...prev, monthlyLimit: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="0" />
             </div>
           </div>
         )
@@ -573,19 +523,11 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
               <Label>Trip Configuration Mode</Label>
               <div className="mt-2 space-y-2">
                 <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    checked={formData.tripConfigMode === "trips"}
-                    onChange={() => setFormData(prev => ({ ...prev, tripConfigMode: "trips" }))}
-                  />
+                  <input type="radio" checked={formData.tripConfigMode === "trips"} onChange={() => setFormData(prev => ({ ...prev, tripConfigMode: "trips" }))} />
                   <span>Maximum Trips Per Day</span>
                 </label>
                 <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    checked={formData.tripConfigMode === "duration"}
-                    onChange={() => setFormData(prev => ({ ...prev, tripConfigMode: "duration" }))}
-                  />
+                  <input type="radio" checked={formData.tripConfigMode === "duration"} onChange={() => setFormData(prev => ({ ...prev, tripConfigMode: "duration" }))} />
                   <span>Trip Duration (hours)</span>
                 </label>
               </div>
@@ -594,24 +536,12 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             {formData.tripConfigMode === "trips" ? (
               <div>
                 <Label>Maximum Trips Per Day</Label>
-                <Input
-                  type="number"
-                  value={formData.tripLimit}
-                  onChange={e => setFormData(prev => ({ ...prev, tripLimit: parseInt(e.target.value) || 0 }))}
-                  className="mt-2"
-                  placeholder="1"
-                />
+                <Input type="number" value={formData.tripLimit} onChange={e => setFormData(prev => ({ ...prev, tripLimit: parseInt(e.target.value) || 0 }))} className="mt-2" placeholder="1" />
               </div>
             ) : (
               <div>
                 <Label>Trip Duration (hours)</Label>
-                <Input
-                  type="number"
-                  value={formData.tripDuration}
-                  onChange={e => setFormData(prev => ({ ...prev, tripDuration: parseFloat(e.target.value) || 0 }))}
-                  className="mt-2"
-                  placeholder="4"
-                />
+                <Input type="number" value={formData.tripDuration} onChange={e => setFormData(prev => ({ ...prev, tripDuration: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="4" />
               </div>
             )}
           </div>
@@ -629,19 +559,11 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
               <Label>Allocation Mode</Label>
               <div className="mt-2 space-y-2">
                 <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    checked={formData.allocationMode === "lc"}
-                    onChange={() => setFormData(prev => ({ ...prev, allocationMode: "lc" }))}
-                  />
+                  <input type="radio" checked={formData.allocationMode === "lc"} onChange={() => setFormData(prev => ({ ...prev, allocationMode: "lc" }))} />
                   <span>Assign to Logistics Coordinator</span>
                 </label>
                 <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    checked={formData.allocationMode === "transporters"}
-                    onChange={() => setFormData(prev => ({ ...prev, allocationMode: "transporters" }))}
-                  />
+                  <input type="radio" checked={formData.allocationMode === "transporters"} onChange={() => setFormData(prev => ({ ...prev, allocationMode: "transporters" }))} />
                   <span>Assign to Transporter Companies</span>
                 </label>
               </div>
@@ -650,25 +572,27 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             {formData.allocationMode === "lc" ? (
               <div>
                 <Label>Logistics Coordinator</Label>
-                <select
-                  value={formData.lcCompanyId}
-                  onChange={e => setFormData(prev => ({ ...prev, lcCompanyId: e.target.value }))}
-                  className="w-full mt-2 px-4 py-2 rounded-md border border-white/20 bg-background/70 backdrop-blur-md"
-                >
-                  <option value="">Select LC...</option>
-                  {lcCompanies.map(lc => (
-                    <option key={lc.id} value={lc.id}>{lc.name}</option>
-                  ))}
-                </select>
+                <Select value={formData.lcCompanyId || undefined} onValueChange={value => setFormData(prev => ({ ...prev, lcCompanyId: value }))}>
+                  <SelectTrigger className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                    <SelectValue placeholder="Select LC..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {lcCompanies.map(lc => (
+                      <SelectItem key={lc.id} value={lc.id}>
+                        {lc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="glass-surface rounded-lg p-4">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Direct allocation to transporters - for simplified implementation. Full allocation UI can be added later.
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">Direct allocation to transporters - for simplified implementation. Full allocation UI can be added later.</p>
                   <p className="text-sm">Allocations: {formData.allocations.length}</p>
-                  <p className="text-sm">Total allocated: {formData.allocations.reduce((sum, a) => sum + a.allocatedWeight, 0)} / {formData.totalWeight} tons</p>
+                  <p className="text-sm">
+                    Total allocated: {formData.allocations.reduce((sum, a) => sum + a.allocatedWeight, 0)} / {formData.totalWeight} tons
+                  </p>
                 </div>
               </div>
             )}
@@ -726,9 +650,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Seals</Label>
-                  <p className="font-medium">
-                    {formData.sealRequired ? `Yes (${formData.sealQuantity})` : "No"}
-                  </p>
+                  <p className="font-medium">{formData.sealRequired ? `Yes (${formData.sealQuantity})` : "No"}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Daily Limits</Label>
@@ -754,18 +676,11 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
       </div>
 
       {/* Step Content */}
-      <div className="glass-surface rounded-lg p-6">
-        {renderStep()}
-      </div>
+      <div className="glass-surface rounded-lg p-6">{renderStep()}</div>
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          onClick={handleBack}
-          disabled={currentStep === 1 || loading}
-          className="gap-2"
-        >
+        <Button variant="outline" onClick={handleBack} disabled={currentStep === 1 || loading} className="gap-2">
           <ChevronLeft className="h-4 w-4" />
           Back
         </Button>
