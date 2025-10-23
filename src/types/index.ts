@@ -245,6 +245,7 @@ export interface Asset extends Timestamped, CompanyScoped {
 // Order allocation structure
 export interface Allocation {
   companyId: string // Transporter company receiving allocation
+  numberOfTrucks: number // Number of trucks assigned to this allocation
   allocatedWeight: number // Weight allocated to this transporter
   loadingDates: string[] // ISO date strings for loading dates
   completedWeight: number // Weight completed so far

@@ -82,6 +82,7 @@ export default function OrderAllocationPage() {
       ...allocations,
       {
         companyId: "",
+        numberOfTrucks: 0,
         allocatedWeight: 0,
         loadingDates: [order.dispatchStartDate],
         completedWeight: 0,

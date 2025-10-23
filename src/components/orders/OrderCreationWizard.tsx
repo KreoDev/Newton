@@ -102,6 +102,64 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
   const lcCompanies = companies.filter(c => c.companyType === "logistics_coordinator")
   const transporterCompanies = companies.filter(c => c.companyType === "transporter")
 
+  // State for transporter selection in Step 8
+  const [selectedTransporterId, setSelectedTransporterId] = useState<string>("")
+
+  // Get all assets for truck counting
+  const assets = globalData.assets.value
+
+  // Helper function to get available trucks for a transporter
+  const getAvailableTrucks = (transporterId: string): number => {
+    return assets.filter(a => a.companyId === transporterId && a.type === "truck" && a.isActive).length
+  }
+
+  // Helper functions for allocation management
+  const handleAddTransporter = () => {
+    if (!selectedTransporterId) return
+
+    // Check if transporter is already added
+    if (formData.allocations.some(a => a.companyId === selectedTransporterId)) {
+      toast.error("Transporter already added")
+      return
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      allocations: [
+        ...prev.allocations,
+        {
+          companyId: selectedTransporterId,
+          numberOfTrucks: 0,
+          allocatedWeight: 0,
+          loadingDates: [],
+          completedWeight: 0,
+          status: "pending",
+        },
+      ],
+    }))
+    setSelectedTransporterId("")
+  }
+
+  const handleUpdateTrucks = (index: number, trucks: number) => {
+    const truckCapacity = company.orderConfig?.defaultWeightPerTruck ?? 0
+    setFormData(prev => ({
+      ...prev,
+      allocations: prev.allocations.map((a, i) => (i === index ? { ...a, numberOfTrucks: trucks, allocatedWeight: trucks * truckCapacity } : a)),
+    }))
+  }
+
+  const handleRemoveAllocation = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      allocations: prev.allocations.filter((_, i) => i !== index),
+    }))
+  }
+
+  // Calculate allocation summary
+  const totalAllocated = formData.allocations.reduce((sum, a) => sum + a.allocatedWeight, 0)
+  const remainingWeight = formData.totalWeight - totalAllocated
+  const allocationPercent = formData.totalWeight > 0 ? (totalAllocated / formData.totalWeight) * 100 : 0
+
   // Review step data
   const reviewClient = clients.find(c => c.id === formData.clientCompanyId)
   const reviewProduct = products.find(p => p.id === formData.productId)
@@ -224,14 +282,35 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
           showError("LC Required", "Please select a logistics coordinator")
           return false
         }
-        if (formData.allocationMode === "transporters" && formData.allocations.length === 0) {
-          showError("Allocations Required", "Please add at least one transporter allocation")
-          return false
-        }
         if (formData.allocationMode === "transporters") {
-          const allocValidation = OrderService.validateAllocation(formData.allocations, formData.totalWeight)
-          if (!allocValidation.isValid) {
-            showError("Invalid Allocation", allocValidation.error!)
+          if (formData.allocations.length === 0) {
+            showError("Allocations Required", "Please add at least one transporter allocation")
+            return false
+          }
+
+          // Validate each allocation's truck count
+          for (const allocation of formData.allocations) {
+            const available = getAvailableTrucks(allocation.companyId)
+            if (allocation.numberOfTrucks > available) {
+              const transporter = transporterCompanies.find(t => t.id === allocation.companyId)
+              showError("Insufficient Trucks", `${transporter?.name} only has ${available} trucks available, but ${allocation.numberOfTrucks} were allocated`)
+              return false
+            }
+            if (allocation.numberOfTrucks <= 0) {
+              const transporter = transporterCompanies.find(t => t.id === allocation.companyId)
+              showError("Invalid Allocation", `${transporter?.name} must have at least 1 truck allocated`)
+              return false
+            }
+          }
+
+          // Validate total allocated weight
+          const totalAllocated = formData.allocations.reduce((sum, a) => sum + a.allocatedWeight, 0)
+          if (totalAllocated < formData.totalWeight) {
+            const remaining = formData.totalWeight - totalAllocated
+            showError(
+              "Under-allocated",
+              `Total allocated weight (${totalAllocated.toLocaleString()} kg) is less than order weight (${formData.totalWeight.toLocaleString()} kg). ${remaining.toLocaleString()} kg remaining.`
+            )
             return false
           }
         }
@@ -265,6 +344,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         allocations = [
           {
             companyId: formData.lcCompanyId,
+            numberOfTrucks: 0, // LC manages trucks, so we don't specify count
             allocatedWeight: formData.totalWeight,
             loadingDates: [formData.dispatchStartDate],
             completedWeight: 0,
@@ -737,13 +817,123 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="glass-surface rounded-lg p-4">
-                  <p className="text-sm text-muted-foreground mb-4">Direct allocation to transporters - for simplified implementation. Full allocation UI can be added later.</p>
-                  <p className="text-sm">Allocations: {formData.allocations.length}</p>
-                  <p className="text-sm">
-                    Total allocated: {formData.allocations.reduce((sum, a) => sum + a.allocatedWeight, 0)} / {formData.totalWeight} kg
-                  </p>
+                {/* Transporter Selection */}
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Select value={selectedTransporterId} onValueChange={setSelectedTransporterId}>
+                      <SelectTrigger className="w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                        <SelectValue placeholder="Select transporter to add..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {transporterCompanies
+                          .filter(t => !formData.allocations.some(a => a.companyId === t.id))
+                          .map(transporter => {
+                            const availableTrucks = getAvailableTrucks(transporter.id)
+                            return (
+                              <SelectItem key={transporter.id} value={transporter.id}>
+                                {transporter.name} ({availableTrucks} trucks available)
+                              </SelectItem>
+                            )
+                          })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={handleAddTransporter} disabled={!selectedTransporterId}>
+                    Add
+                  </Button>
                 </div>
+
+                {/* Allocation Cards */}
+                {formData.allocations.length > 0 && (
+                  <div className="space-y-3">
+                    {formData.allocations.map((allocation, index) => {
+                      const transporter = transporterCompanies.find(t => t.id === allocation.companyId)
+                      const availableTrucks = getAvailableTrucks(allocation.companyId)
+                      const truckCapacity = company.orderConfig?.defaultWeightPerTruck ?? 0
+                      const exceedsAvailable = allocation.numberOfTrucks > availableTrucks
+
+                      return (
+                        <div key={index} className="glass-surface rounded-lg p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-semibold">{transporter?.name || "Unknown Transporter"}</h4>
+                              <p className="text-xs text-muted-foreground">{availableTrucks} trucks available</p>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => handleRemoveAllocation(index)} className="text-destructive hover:text-destructive">
+                              Remove
+                            </Button>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Number of Trucks</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max={availableTrucks}
+                              value={allocation.numberOfTrucks || ""}
+                              onChange={e => {
+                                const value = parseInt(e.target.value) || 0
+                                handleUpdateTrucks(index, value)
+                              }}
+                              className={exceedsAvailable ? "border-destructive" : ""}
+                            />
+                            {exceedsAvailable && <p className="text-xs text-destructive">Exceeds available trucks ({availableTrucks})</p>}
+                          </div>
+
+                          <div className="bg-primary/5 rounded p-2">
+                            <p className="text-sm">
+                              <span className="text-muted-foreground">Allocated Weight:</span>{" "}
+                              <span className="font-semibold">
+                                {allocation.numberOfTrucks} trucks × {truckCapacity.toLocaleString()} kg = {allocation.allocatedWeight.toLocaleString()} kg
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Allocation Summary */}
+                {formData.allocations.length > 0 && (
+                  <div className="glass-surface rounded-lg p-4 space-y-3">
+                    <h4 className="font-semibold">Allocation Summary</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Total Allocated:</span>
+                        <span className={totalAllocated >= formData.totalWeight ? "text-green-600 font-semibold" : "font-semibold"}>
+                          {totalAllocated.toLocaleString()} / {formData.totalWeight.toLocaleString()} kg
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Remaining:</span>
+                        <span className={remainingWeight > 0 ? "text-yellow-600 font-semibold" : "text-green-600 font-semibold"}>{remainingWeight.toLocaleString()} kg</span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="space-y-1">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${allocationPercent >= 100 ? "bg-green-500" : "bg-primary"}`}
+                            style={{ width: `${Math.min(allocationPercent, 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-right text-muted-foreground">{allocationPercent.toFixed(1)}%</p>
+                      </div>
+
+                      {remainingWeight > 0 && (
+                        <p className="text-xs text-yellow-600 mt-2">⚠️ Order is under-allocated. Please allocate more trucks to meet the total weight requirement.</p>
+                      )}
+                      {totalAllocated >= formData.totalWeight && <p className="text-xs text-green-600 mt-2">✓ Order is fully allocated</p>}
+                    </div>
+                  </div>
+                )}
+
+                {formData.allocations.length === 0 && (
+                  <div className="glass-surface rounded-lg p-6 text-center text-muted-foreground">
+                    <p className="text-sm">No transporters allocated yet. Select a transporter above to begin allocation.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
