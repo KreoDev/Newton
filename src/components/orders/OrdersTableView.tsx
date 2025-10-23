@@ -7,7 +7,8 @@ import { DataTable } from "@/components/ui/data-table/DataTable"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FileText, Trash2, History, ChevronDown } from "lucide-react"
+import { FileText, Trash2, History, ChevronDown, X, Calendar } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { OrderStatusBadge } from "./OrderStatusBadge"
 import { FilterableColumnHeader } from "@/components/ui/data-table/FilterableColumnHeader"
 import { data as globalData } from "@/services/data.service"
@@ -31,9 +32,11 @@ interface OrdersTableViewProps {
   company: Company | null
   onLoadHistorical?: (startDate: Date, endDate: Date) => Promise<void>
   onLoadMore?: () => Promise<void>
+  onClearHistorical?: () => void
   loadingHistorical?: boolean
   hasMore?: boolean
   historicalCount?: number
+  dateRange?: { start: Date; end: Date } | null
 }
 
 export function OrdersTableView({
@@ -41,9 +44,11 @@ export function OrdersTableView({
   company,
   onLoadHistorical,
   onLoadMore,
+  onClearHistorical,
   loadingHistorical = false,
   hasMore = false,
   historicalCount = 0,
+  dateRange = null,
 }: OrdersTableViewProps) {
   useSignals()
   const canCancel = usePermission(PERMISSIONS.ORDERS_CANCEL)
@@ -58,7 +63,7 @@ export function OrdersTableView({
   const products = globalData.products.value
   const sites = globalData.sites.value
 
-  // Handle historical load
+  // Handle historical load with enhanced validation
   const handleLoadHistorical = async () => {
     if (!startDate || !endDate) {
       toast.error("Please select both start and end dates")
@@ -67,9 +72,35 @@ export function OrdersTableView({
 
     const start = new Date(startDate)
     const end = new Date(endDate)
+    const today = new Date()
+    today.setHours(23, 59, 59, 999) // End of today
 
+    // Validation checks
     if (start > end) {
       toast.error("Start date must be before end date")
+      return
+    }
+
+    if (start > today) {
+      toast.error("Start date cannot be in the future")
+      return
+    }
+
+    if (end > today) {
+      toast.error("End date cannot be in the future")
+      return
+    }
+
+    // Calculate date range in days
+    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (daysDiff > 365) {
+      toast.error("Date range cannot exceed 1 year (365 days)")
+      return
+    }
+
+    if (daysDiff < 1) {
+      toast.error("Date range must be at least 1 day")
       return
     }
 
@@ -247,6 +278,21 @@ export function OrdersTableView({
       enableExport={true}
       toolbar={
         <>
+          {/* Date Range Badge */}
+          {dateRange && (
+            <Badge variant="secondary" className="gap-2">
+              <Calendar className="h-3 w-3" />
+              {format(dateRange.start, "MMM d, yyyy")} - {format(dateRange.end, "MMM d, yyyy")}
+              <button
+                onClick={onClearHistorical}
+                className="ml-1 hover:bg-muted rounded-sm p-0.5"
+                title="Clear historical orders"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+
           {/* Historical Loading Controls */}
           <Dialog open={showDatePicker} onOpenChange={setShowDatePicker}>
             <DialogTrigger asChild>
@@ -264,7 +310,8 @@ export function OrdersTableView({
               <DialogHeader>
                 <DialogTitle>Load Historical Orders</DialogTitle>
                 <DialogDescription>
-                  Select a date range to load older orders beyond the real-time window
+                  Select a date range to load older orders beyond the real-time window.
+                  Maximum range: 1 year. Dates cannot be in the future.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">

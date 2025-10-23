@@ -131,6 +131,15 @@ export default function OrdersPage() {
     }
   }
 
+  // Clear historical orders and return to real-time only
+  const clearHistoricalOrders = () => {
+    setHistoricalOrders([])
+    setDateRange(null)
+    setHasMore(false)
+    setLastDoc(undefined)
+    toast.success("Cleared historical orders")
+  }
+
   if (!canView) {
     return (
       <div className="p-6">
@@ -173,9 +182,11 @@ export default function OrdersPage() {
         company={company}
         onLoadHistorical={loadHistoricalOrders}
         onLoadMore={loadMoreHistorical}
+        onClearHistorical={clearHistoricalOrders}
         loadingHistorical={loadingHistorical}
         hasMore={hasMore}
         historicalCount={historicalOrders.length}
+        dateRange={dateRange}
       />
     </div>
   )
