@@ -43,7 +43,7 @@ interface ProgressData {
 const DEFAULT_COMPANY_ID = "c_dev"
 const DEFAULT_COMPANY = {
   id: DEFAULT_COMPANY_ID,
-  name: "Dev Company",
+  name: "Northam Mines",
   companyType: "mine",
   registrationNumber: "2025/DEV/001", // Optional field
   vatNumber: "0000000000",
