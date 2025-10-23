@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { WizardSteps } from "@/components/ui/wizard-steps"
 import { OrderService } from "@/services/order.service"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
@@ -50,6 +51,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [orderNumberMode, setOrderNumberMode] = useState<"auto" | "manual">("auto")
+  const [validatingOrderNumber, setValidatingOrderNumber] = useState(false)
 
   // Form data with defaults from company.orderConfig
   const [formData, setFormData] = useState<OrderFormData>({
@@ -94,7 +96,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
   const lcCompanies = companies.filter(c => c.companyType === "logistics_coordinator")
   const transporterCompanies = companies.filter(c => c.companyType === "transporter")
 
-  const validateStep = (step: number): boolean => {
+  const validateStep = async (step: number): Promise<boolean> => {
     switch (step) {
       case 1: // Order Number
         if (!formData.orderNumber || formData.orderNumber.trim() === "") {
@@ -106,10 +108,29 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
           showError("Invalid Order Number", "Order number cannot be just zeros (0, 00, 000, etc.)")
           return false
         }
-        const validation = OrderService.validateOrderNumber(formData.orderNumber)
-        if (!validation.isValid) {
-          showError("Invalid Order Number", validation.error!)
-          return false
+
+        // For manual entries, validate against ALL orders in Firebase
+        if (orderNumberMode === "manual") {
+          setValidatingOrderNumber(true)
+          try {
+            const globalValidation = await OrderService.validateOrderNumberGlobal(formData.orderNumber, company.id)
+            if (!globalValidation.isValid) {
+              showError("Invalid Order Number", globalValidation.error!)
+              return false
+            }
+          } catch (error) {
+            showError("Validation Error", "Failed to validate order number")
+            return false
+          } finally {
+            setValidatingOrderNumber(false)
+          }
+        } else {
+          // For auto-generated, quick in-memory check is sufficient
+          const validation = OrderService.validateOrderNumber(formData.orderNumber)
+          if (!validation.isValid) {
+            showError("Invalid Order Number", validation.error!)
+            return false
+          }
         }
         return true
 
@@ -200,8 +221,9 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
     }
   }
 
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
+  const handleNext = async () => {
+    const isValid = await validateStep(currentStep)
+    if (isValid) {
       setCurrentStep(prev => Math.min(prev + 1, 9))
     }
   }
@@ -345,7 +367,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
               <select
                 value={formData.orderType}
                 onChange={e => setFormData(prev => ({ ...prev, orderType: e.target.value as "receiving" | "dispatching" }))}
-                className="w-full mt-2 px-4 py-2 rounded-md border bg-background"
+                className="w-full mt-2 px-4 py-2 rounded-md border border-white/20 bg-background/70 backdrop-blur-md"
               >
                 <option value="receiving">Receiving</option>
                 <option value="dispatching">Dispatching</option>
@@ -357,7 +379,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
               <select
                 value={formData.clientCompanyId}
                 onChange={e => setFormData(prev => ({ ...prev, clientCompanyId: e.target.value }))}
-                className="w-full mt-2 px-4 py-2 rounded-md border bg-background"
+                className="w-full mt-2 px-4 py-2 rounded-md border border-white/20 bg-background/70 backdrop-blur-md"
               >
                 <option value="">Select client...</option>
                 {clients.map(client => (
@@ -413,7 +435,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
               <select
                 value={formData.collectionSiteId}
                 onChange={e => setFormData(prev => ({ ...prev, collectionSiteId: e.target.value }))}
-                className="w-full mt-2 px-4 py-2 rounded-md border bg-background"
+                className="w-full mt-2 px-4 py-2 rounded-md border border-white/20 bg-background/70 backdrop-blur-md"
               >
                 <option value="">Select collection site...</option>
                 {collectionSites.map(site => (
@@ -427,7 +449,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
               <select
                 value={formData.destinationSiteId}
                 onChange={e => setFormData(prev => ({ ...prev, destinationSiteId: e.target.value }))}
-                className="w-full mt-2 px-4 py-2 rounded-md border bg-background"
+                className="w-full mt-2 px-4 py-2 rounded-md border border-white/20 bg-background/70 backdrop-blur-md"
               >
                 <option value="">Select destination site...</option>
                 {destinationSites.map(site => (
@@ -451,7 +473,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
               <select
                 value={formData.productId}
                 onChange={e => setFormData(prev => ({ ...prev, productId: e.target.value }))}
-                className="w-full mt-2 px-4 py-2 rounded-md border bg-background"
+                className="w-full mt-2 px-4 py-2 rounded-md border border-white/20 bg-background/70 backdrop-blur-md"
               >
                 <option value="">Select product...</option>
                 {products.map(product => (
@@ -631,7 +653,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 <select
                   value={formData.lcCompanyId}
                   onChange={e => setFormData(prev => ({ ...prev, lcCompanyId: e.target.value }))}
-                  className="w-full mt-2 px-4 py-2 rounded-md border bg-background"
+                  className="w-full mt-2 px-4 py-2 rounded-md border border-white/20 bg-background/70 backdrop-blur-md"
                 >
                   <option value="">Select LC...</option>
                   {lcCompanies.map(lc => (
@@ -728,25 +750,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
     <div className="space-y-6">
       {/* Progress Steps */}
       <div className="glass-surface rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(step => (
-            <div
-              key={step}
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                step === currentStep
-                  ? "bg-primary text-primary-foreground"
-                  : step < currentStep
-                  ? "bg-green-500 text-white"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {step}
-            </div>
-          ))}
-        </div>
-        <div className="text-center text-sm text-muted-foreground mt-2">
-          Step {currentStep} of 9
-        </div>
+        <WizardSteps currentStep={currentStep} totalSteps={9} />
       </div>
 
       {/* Step Content */}
@@ -767,9 +771,9 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         </Button>
 
         {currentStep < 9 ? (
-          <Button onClick={handleNext} className="gap-2" disabled={loading}>
-            Next
-            <ChevronRight className="h-4 w-4" />
+          <Button onClick={handleNext} className="gap-2" disabled={loading || validatingOrderNumber}>
+            {validatingOrderNumber ? "Checking..." : "Next"}
+            {!validatingOrderNumber && <ChevronRight className="h-4 w-4" />}
           </Button>
         ) : (
           <Button onClick={handleSubmit} disabled={loading} className="bg-green-600 hover:bg-green-700">

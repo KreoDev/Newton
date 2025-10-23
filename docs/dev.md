@@ -1471,6 +1471,7 @@ interface Group extends Timestamped, CompanyScoped {
 - `src/components/ui/entity-card-list/EntityCardListView.tsx` - Card list container with loading/empty states
 - `src/components/ui/entity-card-list/EntityCardSearchBar.tsx` - Search + filter UI (always uses DropdownMenu for consistency)
 - `src/components/ui/entity-card-list/EntityCard.tsx` - Standard card layout (icon + title + subtitle + metadata + actions + badge)
+- `src/components/ui/wizard-steps.tsx` - Reusable wizard step indicator with green progress line and checkmarks (used in OrderCreationWizard, InductionWizard)
 
 **Backward Compatibility:**
 
