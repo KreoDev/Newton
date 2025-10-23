@@ -104,14 +104,46 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
   // State for transporter selection in Step 8
   const [selectedTransporterId, setSelectedTransporterId] = useState<string>("")
-
-  // Get all assets for truck counting
-  const assets = globalData.assets.value
+  const [transporterTrucks, setTransporterTrucks] = useState<Record<string, number>>({})
+  const [loadingTrucks, setLoadingTrucks] = useState(false)
 
   // Helper function to get available trucks for a transporter
   const getAvailableTrucks = (transporterId: string): number => {
-    return assets.filter(a => a.companyId === transporterId && a.type === "truck" && a.isActive).length
+    return transporterTrucks[transporterId] || 0
   }
+
+  // Fetch trucks for all transporter companies
+  useEffect(() => {
+    const fetchTransporterTrucks = async () => {
+      if (formData.allocationMode === "transporters" && transporterCompanies.length > 0) {
+        setLoadingTrucks(true)
+        try {
+          const { collection, query, where, getDocs } = await import("firebase/firestore")
+          const { db } = await import("@/lib/firebase")
+
+          const trucksCount: Record<string, number> = {}
+
+          // Fetch trucks for each transporter company
+          for (const transporter of transporterCompanies) {
+            const assetsRef = collection(db, "assets")
+            const q = query(assetsRef, where("companyId", "==", transporter.id), where("type", "==", "truck"), where("isActive", "==", true))
+
+            const snapshot = await getDocs(q)
+            trucksCount[transporter.id] = snapshot.size
+          }
+
+          setTransporterTrucks(trucksCount)
+        } catch (error) {
+          console.error("Error fetching transporter trucks:", error)
+          toast.error("Failed to load transporter truck counts")
+        } finally {
+          setLoadingTrucks(false)
+        }
+      }
+    }
+
+    fetchTransporterTrucks()
+  }, [formData.allocationMode, transporterCompanies])
 
   // Helper functions for allocation management
   const handleAddTransporter = () => {
@@ -820,9 +852,9 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 {/* Transporter Selection */}
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <Select value={selectedTransporterId} onValueChange={setSelectedTransporterId}>
+                    <Select value={selectedTransporterId} onValueChange={setSelectedTransporterId} disabled={loadingTrucks}>
                       <SelectTrigger className="w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
-                        <SelectValue placeholder="Select transporter to add..." />
+                        <SelectValue placeholder={loadingTrucks ? "Loading trucks..." : "Select transporter to add..."} />
                       </SelectTrigger>
                       <SelectContent>
                         {transporterCompanies
@@ -838,8 +870,8 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={handleAddTransporter} disabled={!selectedTransporterId}>
-                    Add
+                  <Button onClick={handleAddTransporter} disabled={!selectedTransporterId || loadingTrucks}>
+                    {loadingTrucks ? "Loading..." : "Add"}
                   </Button>
                 </div>
 
