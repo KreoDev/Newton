@@ -1,5 +1,5 @@
 import type { User as UserType } from "@/types"
-import { writeBatch, doc } from "firebase/firestore"
+import { writeBatch, doc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 /**
@@ -56,6 +56,7 @@ export async function bulkUpdateUsers(
     batch.update(userRef, {
       ...updates,
       updatedAt: Date.now(),
+      dbUpdatedAt: serverTimestamp(),
     })
   })
 

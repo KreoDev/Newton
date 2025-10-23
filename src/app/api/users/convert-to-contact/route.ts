@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { adminAuth, adminDb } from "@/lib/firebase-admin"
+import { FieldValue } from "firebase-admin/firestore"
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
       canLogin: false,
       roleId: "r_contact", // Automatically assign Contact role
       updatedAt: Date.now(),
+      dbUpdatedAt: FieldValue.serverTimestamp(),
     })
 
     return NextResponse.json({
