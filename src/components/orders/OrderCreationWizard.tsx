@@ -455,7 +455,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             </div>
 
             <div>
-              <Label>Total Weight (KG)</Label>
+              <Label>Total Weight (kg)</Label>
               <Input
                 type="text"
                 value={formData.totalWeight || ""}
@@ -475,11 +475,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
           <div className="space-y-4">
             <div>
               <h2 className="text-2xl font-bold">Site</h2>
-              <p className="text-muted-foreground">
-                {formData.orderType === "dispatching"
-                  ? "Select the collection site (where material is collected from)"
-                  : "Select the destination site (where material is delivered to)"}
-              </p>
+              <p className="text-muted-foreground">{formData.orderType === "dispatching" ? "Select the collection site (where material is collected from)" : "Select the destination site (where material is delivered to)"}</p>
             </div>
 
             {formData.orderType === "dispatching" ? (
@@ -580,12 +576,12 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             </div>
 
             <div>
-              <Label>Daily Weight Limit (tons)</Label>
+              <Label>Daily Weight Limit (kg)</Label>
               <Input type="number" value={formData.dailyWeightLimit} onChange={e => setFormData(prev => ({ ...prev, dailyWeightLimit: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="0" />
             </div>
 
             <div>
-              <Label>Monthly Limit (tons, optional)</Label>
+              <Label>Monthly Limit (kg, optional)</Label>
               <Input type="number" value={formData.monthlyLimit} onChange={e => setFormData(prev => ({ ...prev, monthlyLimit: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="0" />
             </div>
           </div>

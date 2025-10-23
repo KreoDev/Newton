@@ -924,14 +924,14 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="defaultDailyWeightLimit">Default Daily Weight Limit (tons)</Label>
+                        <Label htmlFor="defaultDailyWeightLimit">Default Daily Weight Limit (kg)</Label>
                         <Input id="defaultDailyWeightLimit" type="number" value={defaultDailyWeightLimit} onChange={e => setDefaultDailyWeightLimit(Number(e.target.value))} min="1" />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="defaultMonthlyLimit">Default Monthly Limit (tons)</Label>
+                        <Label htmlFor="defaultMonthlyLimit">Default Monthly Limit (kg)</Label>
                         <Input id="defaultMonthlyLimit" type="number" value={defaultMonthlyLimit} onChange={e => setDefaultMonthlyLimit(Number(e.target.value))} min="1" />
                       </div>
 
@@ -943,7 +943,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="defaultWeightPerTruck">Default Weight Per Truck (tons)</Label>
+                        <Label htmlFor="defaultWeightPerTruck">Default Weight Per Truck (kg)</Label>
                         <Input id="defaultWeightPerTruck" type="number" value={defaultWeightPerTruck} onChange={e => setDefaultWeightPerTruck(Number(e.target.value))} min="1" />
                       </div>
 

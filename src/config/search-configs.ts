@@ -94,7 +94,7 @@ export const SEARCH_CONFIGS = {
       {
         path: "totalWeight",
         weight: 1,
-        transformer: (weight: number) => weight ? `${weight} tons` : "",
+        transformer: (weight: number) => weight ? `${weight} kg` : "",
       },
     ],
     debounceMs: 300,
@@ -147,7 +147,7 @@ export const SEARCH_CONFIGS = {
       {
         path: "netWeight",
         weight: 1,
-        transformer: (weight: number) => weight ? `${weight} tons` : "",
+        transformer: (weight: number) => weight ? `${weight} kg` : "",
       },
     ],
     debounceMs: 300,

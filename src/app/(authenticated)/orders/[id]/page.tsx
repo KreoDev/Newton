@@ -124,7 +124,7 @@ export default function OrderDetailsPage() {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-muted-foreground">Weight Completed</span>
                 <span className="font-medium">
-                  {progress.completedWeight}/{progress.totalWeight} tons ({progress.percentageComplete}%)
+                  {progress.completedWeight}/{progress.totalWeight} kg ({progress.percentageComplete}%)
                 </span>
               </div>
               <div className="w-full bg-muted rounded-full h-3">
@@ -142,7 +142,7 @@ export default function OrderDetailsPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Remaining Weight</p>
                 <p className="text-2xl font-bold">
-                  {(progress.totalWeight - progress.completedWeight).toFixed(1)} tons
+                  {(progress.totalWeight - progress.completedWeight).toFixed(1)} kg
                 </p>
               </div>
             </div>
@@ -172,7 +172,7 @@ export default function OrderDetailsPage() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Total Weight</p>
-            <p className="font-medium">{order.totalWeight} tons</p>
+            <p className="font-medium">{order.totalWeight} kg</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Dispatch Date Range</p>
@@ -200,7 +200,7 @@ export default function OrderDetailsPage() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Daily Weight Limit</p>
-            <p className="font-medium">{order.dailyWeightLimit} tons</p>
+            <p className="font-medium">{order.dailyWeightLimit} kg</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Trip Limit</p>
@@ -226,7 +226,7 @@ export default function OrderDetailsPage() {
                     <div>
                       <p className="font-medium">{allocatedCompany?.name || "Unknown Company"}</p>
                       <p className="text-sm text-muted-foreground">
-                        {allocation.completedWeight}/{allocation.allocatedWeight} tons
+                        {allocation.completedWeight}/{allocation.allocatedWeight} kg
                       </p>
                     </div>
                     <span className="text-sm font-medium">{allocationProgress}%</span>

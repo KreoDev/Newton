@@ -2518,7 +2518,7 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
   - Start Date
   - End Date
   - Validation: End >= Start
-- Total Weight\* (number input, tons)
+- Total Weight\* (number input, kg)
   - Validation: > 0
 - Next button
 
@@ -2552,10 +2552,10 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
 - Daily Truck Limit\* (number input)
   - Pre-filled from `company.orderConfig.defaultDailyTruckLimit`
   - Validation: > 0
-- Daily Weight Limit\* (number input, tons)
+- Daily Weight Limit\* (number input, kg)
   - Pre-filled from `company.orderConfig.defaultDailyWeightLimit`
   - Validation: > 0
-- Monthly Limit (number input, tons, optional)
+- Monthly Limit (number input, kg, optional)
   - Pre-filled from `company.orderConfig.defaultMonthlyLimit`
 - Next button
 
@@ -2606,7 +2606,7 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
   - Add Transporter button:
     - Opens mini-modal:
       - Company dropdown (companyType = 'transporter')
-      - Allocated weight (number input, tons)
+      - Allocated weight (number input, kg)
       - Loading dates (multi-date picker from order date range)
       - Add button
   - List of added transporters:
@@ -2712,7 +2712,7 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
     - Loading dates
     - Edit / Remove buttons
   - Total allocated weight display
-  - Progress bar: {allocated}/{total} tons
+  - Progress bar: {allocated}/{total} kg
   - Validation: Sum = total weight
 - Submit button (disabled until valid)
 - On submit:
@@ -2826,7 +2826,7 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
   - Collection/destination sites
   - Created by, created date
 - Progress section:
-  - Total weight: {completed}/{total} tons
+  - Total weight: {completed}/{total} kg
   - Progress bar
   - Completed trips: {trips}
   - Daily usage chart (bar chart showing trucks/weight per day)
@@ -2962,7 +2962,7 @@ Implement truck pre-booking and scheduling for orders.
   - Validation: Cannot exceed order.tripLimit
   - Validation: Total capacity (trips × truck capacity) <= remaining weight
 - Display calculated capacity:
-  - "This truck will carry approximately {capacity} tons across {trips} trips"
+  - "This truck will carry approximately {capacity} kg across {trips} trips"
 - Special instructions (textarea, optional)
 - Next button
 
@@ -3089,7 +3089,7 @@ Implement role-based dashboards with different views for mine companies, transpo
 
 **Key Metrics (Top Cards):**
 
-- Today's total weight (tons)
+- Today's total weight (kg)
 - Today's trip count
 - Active orders count
 - Pending pre-bookings count
@@ -3152,7 +3152,7 @@ Implement role-based dashboards with different views for mine companies, transpo
 - Total active trucks
 - Trucks on trips today
 - Today's trips completed
-- Today's weight hauled (tons)
+- Today's weight hauled (kg)
 
 **Assigned Orders Widget:**
 

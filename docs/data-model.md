@@ -298,15 +298,15 @@ securityAlerts: {
 | clientCompanyId   | string          | yes      | Client company reference (mine/logistics) | c_789           |
 | dispatchStartDate | timestamp       | yes      | Dispatch period start                     | 2024-01-15      |
 | dispatchEndDate   | timestamp       | yes      | Dispatch period end                       | 2024-01-20      |
-| totalWeight       | number          | yes      | Total weight in tons                      | 500             |
+| totalWeight       | number          | yes      | Total weight in kg                        | 500             |
 | collectionSiteId  | string          | yes      | Collection site reference (sites doc)     | site_123        |
 | destinationSiteId | string          | yes      | Destination site reference (sites doc)    | site_456        |
 | productId         | string          | yes      | Product reference                         | p_coal          |
 | sealRequired      | boolean         | yes      | Are seals required                        | true            |
 | sealQuantity      | number          | no       | Number of seals required                  | 2               |
 | dailyTruckLimit   | number          | yes      | Max trucks per day                        | 10              |
-| dailyWeightLimit  | number          | yes      | Max weight per day (tons)                 | 100             |
-| monthlyLimit      | number          | no       | Monthly limit (tons)                      | 2000            |
+| dailyWeightLimit  | number          | yes      | Max weight per day (kg)                   | 100             |
+| monthlyLimit      | number          | no       | Monthly limit (kg)                        | 2000            |
 | tripLimit         | number          | yes      | Max trips per truck per day               | 2               |
 | tripDuration      | number          | no       | Trip duration in hours                    | 4               |
 | allocations       | array           | no       | Array of allocations                      | See below       |
@@ -441,8 +441,8 @@ securityAlerts: {
 | assetId         | string          | yes      | Truck asset reference       | a_456                  |
 | weighbridgeId   | string          | yes      | Weighbridge reference       | wb_01                  |
 | status          | enum            | yes      | tare_only\|completed        | completed              |
-| tareWeight      | number          | yes      | Empty weight in tons        | 8.5                    |
-| grossWeight     | number          | no       | Loaded weight in tons       | 35.2                   |
+| tareWeight      | number          | yes      | Empty weight in kg          | 8.5                    |
+| grossWeight     | number          | no       | Loaded weight in kg         | 35.2                   |
 | netWeight       | number          | no       | Net weight (gross - tare)   | 26.7                   |
 | tareTimestamp   | timestamp       | yes      | When tare was captured      | 2024-01-15T08:30:00    |
 | grossTimestamp  | timestamp       | no       | When gross was captured     | 2024-01-15T10:45:00    |
@@ -484,8 +484,8 @@ securityAlerts: {
 | id                | string (doc id) | yes      | Unique calibration id          | cal_123         |
 | companyId         | string          | yes      | Owning company reference       | c_123           |
 | weighbridgeId     | string          | yes      | Weighbridge reference          | wb_01           |
-| knownWeight       | number          | yes      | Known test weight (tons)       | 10.0            |
-| measuredWeight    | number          | yes      | Measured weight (tons)         | 10.02           |
+| knownWeight       | number          | yes      | Known test weight (kg)         | 10.0            |
+| measuredWeight    | number          | yes      | Measured weight (kg)           | 10.02           |
 | variance          | number          | yes      | Variance percentage            | 0.2             |
 | adjustmentFactor  | number          | yes      | Calibration adjustment         | 0.998           |
 | certificateNumber | string          | no       | Calibration certificate number | CERT-2024-001   |

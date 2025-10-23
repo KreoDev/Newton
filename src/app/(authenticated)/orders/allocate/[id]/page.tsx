@@ -9,8 +9,6 @@ import { PERMISSIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft } from "lucide-react"
 import { OrderService } from "@/services/order.service"
 import { data as globalData } from "@/services/data.service"
@@ -152,7 +150,7 @@ export default function OrderAllocationPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Total Weight</p>
-            <p className="font-medium">{order.totalWeight} tons</p>
+            <p className="font-medium">{order.totalWeight} kg</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Date Range</p>
@@ -170,7 +168,7 @@ export default function OrderAllocationPage() {
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Total Allocated</span>
             <span className="font-medium">
-              {totalAllocated} / {order.totalWeight} tons
+              {totalAllocated} / {order.totalWeight} kg
             </span>
           </div>
           <div className="w-full bg-muted rounded-full h-3">
@@ -178,7 +176,7 @@ export default function OrderAllocationPage() {
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Remaining:</span>
-            <span className={`font-medium ${remainingWeight === 0 ? "text-green-600" : remainingWeight < 0 ? "text-red-600" : ""}`}>{remainingWeight.toFixed(1)} tons</span>
+            <span className={`font-medium ${remainingWeight === 0 ? "text-green-600" : remainingWeight < 0 ? "text-red-600" : ""}`}>{remainingWeight.toFixed(1)} kg</span>
           </div>
         </div>
       </div>
@@ -213,7 +211,7 @@ export default function OrderAllocationPage() {
                 </div>
 
                 <div>
-                  <Label>Allocated Weight (tons)</Label>
+                  <Label>Allocated Weight (kg)</Label>
                   <Input type="number" value={allocation.allocatedWeight || ""} onChange={e => handleUpdateAllocation(index, "allocatedWeight", parseFloat(e.target.value) || 0)} className="mt-2" placeholder="0" />
                 </div>
 

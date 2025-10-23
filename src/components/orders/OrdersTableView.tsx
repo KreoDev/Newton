@@ -132,7 +132,7 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
       id: "totalWeight",
       accessorFn: row => row.totalWeight,
       header: "Total Weight",
-      cell: ({ row }) => <span>{row.original.totalWeight} tons</span>,
+      cell: ({ row }) => <span>{row.original.totalWeight} kg</span>,
     },
     {
       id: "progress",
@@ -146,7 +146,7 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
         return (
           <div className="space-y-1">
             <div className="text-sm">
-              {completed}/{order.totalWeight} tons
+              {completed}/{order.totalWeight} kg
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${percentage}%` }} />

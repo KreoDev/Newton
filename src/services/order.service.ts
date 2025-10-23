@@ -316,7 +316,7 @@ export class OrderService {
     if (Math.abs(sum - totalWeight) > 0.01) { // Allow small floating point differences
       return {
         isValid: false,
-        error: `Weight allocation (${sum} tons) doesn't match total weight (${totalWeight} tons)`
+        error: `Weight allocation (${sum} kg) doesn't match total weight (${totalWeight} kg)`
       }
     }
 

@@ -50,7 +50,7 @@ const PLACEHOLDER_GROUPS = {
   Order: [
     { key: "{{orderNumber}}", value: "ORD-2024-001", description: "Order number" },
     { key: "{{productName}}", value: "Coal", description: "Product name" },
-    { key: "{{weight}}", value: "25.5", description: "Weight in tons" },
+    { key: "{{weight}}", value: "25.5", description: "Weight in kg" },
   ],
   Weighbridge: [
     { key: "{{weighbridgeName}}", value: "Weighbridge A", description: "Weighbridge name" },
