@@ -105,48 +105,42 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
   // State for transporter selection in Step 8
   const [selectedTransporterId, setSelectedTransporterId] = useState<string>("")
   const [transporterTrucks, setTransporterTrucks] = useState<Record<string, number>>({})
-  const [loadingTrucks, setLoadingTrucks] = useState(false)
+  const [loadingTrucksFor, setLoadingTrucksFor] = useState<string | null>(null)
 
   // Helper function to get available trucks for a transporter
   const getAvailableTrucks = (transporterId: string): number => {
-    return transporterTrucks[transporterId] || 0
+    return transporterTrucks[transporterId] ?? 0
   }
 
-  // Fetch trucks for all transporter companies
-  useEffect(() => {
-    const fetchTransporterTrucks = async () => {
-      if (formData.allocationMode === "transporters" && transporterCompanies.length > 0) {
-        setLoadingTrucks(true)
-        try {
-          const { collection, query, where, getDocs } = await import("firebase/firestore")
-          const { db } = await import("@/lib/firebase")
+  // Fetch trucks for a specific transporter
+  const fetchTrucksForTransporter = async (transporterId: string) => {
+    // If already fetched, don't fetch again
+    if (transporterId in transporterTrucks) return
 
-          const trucksCount: Record<string, number> = {}
+    setLoadingTrucksFor(transporterId)
+    try {
+      const { collection, query, where, getDocs } = await import("firebase/firestore")
+      const { db } = await import("@/lib/firebase")
 
-          // Fetch trucks for each transporter company
-          for (const transporter of transporterCompanies) {
-            const assetsRef = collection(db, "assets")
-            const q = query(assetsRef, where("companyId", "==", transporter.id), where("type", "==", "truck"), where("isActive", "==", true))
+      const assetsRef = collection(db, "assets")
+      const q = query(assetsRef, where("companyId", "==", transporterId), where("type", "==", "truck"), where("isActive", "==", true))
 
-            const snapshot = await getDocs(q)
-            trucksCount[transporter.id] = snapshot.size
-          }
+      const snapshot = await getDocs(q)
 
-          setTransporterTrucks(trucksCount)
-        } catch (error) {
-          console.error("Error fetching transporter trucks:", error)
-          toast.error("Failed to load transporter truck counts")
-        } finally {
-          setLoadingTrucks(false)
-        }
-      }
+      setTransporterTrucks(prev => ({
+        ...prev,
+        [transporterId]: snapshot.size,
+      }))
+    } catch (error) {
+      console.error("Error fetching transporter trucks:", error)
+      toast.error("Failed to load truck count for transporter")
+    } finally {
+      setLoadingTrucksFor(null)
     }
-
-    fetchTransporterTrucks()
-  }, [formData.allocationMode, transporterCompanies])
+  }
 
   // Helper functions for allocation management
-  const handleAddTransporter = () => {
+  const handleAddTransporter = async () => {
     if (!selectedTransporterId) return
 
     // Check if transporter is already added
@@ -154,6 +148,9 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
       toast.error("Transporter already added")
       return
     }
+
+    // Fetch trucks for this transporter
+    await fetchTrucksForTransporter(selectedTransporterId)
 
     setFormData(prev => ({
       ...prev,
@@ -852,26 +849,23 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 {/* Transporter Selection */}
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <Select value={selectedTransporterId} onValueChange={setSelectedTransporterId} disabled={loadingTrucks}>
+                    <Select value={selectedTransporterId} onValueChange={setSelectedTransporterId} disabled={loadingTrucksFor !== null}>
                       <SelectTrigger className="w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
-                        <SelectValue placeholder={loadingTrucks ? "Loading trucks..." : "Select transporter to add..."} />
+                        <SelectValue placeholder="Select transporter to add..." />
                       </SelectTrigger>
                       <SelectContent>
                         {transporterCompanies
                           .filter(t => !formData.allocations.some(a => a.companyId === t.id))
-                          .map(transporter => {
-                            const availableTrucks = getAvailableTrucks(transporter.id)
-                            return (
-                              <SelectItem key={transporter.id} value={transporter.id}>
-                                {transporter.name} ({availableTrucks} trucks available)
-                              </SelectItem>
-                            )
-                          })}
+                          .map(transporter => (
+                            <SelectItem key={transporter.id} value={transporter.id}>
+                              {transporter.name}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={handleAddTransporter} disabled={!selectedTransporterId || loadingTrucks}>
-                    {loadingTrucks ? "Loading..." : "Add"}
+                  <Button onClick={handleAddTransporter} disabled={!selectedTransporterId || loadingTrucksFor !== null}>
+                    {loadingTrucksFor !== null ? "Adding..." : "Add"}
                   </Button>
                 </div>
 
