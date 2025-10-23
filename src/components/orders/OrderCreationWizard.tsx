@@ -662,20 +662,13 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                     // Trip can be completed within a day
                     const tripsPerDay = Math.floor(operatingHours / tripDuration)
 
-                    // Calculate total days in order
-                    const startDate = new Date(formData.dispatchStartDate)
-                    const endDate = new Date(formData.dispatchEndDate)
-                    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
-                    const totalTrips = tripsPerDay * totalDays
-
                     return (
                       <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">Per Truck Trip Capacity:</span>
                         </div>
-                        <div className="text-sm space-y-1">
+                        <div className="text-sm">
                           <p>• <span className="font-semibold">{tripsPerDay} trips per day per truck</span> (based on {operatingHours}-hour operating window)</p>
-                          <p>• <span className="font-semibold">{totalTrips} total trips per truck</span> over {totalDays} day{totalDays > 1 ? 's' : ''}</p>
                         </div>
                         {tripsPerDay === 0 && (
                           <p className="text-sm text-yellow-600 mt-2">⚠️ Trip duration exceeds daily operating hours. Only 1 trip can be started per truck per day.</p>
