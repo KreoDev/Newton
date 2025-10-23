@@ -161,14 +161,18 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         return true
 
       case 3: // Sites
-        if (!formData.collectionSiteId || !formData.destinationSiteId) {
-          showError("Sites Required", "Please select both collection and destination sites")
-          return false
-        }
-        const siteValidation = OrderService.validateSites(formData.collectionSiteId, formData.destinationSiteId)
-        if (!siteValidation.isValid) {
-          showError("Invalid Sites", siteValidation.error!)
-          return false
+        // Dispatching orders only need collection site (leaving the mine)
+        // Receiving orders only need destination site (coming into the mine)
+        if (formData.orderType === "dispatching") {
+          if (!formData.collectionSiteId) {
+            showError("Collection Site Required", "Please select a collection site")
+            return false
+          }
+        } else if (formData.orderType === "receiving") {
+          if (!formData.destinationSiteId) {
+            showError("Destination Site Required", "Please select a destination site")
+            return false
+          }
         }
         return true
 
@@ -470,41 +474,47 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         return (
           <div className="space-y-4">
             <div>
-              <h2 className="text-2xl font-bold">Sites</h2>
-              <p className="text-muted-foreground">Select collection and destination sites</p>
+              <h2 className="text-2xl font-bold">Site</h2>
+              <p className="text-muted-foreground">
+                {formData.orderType === "dispatching"
+                  ? "Select the collection site (where material is collected from)"
+                  : "Select the destination site (where material is delivered to)"}
+              </p>
             </div>
 
-            <div>
-              <Label>Collection Site</Label>
-              <Select value={formData.collectionSiteId || undefined} onValueChange={value => setFormData(prev => ({ ...prev, collectionSiteId: value }))}>
-                <SelectTrigger className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
-                  <SelectValue placeholder="Select collection site..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {collectionSites.map(site => (
-                    <SelectItem key={site.id} value={site.id}>
-                      {site.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Destination Site</Label>
-              <Select value={formData.destinationSiteId || undefined} onValueChange={value => setFormData(prev => ({ ...prev, destinationSiteId: value }))}>
-                <SelectTrigger className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
-                  <SelectValue placeholder="Select destination site..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {destinationSites.map(site => (
-                    <SelectItem key={site.id} value={site.id}>
-                      {site.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {formData.orderType === "dispatching" ? (
+              <div>
+                <Label>Collection Site</Label>
+                <Select value={formData.collectionSiteId || undefined} onValueChange={value => setFormData(prev => ({ ...prev, collectionSiteId: value }))}>
+                  <SelectTrigger className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                    <SelectValue placeholder="Select collection site..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {collectionSites.map(site => (
+                      <SelectItem key={site.id} value={site.id}>
+                        {site.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <Label>Destination Site</Label>
+                <Select value={formData.destinationSiteId || undefined} onValueChange={value => setFormData(prev => ({ ...prev, destinationSiteId: value }))}>
+                  <SelectTrigger className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                    <SelectValue placeholder="Select destination site..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {destinationSites.map(site => (
+                      <SelectItem key={site.id} value={site.id}>
+                        {site.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         )
 
