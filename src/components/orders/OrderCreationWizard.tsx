@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { Company, User, Order, Allocation } from "@/types"
 import { Button } from "@/components/ui/button"
@@ -49,6 +49,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [orderNumberMode, setOrderNumberMode] = useState<"auto" | "manual">("auto")
 
   // Form data with defaults from company.orderConfig
   const [formData, setFormData] = useState<OrderFormData>({
@@ -80,13 +81,13 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
   const sites = globalData.sites.value.filter(s => s.isActive)
   const companies = globalData.companies.value.filter(c => c.isActive)
 
-  // Generate order number on mount if auto-only
-  useState(() => {
-    if (company.orderConfig?.orderNumberMode === "autoOnly") {
-      OrderService.generateOrderNumber(company.orderConfig.orderNumberPrefix || "ORD-")
+  // Generate order number on mount or when mode changes to auto
+  useEffect(() => {
+    if (orderNumberMode === "auto") {
+      OrderService.generateOrderNumber(company.orderConfig?.orderNumberPrefix || "ORD-")
         .then(num => setFormData(prev => ({ ...prev, orderNumber: num })))
     }
-  })
+  }, [orderNumberMode, company.orderConfig?.orderNumberPrefix])
 
   const collectionSites = sites.filter(s => s.siteType === "collection")
   const destinationSites = sites.filter(s => s.siteType === "destination")
@@ -96,8 +97,13 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1: // Order Number
-        if (!formData.orderNumber) {
+        if (!formData.orderNumber || formData.orderNumber.trim() === "") {
           showError("Order Number Required", "Please enter an order number")
+          return false
+        }
+        // Check for invalid values like "0", "00", "000", etc.
+        if (/^0+$/.test(formData.orderNumber.trim())) {
+          showError("Invalid Order Number", "Order number cannot be just zeros (0, 00, 000, etc.)")
           return false
         }
         const validation = OrderService.validateOrderNumber(formData.orderNumber)
@@ -285,22 +291,26 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 <div>
                   <Label>Order Number Mode</Label>
                   <div className="mt-2 space-y-2">
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
-                        checked={!formData.orderNumber || formData.orderNumber.startsWith(company.orderConfig?.orderNumberPrefix || "ORD-")}
-                        onChange={async () => {
-                          const num = await OrderService.generateOrderNumber(company.orderConfig?.orderNumberPrefix || "ORD-")
-                          setFormData(prev => ({ ...prev, orderNumber: num }))
-                        }}
+                        name="orderNumberMode"
+                        checked={orderNumberMode === "auto"}
+                        onChange={() => setOrderNumberMode("auto")}
+                        className="cursor-pointer"
                       />
                       <span>Use Auto-Generated</span>
                     </label>
-                    <label className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
-                        checked={!!(formData.orderNumber && !formData.orderNumber.startsWith(company.orderConfig?.orderNumberPrefix || "ORD-"))}
-                        onChange={() => setFormData(prev => ({ ...prev, orderNumber: "" }))}
+                        name="orderNumberMode"
+                        checked={orderNumberMode === "manual"}
+                        onChange={() => {
+                          setOrderNumberMode("manual")
+                          setFormData(prev => ({ ...prev, orderNumber: "" }))
+                        }}
+                        className="cursor-pointer"
                       />
                       <span>Enter Manual Order Number</span>
                     </label>
@@ -312,8 +322,9 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                   <Input
                     value={formData.orderNumber}
                     onChange={e => setFormData(prev => ({ ...prev, orderNumber: e.target.value }))}
+                    disabled={orderNumberMode === "auto"}
                     className="mt-2"
-                    placeholder="Enter order number..."
+                    placeholder={orderNumberMode === "auto" ? "Auto-generated..." : "Enter order number..."}
                   />
                 </div>
               </div>
