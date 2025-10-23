@@ -1,11 +1,13 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import Link from "next/link"
 import type { Order, Company } from "@/types"
 import { DataTable } from "@/components/ui/data-table/DataTable"
 import { Button } from "@/components/ui/button"
-import { FileText, Trash2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { FileText, Trash2, History, ChevronDown } from "lucide-react"
 import { OrderStatusBadge } from "./OrderStatusBadge"
 import { FilterableColumnHeader } from "@/components/ui/data-table/FilterableColumnHeader"
 import { data as globalData } from "@/services/data.service"
@@ -15,20 +17,65 @@ import { OrderService } from "@/services/order.service"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 interface OrdersTableViewProps {
   orders: Order[]
   company: Company | null
+  onLoadHistorical?: (startDate: Date, endDate: Date) => Promise<void>
+  onLoadMore?: () => Promise<void>
+  loadingHistorical?: boolean
+  hasMore?: boolean
+  historicalCount?: number
 }
 
-export function OrdersTableView({ orders, company }: OrdersTableViewProps) {
+export function OrdersTableView({
+  orders,
+  company,
+  onLoadHistorical,
+  onLoadMore,
+  loadingHistorical = false,
+  hasMore = false,
+  historicalCount = 0,
+}: OrdersTableViewProps) {
   useSignals()
   const canCancel = usePermission(PERMISSIONS.ORDERS_CANCEL)
+
+  // Date picker state
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
+  const [showDatePicker, setShowDatePicker] = useState(false)
 
   // Get related data from globalData
   const clients = globalData.clients.value
   const products = globalData.products.value
   const sites = globalData.sites.value
+
+  // Handle historical load
+  const handleLoadHistorical = async () => {
+    if (!startDate || !endDate) {
+      toast.error("Please select both start and end dates")
+      return
+    }
+
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+
+    if (start > end) {
+      toast.error("Start date must be before end date")
+      return
+    }
+
+    setShowDatePicker(false)
+    await onLoadHistorical?.(start, end)
+  }
 
   const columns = [
     {
@@ -198,6 +245,83 @@ export function OrdersTableView({ orders, company }: OrdersTableViewProps) {
       enablePagination={true}
       enableColumnResizing={true}
       enableExport={true}
+      toolbar={
+        <>
+          {/* Historical Loading Controls */}
+          <Dialog open={showDatePicker} onOpenChange={setShowDatePicker}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <History className="h-4 w-4" />
+                Load Historical
+                {historicalCount > 0 && (
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    ({historicalCount} loaded)
+                  </span>
+                )}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Load Historical Orders</DialogTitle>
+                <DialogDescription>
+                  Select a date range to load older orders beyond the real-time window
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startDate">Start Date</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endDate">End Date</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleLoadHistorical}
+                    disabled={loadingHistorical || !startDate || !endDate}
+                    className="flex-1"
+                  >
+                    {loadingHistorical ? "Loading..." : "Load Orders"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowDatePicker(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Load More Button */}
+          {hasMore && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onLoadMore}
+              disabled={loadingHistorical}
+              className="gap-2"
+            >
+              <ChevronDown className="h-4 w-4" />
+              {loadingHistorical ? "Loading..." : "Load More"}
+            </Button>
+          )}
+        </>
+      }
     />
   )
 }

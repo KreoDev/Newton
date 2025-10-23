@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCompany } from "@/contexts/CompanyContext"
@@ -12,6 +12,10 @@ import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
 import Link from "next/link"
 import { OrdersTableView } from "@/components/orders/OrdersTableView"
+import { OrderService } from "@/services/order.service"
+import { toast } from "sonner"
+import type { Order } from "@/types"
+import type { QueryDocumentSnapshot, DocumentData } from "firebase/firestore"
 
 export default function OrdersPage() {
   useSignals()
@@ -21,8 +25,15 @@ export default function OrdersPage() {
   const canView = usePermission(PERMISSIONS.ORDERS_VIEW)
   const canCreate = usePermission(PERMISSIONS.ORDERS_CREATE)
 
-  // Get orders based on company type
-  const orders = useMemo(() => {
+  // Historical orders state
+  const [historicalOrders, setHistoricalOrders] = useState<Order[]>([])
+  const [loadingHistorical, setLoadingHistorical] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | undefined>(undefined)
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null)
+
+  // Get real-time orders from globalData
+  const realtimeOrders = useMemo(() => {
     if (!company) return []
 
     const allOrders = globalData.orders.value
@@ -49,6 +60,76 @@ export default function OrdersPage() {
 
     return []
   }, [company, globalData.orders.value])
+
+  // Combine real-time and historical orders
+  const orders = useMemo(() => {
+    // Merge and deduplicate (historical orders might overlap with real-time)
+    const allOrders = [...realtimeOrders, ...historicalOrders]
+    const uniqueOrders = Array.from(
+      new Map(allOrders.map(order => [order.id, order])).values()
+    )
+    // Sort by creation date (newest first)
+    return uniqueOrders.sort((a, b) => {
+      const aTime = a.dbCreatedAt ? (typeof a.dbCreatedAt === 'number' ? a.dbCreatedAt : a.dbCreatedAt.toMillis()) : a.createdAt
+      const bTime = b.dbCreatedAt ? (typeof b.dbCreatedAt === 'number' ? b.dbCreatedAt : b.dbCreatedAt.toMillis()) : b.createdAt
+      return bTime - aTime
+    })
+  }, [realtimeOrders, historicalOrders])
+
+  // Load historical orders for a specific date range
+  const loadHistoricalOrders = async (start: Date, end: Date) => {
+    if (!company) return
+
+    setLoadingHistorical(true)
+    try {
+      const result = await OrderService.loadHistoricalOrders(
+        company.id,
+        company.companyType,
+        start,
+        end
+      )
+
+      setHistoricalOrders(result.orders)
+      setHasMore(result.hasMore)
+      setLastDoc(result.lastDoc)
+      setDateRange({ start, end })
+
+      toast.success(`Loaded ${result.orders.length} historical orders`)
+    } catch (error) {
+      console.error("Error loading historical orders:", error)
+      toast.error("Failed to load historical orders")
+    } finally {
+      setLoadingHistorical(false)
+    }
+  }
+
+  // Load more historical orders (pagination)
+  const loadMoreHistorical = async () => {
+    if (!company || !dateRange || !lastDoc) return
+
+    setLoadingHistorical(true)
+    try {
+      const result = await OrderService.loadHistoricalOrders(
+        company.id,
+        company.companyType,
+        dateRange.start,
+        dateRange.end,
+        lastDoc
+      )
+
+      // Append new orders to existing historical orders
+      setHistoricalOrders(prev => [...prev, ...result.orders])
+      setHasMore(result.hasMore)
+      setLastDoc(result.lastDoc)
+
+      toast.success(`Loaded ${result.orders.length} more orders`)
+    } catch (error) {
+      console.error("Error loading more orders:", error)
+      toast.error("Failed to load more orders")
+    } finally {
+      setLoadingHistorical(false)
+    }
+  }
 
   if (!canView) {
     return (
@@ -87,7 +168,15 @@ export default function OrdersPage() {
       </div>
 
       {/* Orders Table */}
-      <OrdersTableView orders={orders} company={company} />
+      <OrdersTableView
+        orders={orders}
+        company={company}
+        onLoadHistorical={loadHistoricalOrders}
+        onLoadMore={loadMoreHistorical}
+        loadingHistorical={loadingHistorical}
+        hasMore={hasMore}
+        historicalCount={historicalOrders.length}
+      />
     </div>
   )
 }
