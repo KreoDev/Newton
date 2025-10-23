@@ -7,7 +7,7 @@ import { DataTable } from "@/components/ui/data-table/DataTable"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FileText, Trash2, History, ChevronDown, X, Calendar } from "lucide-react"
+import { Calendar as CalendarIcon, FileText, Trash2, History, ChevronDown, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { OrderStatusBadge } from "./OrderStatusBadge"
 import { FilterableColumnHeader } from "@/components/ui/data-table/FilterableColumnHeader"
@@ -18,14 +18,9 @@ import { OrderService } from "@/services/order.service"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { toast } from "sonner"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 
 interface OrdersTableViewProps {
   orders: Order[]
@@ -39,17 +34,7 @@ interface OrdersTableViewProps {
   dateRange?: { start: Date; end: Date } | null
 }
 
-export function OrdersTableView({
-  orders,
-  company,
-  onLoadHistorical,
-  onLoadMore,
-  onClearHistorical,
-  loadingHistorical = false,
-  hasMore = false,
-  historicalCount = 0,
-  dateRange = null,
-}: OrdersTableViewProps) {
+export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore, onClearHistorical, loadingHistorical = false, hasMore = false, historicalCount = 0, dateRange = null }: OrdersTableViewProps) {
   useSignals()
   const canCancel = usePermission(PERMISSIONS.ORDERS_CANCEL)
 
@@ -123,9 +108,7 @@ export function OrdersTableView({
       id: "orderType",
       accessorFn: row => row.orderType,
       header: "Type",
-      cell: ({ row }) => (
-        <span className="capitalize">{row.original.orderType}</span>
-      ),
+      cell: ({ row }) => <span className="capitalize">{row.original.orderType}</span>,
     },
     {
       id: "client",
@@ -166,10 +149,7 @@ export function OrdersTableView({
               {completed}/{order.totalWeight} tons
             </div>
             <div className="w-full bg-muted rounded-full h-2">
-              <div
-                className="bg-primary h-2 rounded-full transition-all"
-                style={{ width: `${percentage}%` }}
-              />
+              <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${percentage}%` }} />
             </div>
           </div>
         )
@@ -225,12 +205,7 @@ export function OrdersTableView({
             </Link>
 
             {canCancel && order.status !== "cancelled" && order.status !== "completed" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={() => handleCancel(order.id)}
-              >
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleCancel(order.id)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
@@ -260,17 +235,7 @@ export function OrdersTableView({
       data={orders}
       columns={columns}
       tableId="orders-table"
-      defaultColumnOrder={[
-        "orderNumber",
-        "orderType",
-        "client",
-        "product",
-        "totalWeight",
-        "progress",
-        "dateRange",
-        "status",
-        "actions",
-      ]}
+      defaultColumnOrder={["orderNumber", "orderType", "client", "product", "totalWeight", "progress", "dateRange", "status", "actions"]}
       defaultPageSize={20}
       searchPlaceholder="Search by order #, client, or product..."
       enablePagination={true}
@@ -281,13 +246,9 @@ export function OrdersTableView({
           {/* Date Range Badge */}
           {dateRange && (
             <Badge variant="secondary" className="gap-2">
-              <Calendar className="h-3 w-3" />
+              <CalendarIcon className="h-3 w-3" />
               {format(dateRange.start, "MMM d, yyyy")} - {format(dateRange.end, "MMM d, yyyy")}
-              <button
-                onClick={onClearHistorical}
-                className="ml-1 hover:bg-muted rounded-sm p-0.5"
-                title="Clear historical orders"
-              >
+              <button onClick={onClearHistorical} className="ml-1 hover:bg-muted rounded-sm p-0.5" title="Clear historical orders">
                 <X className="h-3 w-3" />
               </button>
             </Badge>
@@ -299,54 +260,48 @@ export function OrdersTableView({
               <Button variant="outline" size="sm" className="gap-2">
                 <History className="h-4 w-4" />
                 Load Historical
-                {historicalCount > 0 && (
-                  <span className="ml-1 text-xs text-muted-foreground">
-                    ({historicalCount} loaded)
-                  </span>
-                )}
+                {historicalCount > 0 && <span className="ml-1 text-xs text-muted-foreground">({historicalCount} loaded)</span>}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Load Historical Orders</DialogTitle>
-                <DialogDescription>
-                  Select a date range to load older orders beyond the real-time window.
-                  Maximum range: 1 year. Dates cannot be in the future.
-                </DialogDescription>
+                <DialogDescription>Select a date range to load older orders beyond the real-time window. Maximum range: 1 year. Dates cannot be in the future.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="startDate">Start Date</Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="mt-2 w-full justify-start gap-2 text-left font-normal">
+                        <CalendarIcon className="size-4" />
+                        {startDate ? format(new Date(startDate), "yyyy/MM/dd") : "yyyy/mm/dd"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-lg)] backdrop-blur-[28px] p-3">
+                      <Calendar mode="single" selected={startDate ? new Date(startDate) : undefined} onSelect={date => setStartDate(date ? format(date, "yyyy-MM-dd") : "")} />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="endDate">End Date</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="mt-2 w-full justify-start gap-2 text-left font-normal">
+                        <CalendarIcon className="size-4" />
+                        {endDate ? format(new Date(endDate), "yyyy/MM/dd") : "yyyy/mm/dd"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-lg)] backdrop-blur-[28px] p-3">
+                      <Calendar mode="single" selected={endDate ? new Date(endDate) : undefined} onSelect={date => setEndDate(date ? format(date, "yyyy-MM-dd") : "")} />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    onClick={handleLoadHistorical}
-                    disabled={loadingHistorical || !startDate || !endDate}
-                    className="flex-1"
-                  >
+                  <Button size="sm" onClick={handleLoadHistorical} disabled={loadingHistorical || !startDate || !endDate} className="flex-1">
                     {loadingHistorical ? "Loading..." : "Load Orders"}
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowDatePicker(false)}
-                  >
+                  <Button size="sm" variant="outline" onClick={() => setShowDatePicker(false)}>
                     Cancel
                   </Button>
                 </div>
@@ -356,13 +311,7 @@ export function OrdersTableView({
 
           {/* Load More Button */}
           {hasMore && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onLoadMore}
-              disabled={loadingHistorical}
-              className="gap-2"
-            >
+            <Button variant="outline" size="sm" onClick={onLoadMore} disabled={loadingHistorical} className="gap-2">
               <ChevronDown className="h-4 w-4" />
               {loadingHistorical ? "Loading..." : "Load More"}
             </Button>

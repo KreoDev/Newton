@@ -13,8 +13,11 @@ import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
 import { useAlert } from "@/hooks/useAlert"
 import { toast } from "sonner"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format } from "date-fns"
 
 interface OrderCreationWizardProps {
   company: Company
@@ -381,11 +384,49 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Dispatch Start Date</Label>
-                <Input type="date" value={formData.dispatchStartDate} onChange={e => setFormData(prev => ({ ...prev, dispatchStartDate: e.target.value }))} className="mt-2" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="mt-2 w-full justify-start gap-2 text-left font-normal">
+                      <CalendarIcon className="size-4" />
+                      {formData.dispatchStartDate ? format(new Date(formData.dispatchStartDate), "yyyy/MM/dd") : "yyyy/mm/dd"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-lg)] backdrop-blur-[28px] p-3">
+                    <Calendar
+                      mode="single"
+                      selected={formData.dispatchStartDate ? new Date(formData.dispatchStartDate) : undefined}
+                      onSelect={date =>
+                        setFormData(prev => ({
+                          ...prev,
+                          dispatchStartDate: date ? format(date, "yyyy-MM-dd") : "",
+                        }))
+                      }
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label>Dispatch End Date</Label>
-                <Input type="date" value={formData.dispatchEndDate} onChange={e => setFormData(prev => ({ ...prev, dispatchEndDate: e.target.value }))} className="mt-2" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="mt-2 w-full justify-start gap-2 text-left font-normal">
+                      <CalendarIcon className="size-4" />
+                      {formData.dispatchEndDate ? format(new Date(formData.dispatchEndDate), "yyyy/MM/dd") : "yyyy/mm/dd"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-lg)] backdrop-blur-[28px] p-3">
+                    <Calendar
+                      mode="single"
+                      selected={formData.dispatchEndDate ? new Date(formData.dispatchEndDate) : undefined}
+                      onSelect={date =>
+                        setFormData(prev => ({
+                          ...prev,
+                          dispatchEndDate: date ? format(date, "yyyy-MM-dd") : "",
+                        }))
+                      }
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
