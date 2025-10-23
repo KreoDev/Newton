@@ -56,6 +56,8 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
   const [loading, setLoading] = useState(false)
   const [orderNumberMode, setOrderNumberMode] = useState<"auto" | "manual">("auto")
   const [validatingOrderNumber, setValidatingOrderNumber] = useState(false)
+  const [startDateOpen, setStartDateOpen] = useState(false)
+  const [endDateOpen, setEndDateOpen] = useState(false)
 
   // Form data with defaults from company.orderConfig
   const [formData, setFormData] = useState<OrderFormData>({
@@ -384,7 +386,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Dispatch Start Date</Label>
-                <Popover>
+                <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="calendar" className="mt-2">
                       <CalendarIcon className="size-4" />
@@ -395,12 +397,13 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                     <Calendar
                       mode="single"
                       selected={formData.dispatchStartDate ? new Date(formData.dispatchStartDate) : undefined}
-                      onSelect={date =>
+                      onSelect={date => {
                         setFormData(prev => ({
                           ...prev,
                           dispatchStartDate: date ? format(date, "yyyy-MM-dd") : "",
                         }))
-                      }
+                        setStartDateOpen(false)
+                      }}
                       disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     />
                   </PopoverContent>
@@ -408,7 +411,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
               </div>
               <div>
                 <Label>Dispatch End Date</Label>
-                <Popover>
+                <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="calendar" className="mt-2">
                       <CalendarIcon className="size-4" />
@@ -419,12 +422,13 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                     <Calendar
                       mode="single"
                       selected={formData.dispatchEndDate ? new Date(formData.dispatchEndDate) : undefined}
-                      onSelect={date =>
+                      onSelect={date => {
                         setFormData(prev => ({
                           ...prev,
                           dispatchEndDate: date ? format(date, "yyyy-MM-dd") : "",
                         }))
-                      }
+                        setEndDateOpen(false)
+                      }}
                       disabled={(date) => {
                         const today = new Date(new Date().setHours(0, 0, 0, 0))
                         const startDate = formData.dispatchStartDate ? new Date(formData.dispatchStartDate) : today
