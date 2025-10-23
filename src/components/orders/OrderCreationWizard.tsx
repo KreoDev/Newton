@@ -159,6 +159,11 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
           showError("Weight Required", "Please enter total weight")
           return false
         }
+        const minWeight = company.orderConfig?.minTotalWeight ?? 0
+        if (minWeight > 0 && formData.totalWeight < minWeight) {
+          showError("Minimum Weight Not Met", `Total weight must be at least ${minWeight} kg`)
+          return false
+        }
         const dateValidation = OrderService.validateDateRange(formData.dispatchStartDate, formData.dispatchEndDate)
         if (!dateValidation.isValid) {
           showError("Invalid Dates", dateValidation.error!)
@@ -469,13 +474,6 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                   const cleaned = utilityService.validateWholeNumber(e.target.value)
                   const parsed = utilityService.parseWholeNumber(cleaned)
                   setFormData(prev => ({ ...prev, totalWeight: parsed }))
-                }}
-                onBlur={() => {
-                  // Enforce minimum weight when user leaves the field
-                  const minWeight = company.orderConfig?.minTotalWeight ?? 0
-                  if (formData.totalWeight > 0 && formData.totalWeight < minWeight) {
-                    setFormData(prev => ({ ...prev, totalWeight: minWeight }))
-                  }
                 }}
                 className="mt-2"
                 placeholder={`Min: ${company.orderConfig?.minTotalWeight ?? 0} kg`}
