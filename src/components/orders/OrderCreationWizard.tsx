@@ -191,8 +191,8 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         return true
 
       case 6: // Limits
-        if (formData.dailyTruckLimit <= 0 || formData.dailyWeightLimit <= 0) {
-          showError("Limits Required", "Please enter valid daily limits")
+        if (formData.dailyWeightLimit <= 0) {
+          showError("Daily Weight Limit Required", "Please enter a valid daily weight limit")
           return false
         }
         return true
@@ -574,11 +574,6 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             <div>
               <h2 className="text-2xl font-bold">Limits</h2>
               <p className="text-muted-foreground">Configure operational limits for this order</p>
-            </div>
-
-            <div>
-              <Label>Daily Truck Limit</Label>
-              <Input type="number" value={formData.dailyTruckLimit} onChange={e => setFormData(prev => ({ ...prev, dailyTruckLimit: parseInt(e.target.value) || 0 }))} className="mt-2" placeholder="0" />
             </div>
 
             <div>
