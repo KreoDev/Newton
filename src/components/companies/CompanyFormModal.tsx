@@ -914,16 +914,18 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="orderHistoryDays">Order History Window (Days)</Label>
-                      <Input id="orderHistoryDays" type="number" value={orderHistoryDays} onChange={e => setOrderHistoryDays(Math.min(Math.max(Number(e.target.value), 1), 120))} min="1" max="120" />
-                      <p className="text-xs text-muted-foreground">Number of days of recent orders to load in real-time (max 120 days)</p>
-                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="orderHistoryDays">Order History Window (Days)</Label>
+                        <Input id="orderHistoryDays" type="number" value={orderHistoryDays} onChange={e => setOrderHistoryDays(Math.min(Math.max(Number(e.target.value), 1), 120))} min="1" max="120" />
+                        <p className="text-xs text-muted-foreground">Max 120 days</p>
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="minTotalWeight">Minimum Total Weight (kg)</Label>
-                      <Input id="minTotalWeight" type="number" value={minTotalWeight} onChange={e => setMinTotalWeight(Number(e.target.value))} min="1" />
-                      <p className="text-xs text-muted-foreground">Minimum weight required when creating a new order</p>
+                      <div className="space-y-2">
+                        <Label htmlFor="minTotalWeight">Minimum Total Weight (kg)</Label>
+                        <Input id="minTotalWeight" type="number" value={minTotalWeight} onChange={e => setMinTotalWeight(Number(e.target.value))} min="1" />
+                        <p className="text-xs text-muted-foreground">Required for new orders</p>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
