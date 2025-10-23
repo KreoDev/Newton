@@ -425,6 +425,11 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                           dispatchEndDate: date ? format(date, "yyyy-MM-dd") : "",
                         }))
                       }
+                      disabled={(date) => {
+                        const today = new Date(new Date().setHours(0, 0, 0, 0))
+                        const startDate = formData.dispatchStartDate ? new Date(formData.dispatchStartDate) : today
+                        return date < startDate
+                      }}
                     />
                   </PopoverContent>
                 </Popover>
