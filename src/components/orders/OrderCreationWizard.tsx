@@ -19,6 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
+import { db } from "@/lib/firebase"
+import { collection, query, where, getDocs } from "firebase/firestore"
 
 interface OrderCreationWizardProps {
   company: Company
@@ -119,9 +121,6 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
     setLoadingTrucksFor(transporterId)
     try {
-      const { collection, query, where, getDocs } = await import("firebase/firestore")
-      const { db } = await import("@/lib/firebase")
-
       const assetsRef = collection(db, "assets")
       const q = query(assetsRef, where("companyId", "==", transporterId), where("type", "==", "truck"), where("isActive", "==", true))
 
