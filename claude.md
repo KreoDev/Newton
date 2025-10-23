@@ -184,6 +184,95 @@ const nav = useMemo(() =>
 )
 ```
 
+### Entity List Pages (Reusable Components)
+
+**All entity card-based pages use reusable components to eliminate duplication:**
+
+**Hooks:**
+- `useEntityList`: Consolidates permissions, search, filtering logic
+- `useEntityActions`: Unified toggle/delete with validation and permission checks
+- `useListViewPreference`: Universal view preference (card/table) for all entity lists
+- `useSimpleModalState`: Simplified modal state management
+
+**Components:**
+- `EntityListPage`: Standard page wrapper with header, permissions, ViewOnlyBadge
+- `EntityCardListView`: Card list container with loading/empty states
+- `EntityCardSearchBar`: Search + filter UI (always uses DropdownMenu)
+- `EntityCard`: Standard card layout (icon + title + subtitle + metadata + actions + badge)
+
+**Usage Example:**
+```typescript
+import { useEntityList } from "@/hooks/useEntityList"
+import { useEntityActions } from "@/hooks/useEntityActions"
+import { EntityListPage } from "@/components/ui/entity-list/EntityListPage"
+import { EntityCardListView } from "@/components/ui/entity-card-list/EntityCardListView"
+
+export default function ProductsPage() {
+  useSignals()
+  const products = globalData.products.value
+  const loading = globalData.loading.value
+
+  // Permissions, search, filtering
+  const { canView, canManage, isViewOnly, searchTerm, setSearchTerm,
+          filterStatus, setFilterStatus, filteredItems } = useEntityList({
+    items: products,
+    searchConfig: SEARCH_CONFIGS.products,
+    viewPermission: PERMISSIONS.ADMIN_PRODUCTS_VIEW,
+    managePermission: PERMISSIONS.ADMIN_PRODUCTS,
+    globalDataLoading: loading,
+  })
+
+  // Toggle/delete with permissions
+  const { toggleStatus, deleteEntity } = useEntityActions({
+    collection: "products",
+    entityName: "Product",
+    usageCheckQuery: async (product) => {
+      // Check if used in orders
+      const ordersQuery = query(collection(db, "orders"), where("productId", "==", product.id))
+      const ordersSnapshot = await getDocs(ordersQuery)
+      return {
+        inUse: !ordersSnapshot.empty,
+        count: ordersSnapshot.size,
+        message: `Used in ${ordersSnapshot.size} orders`
+      }
+    },
+    canManage,
+  })
+
+  return (
+    <EntityListPage
+      title="Products"
+      description={(isViewOnly) => isViewOnly ? "View products" : "Manage products"}
+      addButtonLabel="Add Product"
+      onAddClick={() => setShowCreateModal(true)}
+      canView={canView}
+      canManage={canManage}
+      isViewOnly={isViewOnly}
+      permissionLoading={permissionLoading}
+    >
+      <EntityCardListView
+        items={filteredItems}
+        loading={loading}
+        searchBar={<EntityCardSearchBar searchTerm={searchTerm} onSearchChange={setSearchTerm} ... />}
+        renderCard={(product) => <EntityCard icon={...} title={...} actions={...} />}
+      />
+    </EntityListPage>
+  )
+}
+```
+
+**Refactored Pages (using reusable components):**
+- ✅ Products: `/admin/products` - Search name/code, filter status, usage check (orders)
+- ✅ Clients: `/admin/clients` - Search name/reg/contact, filter status, usage check (orders)
+- ✅ Sites: `/admin/sites` - Search name/address, filter by type (collection/destination), usage check (orders)
+- ✅ Roles: `/admin/roles` - Search name/desc, filter status, visibility toggle, system role protection, usage check (users)
+- ✅ Companies: `/admin/companies` - Search name/reg, filter by type, access control, active company protection
+
+**DataTable Pages (already consistent):**
+- ✅ Orders: FilterableColumnHeader on status, default pageSize=20
+- ✅ Users: FilterableColumnHeader on status, bulk actions, default pageSize=20
+- ✅ Assets: FilterableColumnHeader on status (Active/Inactive/Expired), 3 tabs, bulk actions, default pageSize=20
+
 ### Error Handling
 
 ```typescript
