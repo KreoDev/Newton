@@ -616,13 +616,82 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 <Input type="number" value={formData.tripLimit} onChange={e => setFormData(prev => ({ ...prev, tripLimit: parseInt(e.target.value) || 0 }))} className="mt-2" placeholder="1" />
               </div>
             ) : (
-              <div>
-                <Label>Trip Duration (hours)</Label>
-                <Input type="number" value={formData.tripDuration} onChange={e => setFormData(prev => ({ ...prev, tripDuration: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="4" />
+              <div className="space-y-4">
+                <div>
+                  <Label>Trip Duration (hours)</Label>
+                  <Input type="number" value={formData.tripDuration} onChange={e => setFormData(prev => ({ ...prev, tripDuration: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="4" />
+                </div>
+
+                {formData.tripDuration > 0 && formData.collectionSiteId && (() => {
+                  const collectionSite = sites.find(s => s.id === formData.collectionSiteId)
+                  if (!collectionSite?.operatingHours) return null
+
+                  // Calculate operating hours for the collection site
+                  const calculateDailyOperatingHours = () => {
+                    const hours = collectionSite.operatingHours
+                    if (!hours || typeof hours !== 'object') return 12 // Default 12 hours
+
+                    // Get today's day of week
+                    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
+                    const daySchedule = hours[today as keyof typeof hours]
+
+                    if (!daySchedule || typeof daySchedule !== 'object' || !('open' in daySchedule)) return 12
+
+                    const { open, close } = daySchedule as { open: string; close: string }
+                    if (open === 'closed' || close === 'closed') return 0
+
+                    // Parse time strings (e.g., "06:00" to 6, "18:00" to 18)
+                    const openHour = parseInt(open.split(':')[0])
+                    const closeHour = parseInt(close.split(':')[0])
+                    return closeHour - openHour
+                  }
+
+                  const operatingHours = calculateDailyOperatingHours()
+                  const { tripDuration } = formData
+
+                  if (tripDuration <= 24) {
+                    // Trip can be completed within a day
+                    const tripsPerDay = Math.floor(operatingHours / tripDuration)
+
+                    // Calculate total days in order
+                    const startDate = new Date(formData.dispatchStartDate)
+                    const endDate = new Date(formData.dispatchEndDate)
+                    const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+                    const totalTrips = tripsPerDay * totalDays
+
+                    return (
+                      <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">Calculated Trip Capacity:</span>
+                        </div>
+                        <div className="text-sm space-y-1">
+                          <p>• <span className="font-semibold">{tripsPerDay} trips per day</span> (based on {operatingHours}-hour operating window)</p>
+                          <p>• <span className="font-semibold">{totalTrips} total trips</span> over {totalDays} day{totalDays > 1 ? 's' : ''}</p>
+                        </div>
+                        {tripsPerDay === 0 && (
+                          <p className="text-sm text-yellow-600 mt-2">⚠️ Trip duration exceeds daily operating hours. Only 1 trip can be started per day.</p>
+                        )}
+                      </div>
+                    )
+                  } else {
+                    // Trip exceeds 24 hours
+                    const daysPerTrip = Math.ceil(tripDuration / 24)
+                    return (
+                      <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-yellow-600">⚠️ Multi-Day Trip Warning:</span>
+                        </div>
+                        <div className="text-sm space-y-1">
+                          <p>• Trip duration exceeds 24 hours</p>
+                          <p>• <span className="font-semibold">{daysPerTrip} days required per trip</span></p>
+                          <p className="text-xs text-muted-foreground mt-2">Each trip will span multiple days. Consider reducing trip duration or adjusting order timeline.</p>
+                        </div>
+                      </div>
+                    )
+                  }
+                })()}
               </div>
             )}
-          </div>
-        )
 
       case 8: // Allocation
         return (
@@ -668,7 +737,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                   <p className="text-sm text-muted-foreground mb-4">Direct allocation to transporters - for simplified implementation. Full allocation UI can be added later.</p>
                   <p className="text-sm">Allocations: {formData.allocations.length}</p>
                   <p className="text-sm">
-                    Total allocated: {formData.allocations.reduce((sum, a) => sum + a.allocatedWeight, 0)} / {formData.totalWeight} tons
+                    Total allocated: {formData.allocations.reduce((sum, a) => sum + a.allocatedWeight, 0)} / {formData.totalWeight} kg
                   </p>
                 </div>
               </div>
@@ -709,7 +778,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Total Weight</Label>
-                  <p className="font-medium">{formData.totalWeight} tons</p>
+                  <p className="font-medium">{formData.totalWeight} kg</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Date Range</Label>
@@ -732,7 +801,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 <div>
                   <Label className="text-muted-foreground">Daily Limits</Label>
                   <p className="font-medium text-sm">
-                    {formData.dailyTruckLimit} trucks / {formData.dailyWeightLimit} tons
+                    {formData.dailyTruckLimit} trucks / {formData.dailyWeightLimit} kg
                   </p>
                 </div>
               </div>
