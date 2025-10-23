@@ -35,24 +35,13 @@ export function WizardSteps({ currentStep, totalSteps, className = "" }: WizardS
               {/* Step Circle */}
               <div
                 className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-colors ${
-                  isCompleted
-                    ? "bg-green-500 text-white"
-                    : isCurrent
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
+                  isCompleted ? "bg-green-500 text-white" : isCurrent ? "bg-primary text-primary-foreground" : "bg-[oklch(1_0_0_/_0.18)] text-[oklch(0.62_0.04_260)] dark:bg-gray-400/5 dark:text-white/50 border border-[var(--glass-border-soft)] backdrop-blur-[12px]"
+                }`}>
                 {isCompleted ? <CheckCircle className="h-4 w-4" /> : step}
               </div>
 
               {/* Connecting Line (except after last step) */}
-              {index < totalSteps - 1 && (
-                <div
-                  className={`h-1 flex-1 transition-colors ${
-                    isCompleted ? "bg-green-500" : "bg-muted"
-                  }`}
-                />
-              )}
+              {index < totalSteps - 1 && <div className={`h-1 flex-1 transition-colors ${isCompleted ? "bg-green-500" : "bg-[oklch(1_0_0_/_0.12)] dark:bg-gray-400/5"}`} />}
             </React.Fragment>
           )
         })}

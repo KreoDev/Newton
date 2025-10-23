@@ -15,6 +15,7 @@ const buttonVariants = cva(
         secondary: "glass-surface text-secondary-foreground dark:text-white bg-[oklch(0.92_0_0_/_0.35)] hover:bg-[oklch(0.92_0_0_/_0.45)] hover:border-[var(--glass-border-soft)]",
         ghost: "glass-surface bg-transparent text-foreground dark:text-white hover:bg-[oklch(1_0_0_/_0.18)] hover:border-[var(--glass-border-soft)]",
         link: "text-primary underline-offset-4 hover:underline hover:shadow-[0_0_0_1px_oklch(0.205_0_0_/_0.35)]",
+        calendar: "border-input border bg-[oklch(1_0_0_/_0.32)] dark:bg-[oklch(1_0_260_/_0.04)] backdrop-blur-[18px] text-sm font-normal justify-start gap-2 px-3 w-full h-9 text-left",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

@@ -739,6 +739,19 @@
         "padding": "12px",
         "fontSize": "sm"
       },
+      "dateTrigger": {
+        "background": {
+          "light": "oklch(1 0 0 / 0.32)",
+          "dark": "oklch(1 0 260 / 0.04)"
+        },
+        "border": "effects.border_styles.light.base",
+        "borderDark": "effects.border_styles.dark.base",
+        "backdropFilter": "blur(18px)",
+        "height": "36px",
+        "padding": "0 12px",
+        "fontSize": "sm",
+        "icon": "Calendar icon left-aligned"
+      },
       "error": {
         "marginTop": "4px",
         "fontSize": "sm",
@@ -835,6 +848,24 @@
           "itemHighlight": "oklch(0.28 0.04 255 / 0.42)",
           "itemSelected": "oklch(0.205 0 0 / 0.28)"
         }
+      }
+    },
+    "wizard_steps": {
+      "inactive": {
+        "background": "oklch(1 0 0 / 0.18)",
+        "backgroundDark": "oklch(0.22 0.03 260 / 0.05)",
+        "border": "effects.border_styles.light.base",
+        "borderDark": "effects.border_styles.dark.base",
+        "text": "oklch(0.62 0.04 260)",
+        "textDark": "oklch(0.88 0.04 260)",
+        "blur": "blur(12px)"
+      },
+      "connector": {
+        "inactive": {
+          "background": "oklch(1 0 0 / 0.12)",
+          "backgroundDark": "oklch(0.22 0.03 260 / 0.05)"
+        },
+        "active": "oklch(0.577 0.245 27.325)"
       }
     }
   },

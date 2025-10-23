@@ -273,7 +273,7 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
                   <Label htmlFor="startDate">Start Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="mt-2 w-full justify-start gap-2 text-left font-normal">
+                      <Button variant="calendar" className="mt-2">
                         <CalendarIcon className="size-4" />
                         {startDate ? format(new Date(startDate), "yyyy/MM/dd") : "yyyy/mm/dd"}
                       </Button>
@@ -287,7 +287,7 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
                   <Label htmlFor="endDate">End Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="mt-2 w-full justify-start gap-2 text-left font-normal">
+                      <Button variant="calendar" className="mt-2">
                         <CalendarIcon className="size-4" />
                         {endDate ? format(new Date(endDate), "yyyy/MM/dd") : "yyyy/mm/dd"}
                       </Button>
