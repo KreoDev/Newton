@@ -61,6 +61,40 @@ class Utility {
     }
     return result
   }
+
+  /**
+   * Validates and filters input to allow only whole numbers (integers)
+   * Strips out any non-numeric characters except leading minus sign
+   * @param value - The input string to validate
+   * @returns Cleaned string containing only whole numbers
+   */
+  validateWholeNumber(value: string): string {
+    // Remove any non-digit characters except minus sign at the start
+    let cleaned = value.replace(/[^\d-]/g, "")
+
+    // Ensure minus sign only appears at the start
+    if (cleaned.includes("-")) {
+      const hasLeadingMinus = cleaned.startsWith("-")
+      cleaned = cleaned.replace(/-/g, "")
+      if (hasLeadingMinus) {
+        cleaned = "-" + cleaned
+      }
+    }
+
+    return cleaned
+  }
+
+  /**
+   * Parses a string to a whole number (integer)
+   * Returns 0 if the value is invalid or empty
+   * @param value - The input string to parse
+   * @returns Parsed integer value or 0
+   */
+  parseWholeNumber(value: string): number {
+    const cleaned = this.validateWholeNumber(value)
+    const parsed = parseInt(cleaned, 10)
+    return isNaN(parsed) ? 0 : parsed
+  }
 }
 
 export const utilityService = Utility.getInstance()

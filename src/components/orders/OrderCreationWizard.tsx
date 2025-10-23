@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { WizardSteps } from "@/components/ui/wizard-steps"
 import { OrderService } from "@/services/order.service"
 import { data as globalData } from "@/services/data.service"
+import { utilityService } from "@/services/utility.service"
 import { useSignals } from "@preact/signals-react/runtime"
 import { useAlert } from "@/hooks/useAlert"
 import { toast } from "sonner"
@@ -404,7 +405,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                         }))
                         setStartDateOpen(false)
                       }}
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      disabled={date => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     />
                   </PopoverContent>
                 </Popover>
@@ -429,7 +430,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                         }))
                         setEndDateOpen(false)
                       }}
-                      disabled={(date) => {
+                      disabled={date => {
                         const today = new Date(new Date().setHours(0, 0, 0, 0))
                         const startDate = formData.dispatchStartDate ? new Date(formData.dispatchStartDate) : today
                         return date < startDate
@@ -441,8 +442,17 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             </div>
 
             <div>
-              <Label>Total Weight (kg)</Label>
-              <Input type="number" value={formData.totalWeight || ""} onChange={e => setFormData(prev => ({ ...prev, totalWeight: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="0" />
+              <Label>Total Weight (KG)</Label>
+              <Input
+                type="text"
+                value={formData.totalWeight || ""}
+                onChange={e => {
+                  const cleaned = utilityService.validateWholeNumber(e.target.value)
+                  setFormData(prev => ({ ...prev, totalWeight: utilityService.parseWholeNumber(cleaned) }))
+                }}
+                className="mt-2"
+                placeholder="0"
+              />
             </div>
           </div>
         )
