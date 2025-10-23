@@ -14,7 +14,7 @@ import { utilityService } from "@/services/utility.service"
 import { useSignals } from "@preact/signals-react/runtime"
 import { useAlert } from "@/hooks/useAlert"
 import { toast } from "sonner"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -169,10 +169,56 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
   }
 
   const handleUpdateTrucks = (index: number, trucks: number) => {
-    const truckCapacity = company.orderConfig?.defaultWeightPerTruck ?? 0
+    // Calculate comprehensive truck capacity over order duration
+    const calculateTruckCapacityOverDuration = () => {
+      const truckCapacity = company.orderConfig?.defaultWeightPerTruck ?? 0
+
+      // Calculate trips per day
+      let tripsPerDay = 1
+      if (formData.tripConfigMode === "trips") {
+        tripsPerDay = formData.tripLimit
+      } else if (formData.tripConfigMode === "duration" && formData.collectionSiteId) {
+        const collectionSite = sites.find(s => s.id === formData.collectionSiteId)
+        if (collectionSite?.operatingHours) {
+          const calculateDailyOperatingHours = () => {
+            const hours = collectionSite.operatingHours
+            if (!hours || typeof hours !== "object") return 12
+            const today = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
+            const daySchedule = hours[today as keyof typeof hours]
+            if (!daySchedule || typeof daySchedule !== "object" || !("open" in daySchedule)) return 12
+            const { open, close } = daySchedule as { open: string; close: string }
+            if (open === "closed" || close === "closed") return 0
+            const openHour = parseInt(open.split(":")[0])
+            const closeHour = parseInt(close.split(":")[0])
+            return closeHour - openHour
+          }
+
+          const operatingHours = calculateDailyOperatingHours()
+          const { tripDuration } = formData
+          if (tripDuration <= 24) {
+            tripsPerDay = Math.floor(operatingHours / tripDuration)
+          } else {
+            tripsPerDay = 1 / Math.ceil(tripDuration / 24)
+          }
+        }
+      }
+
+      // Calculate order duration in days
+      const orderDurationDays = Math.max(
+        1,
+        Math.ceil((new Date(formData.dispatchEndDate).getTime() - new Date(formData.dispatchStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
+      )
+
+      const weightPerDayPerTruck = tripsPerDay * truckCapacity
+      return weightPerDayPerTruck * orderDurationDays
+    }
+
+    const capacityPerTruck = calculateTruckCapacityOverDuration()
+    const allocatedWeight = trucks * capacityPerTruck
+
     setFormData(prev => ({
       ...prev,
-      allocations: prev.allocations.map((a, i) => (i === index ? { ...a, numberOfTrucks: trucks, allocatedWeight: trucks * truckCapacity } : a)),
+      allocations: prev.allocations.map((a, i) => (i === index ? { ...a, numberOfTrucks: trucks, allocatedWeight } : a)),
     }))
   }
 
@@ -864,7 +910,14 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                     </Select>
                   </div>
                   <Button onClick={handleAddTransporter} disabled={!selectedTransporterId || loadingTrucksFor !== null}>
-                    {loadingTrucksFor !== null ? "Adding..." : "Add"}
+                    {loadingTrucksFor !== null ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Loading...
+                      </>
+                    ) : (
+                      "Add"
+                    )}
                   </Button>
                 </div>
 
@@ -874,19 +927,81 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                     {formData.allocations.map((allocation, index) => {
                       const transporter = transporterCompanies.find(t => t.id === allocation.companyId)
                       const availableTrucks = getAvailableTrucks(allocation.companyId)
+                      const isLoadingTrucks = loadingTrucksFor === allocation.companyId
                       const truckCapacity = company.orderConfig?.defaultWeightPerTruck ?? 0
                       const exceedsAvailable = allocation.numberOfTrucks > availableTrucks
+
+                      // Calculate trip capacity per truck per day
+                      const calculateTripCapacity = () => {
+                        if (formData.tripConfigMode === "trips") {
+                          return formData.tripLimit
+                        } else if (formData.tripConfigMode === "duration" && formData.collectionSiteId) {
+                          const collectionSite = sites.find(s => s.id === formData.collectionSiteId)
+                          if (!collectionSite?.operatingHours) return 1
+
+                          const calculateDailyOperatingHours = () => {
+                            const hours = collectionSite.operatingHours
+                            if (!hours || typeof hours !== "object") return 12
+                            const today = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
+                            const daySchedule = hours[today as keyof typeof hours]
+                            if (!daySchedule || typeof daySchedule !== "object" || !("open" in daySchedule)) return 12
+                            const { open, close } = daySchedule as { open: string; close: string }
+                            if (open === "closed" || close === "closed") return 0
+                            const openHour = parseInt(open.split(":")[0])
+                            const closeHour = parseInt(close.split(":")[0])
+                            return closeHour - openHour
+                          }
+
+                          const operatingHours = calculateDailyOperatingHours()
+                          const { tripDuration } = formData
+                          if (tripDuration <= 24) {
+                            return Math.floor(operatingHours / tripDuration)
+                          } else {
+                            return 1 / Math.ceil(tripDuration / 24) // Fraction for multi-day trips
+                          }
+                        }
+                        return 1
+                      }
+
+                      // Calculate order duration in days
+                      const orderDurationDays = Math.max(
+                        1,
+                        Math.ceil((new Date(formData.dispatchEndDate).getTime() - new Date(formData.dispatchStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
+                      )
+
+                      const tripsPerDay = calculateTripCapacity()
+                      const weightPerTripPerTruck = truckCapacity
+                      const weightPerDayPerTruck = tripsPerDay * weightPerTripPerTruck
+                      const weightPerTruckOverDuration = weightPerDayPerTruck * orderDurationDays
 
                       return (
                         <div key={index} className="glass-surface rounded-lg p-4 space-y-3">
                           <div className="flex items-center justify-between">
-                            <div>
+                            <div className="flex-1">
                               <h4 className="font-semibold">{transporter?.name || "Unknown Transporter"}</h4>
-                              <p className="text-xs text-muted-foreground">{availableTrucks} trucks available</p>
+                              {isLoadingTrucks ? (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                  <span>Loading truck count...</span>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">{availableTrucks} trucks available</p>
+                              )}
                             </div>
                             <Button variant="ghost" size="sm" onClick={() => handleRemoveAllocation(index)} className="text-destructive hover:text-destructive">
                               Remove
                             </Button>
+                          </div>
+
+                          {/* Per Truck Capacity Info */}
+                          <div className="bg-blue-500/10 border border-blue-500/20 rounded p-3 text-xs space-y-1">
+                            <p className="font-semibold text-blue-700 dark:text-blue-300">Per Truck Capacity (Over Order Duration):</p>
+                            <p className="text-muted-foreground">
+                              • {tripsPerDay} {tripsPerDay === 1 ? "trip" : "trips"} per day × {weightPerTripPerTruck.toLocaleString()} kg per trip = {weightPerDayPerTruck.toLocaleString()} kg/day
+                            </p>
+                            <p className="text-muted-foreground">
+                              • Over {orderDurationDays} {orderDurationDays === 1 ? "day" : "days"}: <span className="font-semibold">{weightPerTruckOverDuration.toLocaleString()} kg per truck</span>
+                            </p>
                           </div>
 
                           <div className="space-y-2">
@@ -901,15 +1016,16 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                                 handleUpdateTrucks(index, value)
                               }}
                               className={exceedsAvailable ? "border-destructive" : ""}
+                              disabled={isLoadingTrucks}
                             />
                             {exceedsAvailable && <p className="text-xs text-destructive">Exceeds available trucks ({availableTrucks})</p>}
                           </div>
 
                           <div className="bg-primary/5 rounded p-2">
                             <p className="text-sm">
-                              <span className="text-muted-foreground">Allocated Weight:</span>{" "}
+                              <span className="text-muted-foreground">Total Capacity for This Allocation:</span>{" "}
                               <span className="font-semibold">
-                                {allocation.numberOfTrucks} trucks × {truckCapacity.toLocaleString()} kg = {allocation.allocatedWeight.toLocaleString()} kg
+                                {allocation.numberOfTrucks} trucks × {weightPerTruckOverDuration.toLocaleString()} kg = {(allocation.numberOfTrucks * weightPerTruckOverDuration).toLocaleString()} kg
                               </span>
                             </p>
                           </div>
