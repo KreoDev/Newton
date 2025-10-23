@@ -185,7 +185,7 @@ export default function CompaniesPage() {
             <EntityCard
               icon={<CompanyIcon className="h-5 w-5 text-primary" />}
               title={company.name}
-              subtitle={`${company.registrationNumber} • ${company.companyType.replace("_", " ")}`}
+              subtitle={company.registrationNumber ? `${company.registrationNumber} • ${company.companyType.replace("_", " ")}` : company.companyType.replace("_", " ")}
               statusBadge={<Badge variant={company.isActive ? "success" : "secondary"}>{company.isActive ? "Active" : "Inactive"}</Badge>}
               actions={
                 <>
