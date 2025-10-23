@@ -62,8 +62,8 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
     orderNumber: "",
     orderType: "dispatching",
     clientCompanyId: "",
-    dispatchStartDate: "",
-    dispatchEndDate: "",
+    dispatchStartDate: format(new Date(), "yyyy-MM-dd"),
+    dispatchEndDate: format(new Date(), "yyyy-MM-dd"),
     totalWeight: 0,
     collectionSiteId: "",
     destinationSiteId: "",
@@ -437,7 +437,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             </div>
 
             <div>
-              <Label>Total Weight (kgs)</Label>
+              <Label>Total Weight (kg)</Label>
               <Input type="number" value={formData.totalWeight || ""} onChange={e => setFormData(prev => ({ ...prev, totalWeight: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="0" />
             </div>
           </div>
