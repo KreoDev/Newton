@@ -7,8 +7,13 @@ export const createDocument = async (collectionName: string, data: Record<string
     const localStorageCompany = typeof window !== "undefined" ? localStorage.getItem("newton-layout-company") : null
     const inferredCompanyId = typeof data.companyId === "string" ? data.companyId : localStorageCompany
 
+    // Filter out undefined values (Firestore doesn't accept them)
+    const cleanedData = Object.fromEntries(
+      Object.entries(data).filter(([_, value]) => value !== undefined)
+    )
+
     const docRef = await addDoc(collection(db, collectionName), {
-      ...data,
+      ...cleanedData,
       ...(inferredCompanyId ? { companyId: inferredCompanyId } : {}),
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -24,8 +29,13 @@ export const createDocument = async (collectionName: string, data: Record<string
 
 export const updateDocument = async (collectionName: string, id: string, data: Record<string, unknown>, successMessage?: string) => {
   try {
+    // Filter out undefined values (Firestore doesn't accept them)
+    const cleanedData = Object.fromEntries(
+      Object.entries(data).filter(([_, value]) => value !== undefined)
+    )
+
     const updateData = {
-      ...data,
+      ...cleanedData,
       updatedAt: Date.now(),
       dbUpdatedAt: serverTimestamp(),
     }

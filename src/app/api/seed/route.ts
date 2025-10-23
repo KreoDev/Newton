@@ -229,12 +229,12 @@ const TRANSPORTERS = [
 ]
 
 const DEFAULT_PRODUCTS = [
-  { id: "p_gold", name: "Gold Ore", productCode: "AU-001", specifications: "Grade A Gold Ore" },
-  { id: "p_platinum", name: "Platinum Ore", productCode: "PT-001", specifications: "Grade A Platinum Ore" },
-  { id: "p_diamond", name: "Diamond Ore", productCode: "DI-001", specifications: "Raw Diamond Ore" },
-  { id: "p_iron", name: "Iron Ore", productCode: "FE-001", specifications: "High-grade Iron Ore" },
-  { id: "p_chrome", name: "Chrome Ore", productCode: "CR-001", specifications: "Chrome Concentrate" },
-  { id: "p_coal", name: "Coal", productCode: "CO-001", specifications: "Bituminous Coal" },
+  { id: "p_gold", name: "Gold Ore", code: "AU-001", specifications: "Grade A Gold Ore" },
+  { id: "p_platinum", name: "Platinum Ore", code: "PT-001", specifications: "Grade A Platinum Ore" },
+  { id: "p_diamond", name: "Diamond Ore", code: "DI-001", specifications: "Raw Diamond Ore" },
+  { id: "p_iron", name: "Iron Ore", code: "FE-001", specifications: "High-grade Iron Ore" },
+  { id: "p_chrome", name: "Chrome Ore", code: "CR-001", specifications: "Chrome Concentrate" },
+  { id: "p_coal", name: "Coal", code: "CO-001", specifications: "Bituminous Coal" },
 ]
 
 const DEFAULT_CLIENTS = [
