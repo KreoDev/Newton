@@ -67,7 +67,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
     clientCompanyId: "",
     dispatchStartDate: format(new Date(), "yyyy-MM-dd"),
     dispatchEndDate: format(new Date(), "yyyy-MM-dd"),
-    totalWeight: 0,
+    totalWeight: company.orderConfig?.minTotalWeight ?? 0,
     collectionSiteId: "",
     destinationSiteId: "",
     productId: "",
@@ -461,11 +461,17 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 value={formData.totalWeight || ""}
                 onChange={e => {
                   const cleaned = utilityService.validateWholeNumber(e.target.value)
-                  setFormData(prev => ({ ...prev, totalWeight: utilityService.parseWholeNumber(cleaned) }))
+                  const parsed = utilityService.parseWholeNumber(cleaned)
+                  const minWeight = company.orderConfig?.minTotalWeight ?? 0
+                  // Enforce minimum weight
+                  setFormData(prev => ({ ...prev, totalWeight: parsed < minWeight && parsed > 0 ? minWeight : parsed }))
                 }}
                 className="mt-2"
-                placeholder="0"
+                placeholder={`Min: ${company.orderConfig?.minTotalWeight ?? 0} kg`}
               />
+              {company.orderConfig?.minTotalWeight && (
+                <p className="text-xs text-muted-foreground mt-1">Minimum: {company.orderConfig.minTotalWeight} kg</p>
+              )}
             </div>
           </div>
         )

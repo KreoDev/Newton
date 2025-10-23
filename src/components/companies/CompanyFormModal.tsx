@@ -52,6 +52,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   const [orderNumberMode, setOrderNumberMode] = useState<"autoOnly" | "manualAllowed">("autoOnly")
   const [orderNumberPrefix, setOrderNumberPrefix] = useState("")
   const [orderHistoryDays, setOrderHistoryDays] = useState(60)
+  const [minTotalWeight, setMinTotalWeight] = useState(30000)
   const [defaultDailyTruckLimit, setDefaultDailyTruckLimit] = useState(10)
   const [defaultDailyWeightLimit, setDefaultDailyWeightLimit] = useState(100)
   const [defaultMonthlyLimit, setDefaultMonthlyLimit] = useState(1000)
@@ -223,6 +224,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
         setOrderNumberMode(company.orderConfig.orderNumberMode)
         setOrderNumberPrefix(company.orderConfig.orderNumberPrefix || "")
         setOrderHistoryDays(company.orderConfig.orderHistoryDays || 60)
+        setMinTotalWeight(company.orderConfig.minTotalWeight || 30000)
         setDefaultDailyTruckLimit(company.orderConfig.defaultDailyTruckLimit)
         setDefaultDailyWeightLimit(company.orderConfig.defaultDailyWeightLimit)
         setDefaultMonthlyLimit(company.orderConfig.defaultMonthlyLimit || 1000)
@@ -594,6 +596,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
         companyData.orderConfig = {
           orderNumberMode,
           orderHistoryDays,
+          minTotalWeight,
           defaultDailyTruckLimit,
           defaultDailyWeightLimit,
           defaultMonthlyLimit,
@@ -915,6 +918,12 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
                       <Label htmlFor="orderHistoryDays">Order History Window (Days)</Label>
                       <Input id="orderHistoryDays" type="number" value={orderHistoryDays} onChange={e => setOrderHistoryDays(Math.min(Math.max(Number(e.target.value), 1), 120))} min="1" max="120" />
                       <p className="text-xs text-muted-foreground">Number of days of recent orders to load in real-time (max 120 days)</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="minTotalWeight">Minimum Total Weight (kg)</Label>
+                      <Input id="minTotalWeight" type="number" value={minTotalWeight} onChange={e => setMinTotalWeight(Number(e.target.value))} min="1" />
+                      <p className="text-xs text-muted-foreground">Minimum weight required when creating a new order</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
