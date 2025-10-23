@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useLayout } from "@/hooks/useLayout"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Home, Settings, Menu, X, LogOut, ChevronDown, Building2, Users, Package, MapPin, Shield, Bell, UserCog, Truck, LayoutDashboard } from "lucide-react"
+import { Home, Settings, Menu, X, LogOut, ChevronDown, Building2, Users, Package, MapPin, Shield, Bell, UserCog, Truck, LayoutDashboard, ClipboardList } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -126,6 +126,12 @@ const baseNavigation = [
     icon: Truck,
     requiresTransporter: true,
     requiredPermissions: [PERMISSIONS.ASSETS_VIEW, PERMISSIONS.ASSETS_ADD, PERMISSIONS.ASSETS_EDIT]
+  },
+  {
+    name: "Orders",
+    href: "/orders",
+    icon: ClipboardList,
+    requiredPermissions: [PERMISSIONS.ORDERS_VIEW, PERMISSIONS.ORDERS_CREATE, PERMISSIONS.ORDERS_ALLOCATE]
   },
   {
     name: "Users",

@@ -1,6 +1,6 @@
 import { signal, Signal } from "@preact/signals-react"
 import { log } from "@/services/console.service"
-import type { User, Company, Role, Product, Group, Site, Client, Asset } from "@/types"
+import type { User, Company, Role, Product, Group, Site, Client, Asset, Order } from "@/types"
 import { createCollectionListener } from "@/lib/firebase-utils"
 
 class Data {
@@ -14,11 +14,12 @@ class Data {
   sites: Signal<Site[]> = signal([])
   clients: Signal<Client[]> = signal([])
   assets: Signal<Asset[]> = signal([])
+  orders: Signal<Order[]> = signal([])
   loading: Signal<boolean> = signal(true)
 
   private unsubscribers: (() => void)[] = []
   private loadedCollections = new Set<string>()
-  private expectedCollections = 8 // companies, roles, users, products, groups, sites, clients, assets
+  private expectedCollections = 9 // companies, roles, users, products, groups, sites, clients, assets, orders
 
   private constructor() {
     log.loaded("Data")
@@ -94,6 +95,12 @@ class Data {
       onFirstLoad: () => this.markCollectionLoaded("assets"),
     })
 
+    // Orders: Company-scoped
+    const ordersListener = createCollectionListener<Order>("orders", this.orders, {
+      companyScoped: true,
+      onFirstLoad: () => this.markCollectionLoaded("orders"),
+    })
+
     // Start all listeners
     const unsubCompanies = companiesListener()
     const unsubRoles = rolesListener() // No companyId - roles are global
@@ -103,8 +110,9 @@ class Data {
     const unsubSites = sitesListener(companyId)
     const unsubClients = clientsListener(companyId)
     const unsubAssets = assetsListener(companyId)
+    const unsubOrders = ordersListener(companyId)
 
-    this.unsubscribers = [unsubCompanies, unsubRoles, unsubUsers, unsubProducts, unsubGroups, unsubSites, unsubClients, unsubAssets]
+    this.unsubscribers = [unsubCompanies, unsubRoles, unsubUsers, unsubProducts, unsubGroups, unsubSites, unsubClients, unsubAssets, unsubOrders]
 
     return () => this.cleanup()
   }
@@ -121,6 +129,7 @@ class Data {
     this.sites.value = []
     this.clients.value = []
     this.assets.value = []
+    this.orders.value = []
     // Note: Don't clear companies and roles as they're global
   }
 }

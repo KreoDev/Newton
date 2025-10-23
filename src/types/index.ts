@@ -239,6 +239,15 @@ export interface Asset extends Timestamped, CompanyScoped {
   deletedReason?: string
 }
 
+// Order allocation structure
+export interface Allocation {
+  companyId: string // Transporter company receiving allocation
+  allocatedWeight: number // Weight allocated to this transporter
+  loadingDates: string[] // ISO date strings for loading dates
+  completedWeight: number // Weight completed so far
+  status: "pending" | "in_progress" | "completed" // Allocation status
+}
+
 export interface Order extends Timestamped, CompanyScoped {
   id: string
   orderNumber: string
@@ -257,6 +266,7 @@ export interface Order extends Timestamped, CompanyScoped {
   monthlyLimit?: number
   tripLimit: number
   tripDuration?: number
+  allocations: Allocation[] // Array of allocations to transporters/LCs
   status: "pending" | "allocated" | "completed" | "cancelled"
   createdById: string
   completedWeight?: number
