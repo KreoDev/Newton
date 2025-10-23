@@ -668,14 +668,14 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                     return (
                       <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">Calculated Trip Capacity:</span>
+                          <span className="text-sm font-medium">Per Truck Trip Capacity:</span>
                         </div>
                         <div className="text-sm space-y-1">
-                          <p>• <span className="font-semibold">{tripsPerDay} trips per day</span> (based on {operatingHours}-hour operating window)</p>
-                          <p>• <span className="font-semibold">{totalTrips} total trips</span> over {totalDays} day{totalDays > 1 ? 's' : ''}</p>
+                          <p>• <span className="font-semibold">{tripsPerDay} trips per day per truck</span> (based on {operatingHours}-hour operating window)</p>
+                          <p>• <span className="font-semibold">{totalTrips} total trips per truck</span> over {totalDays} day{totalDays > 1 ? 's' : ''}</p>
                         </div>
                         {tripsPerDay === 0 && (
-                          <p className="text-sm text-yellow-600 mt-2">⚠️ Trip duration exceeds daily operating hours. Only 1 trip can be started per day.</p>
+                          <p className="text-sm text-yellow-600 mt-2">⚠️ Trip duration exceeds daily operating hours. Only 1 trip can be started per truck per day.</p>
                         )}
                       </div>
                     )
@@ -685,12 +685,12 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                     return (
                       <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-yellow-600">⚠️ Multi-Day Trip Warning:</span>
+                          <span className="text-sm font-medium text-yellow-600">⚠️ Multi-Day Trip Warning (Per Truck):</span>
                         </div>
                         <div className="text-sm space-y-1">
                           <p>• Trip duration exceeds 24 hours</p>
-                          <p>• <span className="font-semibold">{daysPerTrip} days required per trip</span></p>
-                          <p className="text-xs text-muted-foreground mt-2">Each trip will span multiple days. Consider reducing trip duration or adjusting order timeline.</p>
+                          <p>• <span className="font-semibold">{daysPerTrip} days required per trip per truck</span></p>
+                          <p className="text-xs text-muted-foreground mt-2">Each truck&apos;s trip will span multiple days. Consider reducing trip duration or adjusting order timeline.</p>
                         </div>
                       </div>
                     )
