@@ -97,7 +97,6 @@ System Checks Order Number Configuration:
   - Select Destination Site (siteType = destination) from List
   - Select Product from Catalog
   - Adjust Seal Requirements (Pre-filled with Defaults)
-  - Adjust Daily Truck Limit (Pre-filled with Default)
   - Adjust Daily Weight Limit (Pre-filled with Default)
   - Adjust Trip Limits (Pre-filled with Default: 1 trip per 24 hours):
     Option 1: Keep or Adjust Maximum Trips Per Day:

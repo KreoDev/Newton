@@ -102,6 +102,12 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
   const lcCompanies = companies.filter(c => c.companyType === "logistics_coordinator")
   const transporterCompanies = companies.filter(c => c.companyType === "transporter")
 
+  // Review step data
+  const reviewClient = clients.find(c => c.id === formData.clientCompanyId)
+  const reviewProduct = products.find(p => p.id === formData.productId)
+  const reviewCollectionSite = sites.find(s => s.id === formData.collectionSiteId)
+  const reviewDestinationSite = sites.find(s => s.id === formData.destinationSiteId)
+
   const validateStep = async (step: number): Promise<boolean> => {
     switch (step) {
       case 1: // Order Number
@@ -692,6 +698,8 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 })()}
               </div>
             )}
+          </div>
+        )
 
       case 8: // Allocation
         return (
@@ -746,11 +754,6 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         )
 
       case 9: // Review
-        const client = clients.find(c => c.id === formData.clientCompanyId)
-        const product = products.find(p => p.id === formData.productId)
-        const collectionSite = sites.find(s => s.id === formData.collectionSiteId)
-        const destinationSite = sites.find(s => s.id === formData.destinationSiteId)
-
         return (
           <div className="space-y-4">
             <div>
@@ -770,11 +773,11 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Client</Label>
-                  <p className="font-medium">{client?.name || "Unknown"}</p>
+                  <p className="font-medium">{reviewClient?.name || "Unknown"}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Product</Label>
-                  <p className="font-medium">{product?.name || "Unknown"}</p>
+                  <p className="font-medium">{reviewProduct?.name || "Unknown"}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Total Weight</Label>
@@ -788,11 +791,11 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Collection Site</Label>
-                  <p className="font-medium">{collectionSite?.name || "Unknown"}</p>
+                  <p className="font-medium">{reviewCollectionSite?.name || "Unknown"}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Destination Site</Label>
-                  <p className="font-medium">{destinationSite?.name || "Unknown"}</p>
+                  <p className="font-medium">{reviewDestinationSite?.name || "Unknown"}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Seals</Label>
