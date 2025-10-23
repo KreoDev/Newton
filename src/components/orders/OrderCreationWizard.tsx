@@ -401,6 +401,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                           dispatchStartDate: date ? format(date, "yyyy-MM-dd") : "",
                         }))
                       }
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     />
                   </PopoverContent>
                 </Popover>
@@ -431,7 +432,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             </div>
 
             <div>
-              <Label>Total Weight (tons)</Label>
+              <Label>Total Weight (kgs)</Label>
               <Input type="number" value={formData.totalWeight || ""} onChange={e => setFormData(prev => ({ ...prev, totalWeight: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="0" />
             </div>
           </div>
