@@ -468,9 +468,14 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 onChange={e => {
                   const cleaned = utilityService.validateWholeNumber(e.target.value)
                   const parsed = utilityService.parseWholeNumber(cleaned)
+                  setFormData(prev => ({ ...prev, totalWeight: parsed }))
+                }}
+                onBlur={() => {
+                  // Enforce minimum weight when user leaves the field
                   const minWeight = company.orderConfig?.minTotalWeight ?? 0
-                  // Enforce minimum weight
-                  setFormData(prev => ({ ...prev, totalWeight: parsed < minWeight && parsed > 0 ? minWeight : parsed }))
+                  if (formData.totalWeight > 0 && formData.totalWeight < minWeight) {
+                    setFormData(prev => ({ ...prev, totalWeight: minWeight }))
+                  }
                 }}
                 className="mt-2"
                 placeholder={`Min: ${company.orderConfig?.minTotalWeight ?? 0} kg`}
