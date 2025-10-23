@@ -113,6 +113,7 @@ export interface LogisticsCoordinatorConfig {
 export interface OrderConfig {
   orderNumberMode: "autoOnly" | "manualAllowed"
   orderNumberPrefix?: string
+  orderHistoryDays: number // Days of recent orders to load in real-time (default: 60, max: 120)
   defaultDailyTruckLimit: number
   defaultDailyWeightLimit: number
   defaultMonthlyLimit?: number

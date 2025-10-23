@@ -1,7 +1,7 @@
 import { createDocument, updateDocument, deleteDocument } from "@/lib/firebase-utils"
 import type { Order, Allocation, Site } from "@/types"
 import { data as globalData } from "@/services/data.service"
-import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore"
+import { collection, query, where, getDocs, orderBy, limit, startAfter, QueryDocumentSnapshot, Timestamp, DocumentData, Query } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 /**
@@ -169,6 +169,135 @@ export class OrderService {
     }
 
     return { isValid: true }
+  }
+
+  /**
+   * Validate order number uniqueness (Firebase check - checks ALL orders, not just recent)
+   * Use this for manual entry validation to ensure no duplicates exist in the entire database
+   * @param orderNumber Order number to validate
+   * @param companyId Company ID
+   * @param excludeId Order ID to exclude (for edits)
+   * @returns Validation result
+   */
+  static async validateOrderNumberGlobal(orderNumber: string, companyId: string, excludeId?: string): Promise<{ isValid: boolean; error?: string }> {
+    try {
+      const ordersRef = collection(db, "orders")
+      const q = query(
+        ordersRef,
+        where("companyId", "==", companyId),
+        where("orderNumber", "==", orderNumber)
+      )
+
+      const snapshot = await getDocs(q)
+
+      // Check if any documents exist (excluding the current one if editing)
+      const exists = snapshot.docs.some(doc => doc.id !== excludeId)
+
+      if (exists) {
+        return { isValid: false, error: "Order number already exists" }
+      }
+
+      return { isValid: true }
+    } catch (error) {
+      console.error("Error validating order number:", error)
+      return { isValid: false, error: "Failed to validate order number" }
+    }
+  }
+
+  /**
+   * Load historical orders (one-off fetch, no real-time listener)
+   * Uses cursor-based pagination for efficient loading of large datasets
+   * @param companyId Company ID
+   * @param companyType Company type (mine, transporter, logistics_coordinator)
+   * @param startDate Start date for date range
+   * @param endDate End date for date range
+   * @param lastDoc Last document from previous page (for pagination)
+   * @returns Orders, hasMore flag, and cursor for next page
+   */
+  static async loadHistoricalOrders(
+    companyId: string,
+    companyType: "mine" | "transporter" | "logistics_coordinator",
+    startDate: Date,
+    endDate: Date,
+    lastDoc?: QueryDocumentSnapshot<DocumentData>
+  ): Promise<{ orders: Order[]; hasMore: boolean; lastDoc?: QueryDocumentSnapshot<DocumentData> }> {
+    try {
+      const ordersRef = collection(db, "orders")
+      const batchSize = 500 // Firestore recommended batch size
+
+      // Convert dates to Firestore timestamps
+      const startTimestamp = Timestamp.fromDate(startDate)
+      const endTimestamp = Timestamp.fromDate(endDate)
+
+      // Build query based on company type
+      let q: Query<DocumentData>;
+
+      if (companyType === "mine") {
+        // Mine companies: See all orders they created
+        q = query(
+          ordersRef,
+          where("companyId", "==", companyId),
+          where("dbCreatedAt", ">=", startTimestamp),
+          where("dbCreatedAt", "<=", endTimestamp),
+          orderBy("dbCreatedAt", "desc"),
+          limit(batchSize + 1) // Load one extra to check if there are more
+        )
+      } else {
+        // Transporters and LCs: See orders allocated to them
+        // Note: This requires a composite index on (allocations.companyId, dbCreatedAt)
+        q = query(
+          ordersRef,
+          where("dbCreatedAt", ">=", startTimestamp),
+          where("dbCreatedAt", "<=", endTimestamp),
+          orderBy("dbCreatedAt", "desc"),
+          limit(batchSize + 1)
+        )
+      }
+
+      // Add pagination cursor if provided
+      if (lastDoc) {
+        q = query(q, startAfter(lastDoc))
+      }
+
+      const snapshot = await getDocs(q)
+
+      // Check if there are more results
+      const hasMore = snapshot.docs.length > batchSize
+      const docs = hasMore ? snapshot.docs.slice(0, batchSize) : snapshot.docs
+
+      // Map documents to Order objects
+      let orders = docs.map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          ...data
+        } as Order
+      })
+
+      // Filter for transporters and LCs (check allocations)
+      if (companyType === "transporter") {
+        orders = orders.filter(o =>
+          o.allocations.some(a => a.companyId === companyId)
+        )
+      } else if (companyType === "logistics_coordinator") {
+        orders = orders.filter(o =>
+          o.companyId === companyId ||
+          o.allocations.some(a => a.companyId === companyId)
+        )
+      }
+
+      // Get last document for next pagination
+      const newLastDoc = hasMore ? docs[docs.length - 1] : undefined
+
+      return {
+        orders,
+        hasMore,
+        lastDoc: newLastDoc
+      }
+    } catch (error) {
+      console.error("Error loading historical orders:", error)
+      return { orders: [], hasMore: false }
+    }
   }
 
   /**

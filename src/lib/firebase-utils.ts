@@ -50,6 +50,7 @@ export function createCollectionListener<T>(
   options?: {
     companyScoped?: boolean
     filter?: (item: T) => boolean
+    additionalConstraints?: any[] // Additional Firestore query constraints (e.g., where, orderBy)
     onFirstLoad?: () => void
   }
 ) {
@@ -59,6 +60,11 @@ export function createCollectionListener<T>(
 
     if (options?.companyScoped && companyId) {
       constraints.push(where("companyId", "==", companyId))
+    }
+
+    // Add any additional constraints (e.g., date filtering)
+    if (options?.additionalConstraints) {
+      constraints.push(...options.additionalConstraints)
     }
 
     const q = constraints.length > 0 ? query(collection(db, collectionName), ...constraints) : collection(db, collectionName)
