@@ -5,7 +5,7 @@ import { useSignals } from "@preact/signals-react/runtime"
 import { Save, User, Shield, Palette, Moon, Sun, Layout, LayoutGrid, Bell, Table } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useLayout } from "@/hooks/useLayout"
-import { useAssetViewPreference } from "@/hooks/useAssetViewPreference"
+import { useListViewPreference } from "@/hooks/useListViewPreference"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -25,7 +25,7 @@ export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
   const { theme, setTheme } = useTheme()
   const { layout, setLayout } = useLayout()
-  const { view: assetView, updateView: updateAssetView } = useAssetViewPreference()
+  const { view: listView, updateView: updateListView } = useListViewPreference()
   const { showSuccess, showError } = useAlert()
   const [mounted, setMounted] = useState(false)
   const [profile, setProfile] = useState({
@@ -139,7 +139,7 @@ export default function SettingsPage() {
     }
   }
 
-  const getAssetViewIcon = (viewOption: string) => {
+  const getListViewIcon = (viewOption: string) => {
     switch (viewOption) {
       case "card":
         return <LayoutGrid className="h-4 w-4" />
@@ -150,7 +150,7 @@ export default function SettingsPage() {
     }
   }
 
-  const getAssetViewLabel = (viewOption: string) => {
+  const getListViewLabel = (viewOption: string) => {
     switch (viewOption) {
       case "card":
         return "Card View"
@@ -161,8 +161,8 @@ export default function SettingsPage() {
     }
   }
 
-  const handleAssetViewChange = async (newView: "card" | "table") => {
-    await updateAssetView(newView)
+  const handleListViewChange = async (newView: "card" | "table") => {
+    await updateListView(newView)
   }
 
   // Don't render theme-dependent content until mounted
@@ -328,15 +328,15 @@ export default function SettingsPage() {
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
-                      <h4 className="font-medium">Assets Page Default View</h4>
-                      <p className="text-sm text-muted-foreground">Choose your preferred view for the assets page.</p>
+                      <h4 className="font-medium">Default List View</h4>
+                      <p className="text-sm text-muted-foreground">Choose your preferred view for all entity lists (Products, Clients, Sites, Roles, Companies, etc.).</p>
                     </div>
-                    <Select value={assetView} onValueChange={handleAssetViewChange}>
+                    <Select value={listView} onValueChange={handleListViewChange}>
                       <SelectTrigger className="w-36">
                         <SelectValue>
                           <div className="flex items-center space-x-2">
-                            {getAssetViewIcon(assetView)}
-                            <span>{getAssetViewLabel(assetView)}</span>
+                            {getListViewIcon(listView)}
+                            <span>{getListViewLabel(listView)}</span>
                           </div>
                         </SelectValue>
                       </SelectTrigger>

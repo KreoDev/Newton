@@ -1,207 +1,157 @@
 "use client"
 
 import { useState } from "react"
-import { useAuth } from "@/contexts/AuthContext"
-import { useViewPermission } from "@/hooks/useViewPermission"
-import { PERMISSIONS } from "@/lib/permissions"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { ViewOnlyBadge } from "@/components/ui/view-only-badge"
-import { Plus, Search, MapPin, Edit, ToggleLeft, ToggleRight, Trash2, FileText } from "lucide-react"
+import { MapPin, Edit, ToggleLeft, ToggleRight, Trash2, FileText } from "lucide-react"
 import type { Site } from "@/types"
-import { useAlert } from "@/hooks/useAlert"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { SiteFormModal } from "@/components/sites/SiteFormModal"
-import { useOptimizedSearch } from "@/hooks/useOptimizedSearch"
 import { SEARCH_CONFIGS } from "@/config/search-configs"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { PERMISSIONS } from "@/lib/permissions"
 import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { updateDocument, deleteDocument } from "@/lib/firebase-utils"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
+import { useSimpleModalState } from "@/hooks/useModalState"
+import { useEntityList } from "@/hooks/useEntityList"
+import { useEntityActions } from "@/hooks/useEntityActions"
+import { EntityListPage } from "@/components/ui/entity-list/EntityListPage"
+import { EntityCardListView } from "@/components/ui/entity-card-list/EntityCardListView"
+import { EntityCardSearchBar } from "@/components/ui/entity-card-list/EntityCardSearchBar"
+import { EntityCard } from "@/components/ui/entity-card-list/EntityCard"
 
 export default function SitesPage() {
   useSignals() // Required for reactivity
-  const { user } = useAuth()
-  const { canView, canManage, isViewOnly, loading: permissionLoading } = useViewPermission(
-    PERMISSIONS.ADMIN_SITES_VIEW,
-    PERMISSIONS.ADMIN_SITES
-  )
-  const { showSuccess, showError, showConfirm } = useAlert()
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [editingSite, setEditingSite] = useState<Site | undefined>(undefined)
+
+  const { showCreateModal, setShowCreateModal, editingEntity: editingSite, setEditingEntity: setEditingSite } = useSimpleModalState<Site>()
   const [filterType, setFilterType] = useState<string>("all")
 
   // Get sites from centralized data service
   const sites = globalData.sites.value
   const loading = globalData.loading.value
 
-  const { searchTerm, setSearchTerm, filteredItems: searchedSites, isSearching } = useOptimizedSearch(sites, SEARCH_CONFIGS.sites)
+  // Use entity list hook (but we'll use custom filtering for siteType)
+  const {
+    canView,
+    canManage,
+    isViewOnly,
+    permissionLoading,
+    searchTerm,
+    setSearchTerm,
+    isSearching,
+    filteredItems: searchedSites,
+  } = useEntityList({
+    items: sites,
+    searchConfig: SEARCH_CONFIGS.sites,
+    viewPermission: PERMISSIONS.ADMIN_SITES_VIEW,
+    managePermission: PERMISSIONS.ADMIN_SITES,
+    globalDataLoading: loading,
+  })
 
-  const filteredSites = searchedSites.filter(site => {
+  // Custom filter by siteType (not status)
+  const filteredSites = searchedSites.filter((site) => {
     if (filterType === "all") return true
     return site.siteType === filterType
   })
 
-  const toggleSiteStatus = async (site: Site) => {
-    try {
-      await updateDocument("sites", site.id, {
-        isActive: !site.isActive,
-      })
-      showSuccess(
-        `Site ${site.isActive ? "Deactivated" : "Activated"}`,
-        `${site.name} has been ${site.isActive ? "deactivated" : "activated"} successfully.`
-      )
-    } catch (error) {
-      showError("Failed to Update Site", error instanceof Error ? error.message : "An unexpected error occurred.")
-    }
-  }
-
-  const handleDeleteClick = async (site: Site) => {
-    try {
-      // Check if site is used in any orders (as collection or destination)
+  // Use entity actions hook
+  const { toggleStatus, deleteEntity } = useEntityActions({
+    collection: "sites",
+    entityName: "Site",
+    usageCheckQuery: async (site) => {
       const ordersQuery1 = query(collection(db, "orders"), where("collectionSiteId", "==", site.id))
       const ordersQuery2 = query(collection(db, "orders"), where("destinationSiteId", "==", site.id))
 
-      const [ordersSnapshot1, ordersSnapshot2] = await Promise.all([
-        getDocs(ordersQuery1),
-        getDocs(ordersQuery2)
-      ])
+      const [ordersSnapshot1, ordersSnapshot2] = await Promise.all([getDocs(ordersQuery1), getDocs(ordersQuery2)])
 
-      const hasOrders = !ordersSnapshot1.empty || !ordersSnapshot2.empty
-      const orderCount = ordersSnapshot1.size + ordersSnapshot2.size
+      const count = ordersSnapshot1.size + ordersSnapshot2.size
+      const hasOrders = count > 0
 
-      if (hasOrders) {
-        showError(
-          "Cannot Delete Site",
-          `This site cannot be deleted because it has ${orderCount} order${orderCount > 1 ? 's' : ''} associated with it. You can deactivate the site instead to prevent it from being used in new orders.`
-        )
-        return
+      return {
+        inUse: hasOrders,
+        count,
+        message: `This site cannot be deleted because it has ${count} order${count > 1 ? "s" : ""} associated with it. You can deactivate the site instead to prevent it from being used in new orders.`,
       }
-
-      const confirmed = await showConfirm(
-        "Delete Site",
-        `Are you sure you want to delete "${site.name}"? This action cannot be undone.`,
-        "Delete"
-      )
-      if (!confirmed) return
-
-      try {
-        await deleteDocument("sites", site.id, "Site deleted successfully")
-      } catch (error) {
-        showError("Failed to Delete Site", error instanceof Error ? error.message : "An unexpected error occurred.")
-      }
-    } catch (error) {
-      showError("Error", "Failed to check if site can be deleted. Please try again.")
-    }
-  }
-
-  if (permissionLoading) {
-    return <LoadingSpinner fullScreen message="Checking permissions..." />
-  }
-
-  if (!canView) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">You don&apos;t have permission to view sites.</p>
-      </div>
-    )
-  }
+    },
+    canManage,
+  })
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Sites</h1>
-            <p className="text-muted-foreground">
-              {isViewOnly ? "View collection and destination sites" : "Manage collection and destination sites"}
-            </p>
-          </div>
-          {isViewOnly && <ViewOnlyBadge />}
-        </div>
-        {canManage && (
-          <Button variant="outline" onClick={() => setShowCreateModal(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Site
-          </Button>
+    <EntityListPage
+      title="Sites"
+      description={(isViewOnly) => (isViewOnly ? "View collection and destination sites" : "Manage collection and destination sites")}
+      addButtonLabel="Add Site"
+      onAddClick={() => setShowCreateModal(true)}
+      canView={canView}
+      canManage={canManage}
+      isViewOnly={isViewOnly}
+      permissionLoading={permissionLoading}
+    >
+      <EntityCardListView
+        items={filteredSites}
+        loading={loading}
+        isSearching={isSearching}
+        emptyMessage="No sites found"
+        loadingMessage="Loading sites..."
+        searchBar={
+          <EntityCardSearchBar
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Search by name or address..."
+            filterValue={filterType}
+            onFilterChange={setFilterType}
+            filterOptions={[
+              { label: "All Types", value: "all" },
+              { label: "Collection", value: "collection" },
+              { label: "Destination", value: "destination" },
+            ]}
+            filterLabel="All Types"
+          />
+        }
+        renderCard={(site) => (
+          <EntityCard
+            icon={<MapPin className="h-5 w-5 text-primary" />}
+            title={
+              <div className="flex items-center gap-2">
+                <span>{site.name}</span>
+                <Badge variant={site.siteType === "collection" ? "default" : "secondary"}>{site.siteType}</Badge>
+              </div>
+            }
+            subtitle={site.physicalAddress}
+            metadata={
+              site.mainContactId
+                ? [
+                    site.secondaryContactIds && site.secondaryContactIds.length > 0
+                      ? `${site.secondaryContactIds.length + 1} contact(s) assigned`
+                      : "1 contact assigned",
+                  ]
+                : undefined
+            }
+            statusBadge={<Badge variant={site.isActive ? "success" : "secondary"}>{site.isActive ? "Active" : "Inactive"}</Badge>}
+            actions={
+              <>
+                {canManage ? (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => toggleStatus(site)} title={site.isActive ? "Deactivate site" : "Activate site"}>
+                      {site.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setEditingSite(site)} title="Edit site">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteEntity(site)} title="Delete site">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </>
+                ) : isViewOnly ? (
+                  <Button variant="ghost" size="sm" onClick={() => setEditingSite(site)} title="View site details">
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                ) : null}
+              </>
+            }
+          />
         )}
-      </div>
-
-      <Card className="glass-surface">
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search by name or address..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
-            </div>
-            <select value={filterType} onChange={e => setFilterType(e.target.value)} className="border rounded-md px-3 py-2 bg-background/60 backdrop-blur-md">
-              <option value="all">All Types</option>
-              <option value="collection">Collection</option>
-              <option value="destination">Destination</option>
-            </select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {(loading || isSearching) ? (
-            <div className="flex justify-center py-12">
-              <LoadingSpinner size="lg" message={loading ? "Loading sites..." : "Searching..."} />
-            </div>
-          ) : filteredSites.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No sites found</div>
-          ) : (
-            <div className="space-y-4">
-              {filteredSites.map(site => (
-                <div key={site.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors backdrop-blur-sm">
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <MapPin className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{site.name}</h3>
-                        <Badge variant={site.siteType === "collection" ? "default" : "secondary"}>
-                          {site.siteType}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{site.physicalAddress}</p>
-                      {site.mainContactId && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {site.secondaryContactIds && site.secondaryContactIds.length > 0
-                            ? `${site.secondaryContactIds.length + 1} contact(s) assigned`
-                            : "1 contact assigned"}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {canManage ? (
-                      <>
-                        <Button variant="ghost" size="sm" onClick={() => toggleSiteStatus(site)} title={site.isActive ? "Deactivate site" : "Activate site"}>
-                          {site.isActive ? <ToggleRight className="h-5 w-5 text-green-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setEditingSite(site)} title="Edit site">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(site)} title="Delete site">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </>
-                    ) : isViewOnly ? (
-                      <Button variant="ghost" size="sm" onClick={() => setEditingSite(site)} title="View site details">
-                        <FileText className="h-4 w-4" />
-                      </Button>
-                    ) : null}
-                    <Badge variant={site.isActive ? "success" : "secondary"}>{site.isActive ? "Active" : "Inactive"}</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      />
 
       {showCreateModal && <SiteFormModal open={showCreateModal} onClose={() => setShowCreateModal(false)} onSuccess={() => setShowCreateModal(false)} />}
 
@@ -214,6 +164,6 @@ export default function SitesPage() {
           viewOnly={isViewOnly}
         />
       )}
-    </div>
+    </EntityListPage>
   )
 }

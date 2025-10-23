@@ -47,7 +47,7 @@ export function DataTable<TData, TValue>({
   data,
   defaultColumnOrder,
   columnOrderVersion,
-  defaultPageSize = 10,
+  defaultPageSize = 20,
   searchable = true,
   searchPlaceholder = "Search...",
   toolbar,
