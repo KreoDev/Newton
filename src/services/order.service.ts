@@ -20,8 +20,15 @@ export class OrderService {
    * @returns Created order ID
    */
   static async create(orderData: Omit<Order, "id" | "createdAt" | "updatedAt" | "dbCreatedAt" | "dbUpdatedAt">, toastMessage = "Order created successfully"): Promise<string> {
-    // Set order status based on allocations
-    const status = orderData.allocations && orderData.allocations.length > 0 ? "allocated" : "pending"
+    // Set order status based on assignment type:
+    // - If assignedToLCId exists → "pending" (LC needs to allocate to transporters)
+    // - If allocations exist → "allocated" (already allocated to transporters)
+    // - Otherwise → "pending"
+    const status = orderData.assignedToLCId
+      ? "pending"  // Assigned to LC, awaiting allocation
+      : (orderData.allocations && orderData.allocations.length > 0
+          ? "allocated"
+          : "pending")
 
     const data = {
       ...orderData,

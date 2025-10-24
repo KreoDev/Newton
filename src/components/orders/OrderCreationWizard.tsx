@@ -502,20 +502,16 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
     setLoading(true)
     try {
       // Build allocations array
+      // Determine allocation structure based on mode
       let allocations: Allocation[] = []
+      let assignedToLCId: string | undefined = undefined
 
       if (formData.allocationMode === "lc" && formData.lcCompanyId) {
-        allocations = [
-          {
-            companyId: formData.lcCompanyId,
-            numberOfTrucks: 0, // LC manages trucks, so we don't specify count
-            allocatedWeight: formData.totalWeight,
-            loadingDates: [formData.dispatchStartDate],
-            completedWeight: 0,
-            status: "pending" as const,
-          },
-        ]
+        // Assign to LC - no allocations yet, LC will create them
+        assignedToLCId = formData.lcCompanyId
+        allocations = [] // Empty - LC hasn't allocated to transporters yet
       } else if (formData.allocationMode === "transporters") {
+        // Direct allocation to transporters
         allocations = formData.allocations
       }
 
@@ -537,7 +533,8 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         monthlyLimit: formData.monthlyLimit,
         tripLimit: formData.tripLimit,
         tripDuration: formData.tripConfigMode === "duration" ? formData.tripDuration : undefined,
-        allocations,
+        assignedToLCId, // Set if assigned to LC
+        allocations, // Empty if LC mode, populated if direct transporter mode
         status: "pending", // Will be set automatically by service
         createdById: user.id,
       }

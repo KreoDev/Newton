@@ -7,7 +7,7 @@ import { DataTable } from "@/components/ui/data-table/DataTable"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Calendar as CalendarIcon, FileText, XCircle, History, ChevronDown, X } from "lucide-react"
+import { Calendar as CalendarIcon, FileText, XCircle, History, ChevronDown, X, ClipboardList } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { OrderStatusBadge } from "./OrderStatusBadge"
 import { FilterableColumnHeader } from "@/components/ui/data-table/FilterableColumnHeader"
@@ -196,6 +196,9 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
       header: "Actions",
       cell: ({ row }) => {
         const order = row.original
+        const isPending = order.status === "pending"
+        const canAllocate = company?.id === order.assignedToLCId
+
         return (
           <div className="flex items-center gap-2">
             <Link href={`/orders/${order.id}`}>
@@ -203,7 +206,13 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
                 <FileText className="h-4 w-4" />
               </Button>
             </Link>
-
+            {isPending && canAllocate && (
+              <Link href={`/orders/allocate/${order.id}`}>
+                <Button variant="ghost" size="sm" className="text-primary hover:text-primary">
+                  <ClipboardList className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
             {canCancel && order.status !== "cancelled" && order.status !== "completed" && (
               <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleCancel(order.id)}>
                 <XCircle className="h-4 w-4" />

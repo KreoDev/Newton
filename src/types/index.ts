@@ -270,7 +270,8 @@ export interface Order extends Timestamped, CompanyScoped {
   monthlyLimit?: number
   tripLimit: number
   tripDuration?: number
-  allocations: Allocation[] // Array of allocations to transporters/LCs
+  assignedToLCId?: string // Logistics Coordinator company ID (if order assigned to LC for allocation)
+  allocations: Allocation[] // Array of allocations to transporters (empty if assigned to LC and not yet allocated)
   status: "pending" | "allocated" | "completed" | "cancelled"
   createdById: string
   completedWeight?: number

@@ -7,7 +7,7 @@ import { useCompany } from "@/contexts/CompanyContext"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, XCircle } from "lucide-react"
+import { ArrowLeft, XCircle, ClipboardList } from "lucide-react"
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge"
 import { OrderService } from "@/services/order.service"
 import { data as globalData } from "@/services/data.service"
@@ -47,10 +47,19 @@ export default function OrderDetailsPage() {
     [order, globalData.sites.value]
   )
 
+  const assignedLC = useMemo(() =>
+    order?.assignedToLCId ? globalData.companies.value.find(c => c.id === order.assignedToLCId) : null,
+    [order, globalData.companies.value]
+  )
+
   const progress = useMemo(() =>
     order ? OrderService.getProgress(order.id) : null,
     [order, globalData.orders.value]
   )
+
+  const isPending = order?.status === "pending"
+  const isAllocated = order?.status === "allocated"
+  const canAllocate = company?.id === order?.assignedToLCId
 
   if (!order) {
     return (
@@ -101,6 +110,14 @@ export default function OrderDetailsPage() {
 
         <div className="flex items-center gap-2">
           <OrderStatusBadge status={order.status} />
+          {isPending && canAllocate && (
+            <Link href={`/orders/allocate/${order.id}`}>
+              <Button variant="default" size="sm" className="gap-2">
+                <ClipboardList className="h-4 w-4" />
+                Allocate Now
+              </Button>
+            </Link>
+          )}
           {canCancel && order.status !== "cancelled" && order.status !== "completed" && (
             <Button
               variant="outline"
@@ -115,8 +132,32 @@ export default function OrderDetailsPage() {
         </div>
       </div>
 
-      {/* Progress Card */}
-      {progress && (
+      {/* Pending Order Notice */}
+      {isPending && (
+        <div className="glass-surface rounded-lg p-6 border-l-4 border-yellow-500">
+          <h2 className="text-xl font-bold mb-2 text-yellow-600">Awaiting Allocation</h2>
+          <p className="text-muted-foreground mb-4">
+            This order has been assigned to a logistics coordinator and is awaiting allocation to transporter companies.
+          </p>
+          {assignedLC && (
+            <div className="mb-4">
+              <p className="text-sm text-muted-foreground">Assigned to:</p>
+              <p className="font-medium text-lg">{assignedLC.name}</p>
+            </div>
+          )}
+          {canAllocate && (
+            <Link href={`/orders/allocate/${order.id}`}>
+              <Button variant="default" className="gap-2">
+                <ClipboardList className="h-4 w-4" />
+                Allocate to Transporters
+              </Button>
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Progress Card - Only show for allocated/completed orders */}
+      {isAllocated && progress && (
         <div className="glass-surface rounded-lg p-6">
           <h2 className="text-xl font-bold mb-4">Progress</h2>
           <div className="space-y-4">
@@ -209,8 +250,8 @@ export default function OrderDetailsPage() {
         </div>
       </div>
 
-      {/* Allocations Card */}
-      {order.allocations.length > 0 && (
+      {/* Allocations Card - Only show for allocated orders */}
+      {isAllocated && order.allocations.length > 0 && (
         <div className="glass-surface rounded-lg p-6">
           <h2 className="text-xl font-bold mb-4">Allocations</h2>
           <div className="space-y-4">
