@@ -98,7 +98,7 @@ export default function TestingPage() {
         {/* Footer */}
         <div className="mt-12 text-center text-sm text-muted-foreground">
           <p>Newton Web Application Testing Checklist</p>
-          <p className="mt-1">Phase 1, 2 & 3 User Acceptance Testing</p>
+          <p className="mt-1">Phase 1, 2, 3 & 4 User Acceptance Testing</p>
           <p className="mt-4">
             Progress is automatically saved to your browser&apos;s local storage.
             <br />

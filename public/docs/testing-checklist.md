@@ -1,8 +1,8 @@
 # Newton Web Application - Testing Checklist
 
-## Phase 1, 2 & 3 User Acceptance Testing
+## Phase 1, 2, 3 & 4 User Acceptance Testing
 
-**Purpose**: This checklist covers all functionality implemented in Phase 1 (Core Infrastructure), Phase 2 (Administrative Configuration), and Phase 3 (Asset Management). Test items are organized in the order they appear in the application's side menu.
+**Purpose**: This checklist covers all functionality implemented in Phase 1 (Core Infrastructure), Phase 2 (Administrative Configuration), Phase 3 (Asset Management), and Phase 4 (Order Management). Test items are organized in the order they appear in the application's side menu.
 
 **Test Environment**: Web Application (Desktop & Mobile browsers)
 
@@ -2625,9 +2625,999 @@
 
 ---
 
-## 14. Final Smoke Test
+## 14. Order Management (Mine Companies Only)
 
-### 14.1 Complete User Journey - Mine Company
+**Location**: Orders Menu
+
+**Note**: This menu item is only visible for users in Mine companies. Order management involves creating orders, allocating to logistics coordinators or transporters, and tracking order fulfillment.
+
+### 14.1 Access Control by Company Type
+
+- [ ] **As Mine company user**: Orders menu item is visible in sidebar
+- [ ] **As Transporter company user**: Orders menu item is visible (can view allocated orders only)
+- [ ] **As Logistics Coordinator company user**: Orders menu item is visible (can view and allocate orders)
+- [ ] **As Mine company user with ORDERS_VIEW permission**: Can access orders page
+- [ ] **Without ORDERS_VIEW permission**: Orders menu item is NOT visible
+
+### 14.2 Order Creation Wizard - Step 1: Order Number
+
+**Location**: Orders → Create Order button
+
+#### 14.2.1 Auto-Generated Order Number (orderNumberMode: "autoOnly")
+
+- [ ] Can click "Create Order" button
+- [ ] Wizard modal opens with Step 1: Order Number
+- [ ] Display shows auto-generated order number (read-only)
+- [ ] Format: `{orderConfig.orderNumberPrefix}YYYY-NNNN` (e.g., ORD-2025-0001)
+- [ ] Can proceed to Step 2
+
+#### 14.2.2 Manual Order Number Entry (orderNumberMode: "manualAllowed")
+
+- [ ] Wizard shows radio buttons for order number selection
+- [ ] **Option 1: Use Auto-Generated**:
+  - [ ] Radio button selected by default
+  - [ ] Displays auto-generated format
+  - [ ] Can proceed to Step 2
+- [ ] **Option 2: Enter Manual Order Number**:
+  - [ ] Can select manual entry radio button
+  - [ ] Text input field appears
+  - [ ] Can enter custom order number
+  - [ ] **Duplicate Validation**:
+    - [ ] On blur, system checks for duplicate order numbers
+    - [ ] If duplicate exists: Error message appears
+    - [ ] Error shows: "Order Number Already Exists"
+    - [ ] Next button is disabled until unique number entered
+  - [ ] With unique number: Can proceed to Step 2
+
+### 14.3 Order Creation Wizard - Step 2: Basic Information
+
+#### 14.3.1 Order Type Selection
+
+- [ ] **Order Type radio buttons**:
+  - [ ] "Receiving" option available
+  - [ ] "Dispatching" option available (default selected)
+  - [ ] Can select either option
+  - [ ] Selection affects later steps (sites, trip calculations)
+
+#### 14.3.2 Client Selection
+
+- [ ] Client dropdown displays active clients
+- [ ] Can search/filter clients
+- [ ] Required field validation works
+- [ ] Can select client from dropdown
+
+#### 14.3.3 Dispatch Date Range
+
+- [ ] Start date picker visible
+- [ ] End date picker visible
+- [ ] Both fields required
+- [ ] **Date Validation**:
+  - [ ] End date must be >= Start date
+  - [ ] Error message if end before start
+  - [ ] Cannot proceed with invalid date range
+
+#### 14.3.4 Total Weight
+
+- [ ] Number input for total weight (kg)
+- [ ] Required field validation
+- [ ] Must be > 0
+- [ ] Error message if zero or negative
+- [ ] Can enter weight value
+- [ ] Can proceed to Step 3
+
+### 14.4 Order Creation Wizard - Step 3: Sites
+
+#### 14.4.1 Collection Site Selection
+
+- [ ] Dropdown shows active sites where siteType = 'collection'
+- [ ] Can search/filter sites
+- [ ] Required field
+- [ ] **Site Display Info**:
+  - [ ] Shows site name
+  - [ ] Shows site address
+  - [ ] Shows operating hours (collapsed/expandable)
+- [ ] Can select collection site
+
+#### 14.4.2 Destination Site Selection
+
+- [ ] Dropdown shows active sites where siteType = 'destination'
+- [ ] Can search/filter sites
+- [ ] Required field
+- [ ] Shows site name and address
+- [ ] Can select destination site
+
+#### 14.4.3 Site Validation
+
+- [ ] **Cannot select same site for both**:
+  - [ ] If collection = destination: Error message appears
+  - [ ] Error: "Collection and Destination sites must be different"
+  - [ ] Next button disabled until valid
+- [ ] With different sites: Can proceed to Step 4
+
+### 14.5 Order Creation Wizard - Step 4: Product
+
+- [ ] Product dropdown shows active products
+- [ ] Can search/filter products
+- [ ] Required field
+- [ ] **Product Display Info**:
+  - [ ] Shows product name
+  - [ ] Shows product code
+  - [ ] Shows category
+- [ ] Can select product
+- [ ] Can proceed to Step 5
+
+### 14.6 Order Creation Wizard - Step 5: Seal Requirements
+
+#### 14.6.1 Seal Configuration
+
+- [ ] "Seal Required" checkbox visible
+- [ ] Pre-filled from `company.orderConfig.defaultSealRequired`
+- [ ] Can toggle seal requirement on/off
+- [ ] **Seal Quantity Field**:
+  - [ ] Number input visible
+  - [ ] Pre-filled from `company.orderConfig.defaultSealQuantity`
+  - [ ] Disabled when "Seal Required" unchecked
+  - [ ] Enabled when "Seal Required" checked
+  - [ ] **Validation**:
+    - [ ] If seal required: Quantity must be > 0
+    - [ ] Error message if required but quantity = 0
+    - [ ] Cannot proceed with invalid seal configuration
+- [ ] Can proceed to Step 6
+
+### 14.7 Order Creation Wizard - Step 6: Limits
+
+#### 14.7.1 Daily Truck Limit
+
+- [ ] Number input visible
+- [ ] Pre-filled from `company.orderConfig.defaultDailyTruckLimit`
+- [ ] Required field
+- [ ] Must be > 0
+- [ ] Can modify value
+
+#### 14.7.2 Daily Weight Limit
+
+- [ ] Number input visible (kg)
+- [ ] Pre-filled from `company.orderConfig.defaultDailyWeightLimit`
+- [ ] Required field
+- [ ] Must be > 0
+- [ ] Can modify value
+
+#### 14.7.3 Monthly Limit (Optional)
+
+- [ ] Number input visible (kg)
+- [ ] Pre-filled from `company.orderConfig.defaultMonthlyLimit`
+- [ ] Optional field (can leave blank)
+- [ ] If entered, must be > 0
+- [ ] Can proceed to Step 7
+
+### 14.8 Order Creation Wizard - Step 7: Trip Configuration
+
+**Note**: This step determines how many trips per day each truck can make, which affects truck capacity calculations in Step 8.
+
+#### 14.8.1 Trip Configuration Mode Selection
+
+- [ ] Radio buttons for trip configuration mode visible
+- [ ] **Option 1: Maximum Trips Per Day**
+- [ ] **Option 2: Trip Duration (hours)**
+- [ ] Can select either option
+
+#### 14.8.2 Option 1: Maximum Trips Per Day
+
+- [ ] Number input for trips per day
+- [ ] Pre-filled from `company.orderConfig.defaultTripLimit` (default 1)
+- [ ] Validation: >= 1
+- [ ] Applied uniformly across all order days
+- [ ] **Display Summary**:
+  - [ ] Shows "This order allows {tripsPerDay} trips per day"
+  - [ ] Shows per-truck capacity breakdown
+  - [ ] "{tripsPerDay} trips/day × {weightPerTrip} kg/trip = {weightPerDay} kg/day"
+  - [ ] "Over {orderDurationDays} days: {weightPerTruckOverDuration} kg per truck"
+- [ ] Can proceed to Step 8
+
+#### 14.8.3 Option 2: Trip Duration - Multiple Trips Per Day
+
+**Scenario**: Trip duration ≤ operating hours (e.g., 4 hours with 10h operating hours)
+
+- [ ] Number input for trip duration (hours)
+- [ ] Enter trip duration (e.g., 4 hours)
+- [ ] **System Calculation**:
+  - [ ] Uses relevant site operating hours:
+    - [ ] **Dispatching orders**: Collection site operating hours
+    - [ ] **Receiving orders**: Destination site operating hours
+  - [ ] Formula: `tripsPerDay = Math.floor(operatingHours / tripDuration)`
+  - [ ] Example: 10h ÷ 4h = 2.5 → 2 trips/day
+- [ ] **Display shows**:
+  - [ ] "This order allows 2 trips per day"
+  - [ ] Per-truck capacity breakdown
+  - [ ] "2 trips/day × {weightPerTrip} kg/trip = {weightPerDay} kg/day"
+  - [ ] "Over {orderDurationDays} days: {weightPerTruckOverDuration} kg per truck"
+- [ ] Can proceed to Step 8
+
+#### 14.8.4 Option 2: Trip Duration - Single Trip Per Day
+
+**Scenario**: Trip duration > operating hours but ≤ 24h (e.g., 15 hours with 10h operating hours)
+
+- [ ] Enter trip duration (e.g., 15 hours)
+- [ ] **System Calculation**:
+  - [ ] `tripsPerDay = 1`
+  - [ ] Note: "Trip duration exceeds operating hours but ≤24h - 1 trip per day possible"
+- [ ] **Display shows**:
+  - [ ] "This order allows 1 trip per day"
+  - [ ] Warning message explaining trip exceeds operating hours
+  - [ ] Per-truck capacity breakdown
+  - [ ] "1 trip/day × {weightPerTrip} kg/trip = {weightPerDay} kg/day"
+- [ ] Can proceed to Step 8
+
+#### 14.8.5 Option 2: Trip Duration - Multi-Day Trips
+
+**Scenario**: Trip duration > 24h (e.g., 30 hours)
+
+- [ ] Enter trip duration (e.g., 30 hours)
+- [ ] **System Calculation**:
+  - [ ] `tripsPerDay = 1 / Math.ceil(tripDuration / 24)`
+  - [ ] Example: 30h = 2 days per trip → 0.5 trips/day
+  - [ ] Note: "Multi-day trip - 2 days per trip"
+- [ ] **Display shows**:
+  - [ ] "This order allows 0.5 trips per day"
+  - [ ] Multi-day trip warning/info box
+  - [ ] "2 days required per trip"
+  - [ ] Per-truck capacity breakdown
+  - [ ] "0.5 trips/day × {weightPerTrip} kg/trip = {weightPerDay} kg/day"
+  - [ ] "Over {orderDurationDays} days: {weightPerTruckOverDuration} kg per truck"
+- [ ] Calculation notes displayed
+- [ ] Can proceed to Step 8
+
+#### 14.8.6 Trip Duration Validation
+
+- [ ] Trip duration must be > 0
+- [ ] Error message if zero or negative
+- [ ] Cannot proceed with invalid duration
+
+### 14.9 Order Creation Wizard - Step 8: Allocation Method
+
+**Note**: This step shows truck capacity calculations from Step 7 and allows allocation to LC or direct to transporters.
+
+#### 14.9.1 Truck Capacity Display
+
+- [ ] Blue info box visible at top of step
+- [ ] **Displays complete calculation from Step 7**:
+  - [ ] "{tripsPerDay} trips per day × {weightPerTrip} kg per trip = {weightPerDay} kg/day"
+  - [ ] "Over {orderDurationDays} days: **{weightPerTruckOverDuration} kg per truck**"
+  - [ ] Calculation notes (e.g., "Multi-day trip - 2 days per trip")
+- [ ] Calculation uses real-time data from `calculateTruckCapacityOverDuration()` function
+- [ ] **Respects conditional site selection**:
+  - [ ] Dispatching orders: Uses collection site operating hours
+  - [ ] Receiving orders: Uses destination site operating hours
+
+#### 14.9.2 Allocation Mode Selection
+
+- [ ] Radio buttons for allocation method visible
+- [ ] **Option 1: Assign to Logistics Coordinator**
+- [ ] **Option 2: Assign to Transporter Companies**
+- [ ] Can select either option
+
+#### 14.9.3 Option 1: Assign to Logistics Coordinator
+
+- [ ] Can select "Assign to Logistics Coordinator" radio button
+- [ ] Dropdown shows companies where companyType = 'logistics_coordinator'
+- [ ] Can search/filter LCs
+- [ ] Required to select LC
+- [ ] **Display Note**: "LC will distribute weight to transporters later"
+- [ ] Can proceed to Step 9 (Review)
+- [ ] **On Submit** (Step 9):
+  - [ ] Order created with `allocations = []` (empty)
+  - [ ] LC company ID added to `allocatedCompanyIds` array
+  - [ ] Notification sent to LC contacts (always sent)
+  - [ ] Notification sent to users with "order.allocated" enabled
+
+#### 14.9.4 Option 2: Assign to Transporter Companies - Add Transporter
+
+- [ ] Can select "Assign to Transporter Companies" radio button
+- [ ] "Add Transporter" button visible
+- [ ] Can click "Add Transporter" button
+- [ ] **Mini-modal opens** with transporter allocation form:
+  - [ ] Company dropdown (companyType = 'transporter')
+  - [ ] Can search/filter transporters
+  - [ ] **Truck Limit Field**:
+    - [ ] Number input for trucks to allocate
+    - [ ] Fetches transporter's active trucks from Firestore (lazy-loaded)
+    - [ ] Displays "{count} active trucks available"
+    - [ ] Can enter number of trucks
+  - [ ] **Allocated Weight Field**:
+    - [ ] Number input (kg)
+    - [ ] Required field
+    - [ ] Must be > 0
+  - [ ] **Loading Dates**:
+    - [ ] Multi-date picker visible
+    - [ ] Shows dates from order date range
+    - [ ] Can select multiple dates
+    - [ ] Required field
+  - [ ] "Add" button to confirm transporter
+  - [ ] "Cancel" button to close modal
+
+#### 14.9.5 Option 2: Transporter List Display
+
+- [ ] Added transporters appear in list
+- [ ] **Each transporter shows**:
+  - [ ] Company name
+  - [ ] Number of trucks allocated
+  - [ ] Allocated weight
+  - [ ] Loading dates (comma-separated)
+  - [ ] "Remove" button (X icon)
+- [ ] Can add multiple transporters
+- [ ] Can remove transporter from list
+- [ ] List updates in real-time
+
+#### 14.9.6 Option 2: Weight Allocation Validation
+
+- [ ] **Total allocated weight display** shows running total
+- [ ] System validates: Sum(allocatedWeights) = totalWeight
+- [ ] **If mismatch**:
+  - [ ] Error message appears
+  - [ ] Shows: "Weight allocation doesn't match total ({sum}/{total})"
+  - [ ] Next button disabled
+  - [ ] Cannot proceed to Step 9
+- [ ] **When sum matches total**:
+  - [ ] Success indicator (green checkmark/message)
+  - [ ] Next button enabled
+  - [ ] Can proceed to Step 9
+- [ ] **On Submit** (Step 9):
+  - [ ] Order created with `allocations` array
+  - [ ] Each allocation includes `trucks` count
+  - [ ] All transporter company IDs added to `allocatedCompanyIds` array
+  - [ ] Notification sent to each transporter (always sent)
+  - [ ] Notification sent to users with "order.allocated" enabled
+
+### 14.10 Order Creation Wizard - Step 9: Review & Submit
+
+#### 14.10.1 Review Screen Display
+
+- [ ] **Summary sections visible**:
+  - [ ] Order Number section
+  - [ ] Order Type, Client section
+  - [ ] Date Range section
+  - [ ] Total Weight section
+  - [ ] Collection Site, Destination Site section
+  - [ ] Product section
+  - [ ] Seal Requirements section
+  - [ ] Limits (daily truck, daily weight, monthly) section
+  - [ ] Trip Configuration section
+  - [ ] Allocations section (if any)
+- [ ] All entered data displays correctly
+- [ ] **Edit Capability**:
+  - [ ] Each section has "Edit" button
+  - [ ] Click Edit returns to relevant step
+  - [ ] Changes reflect in review screen
+
+#### 14.10.2 Submit Order
+
+- [ ] "Submit" button visible
+- [ ] Can click Submit
+- [ ] **Processing**:
+  - [ ] Loading state shows
+  - [ ] `OrderService.create(orderData)` called
+  - [ ] Trip capacity calculation saved with order (`tripCapacityCalculation` field)
+  - [ ] Order status set:
+    - [ ] If allocated to LC or transporters: `status = 'allocated'`
+    - [ ] Otherwise: `status = 'pending'`
+- [ ] **Success**:
+  - [ ] Success toast notification appears
+  - [ ] Wizard modal closes
+  - [ ] Redirects to order details page
+  - [ ] New order appears in orders list
+
+#### 14.10.3 Order Creation - Error Handling
+
+- [ ] **If validation errors**:
+  - [ ] Cannot submit
+  - [ ] Error messages display
+  - [ ] Can go back to fix errors
+- [ ] **If backend errors**:
+  - [ ] Error toast notification
+  - [ ] Wizard remains open
+  - [ ] Can retry submission
+
+### 14.11 Order Allocation (Post-Creation by LC)
+
+**Location**: Orders → Allocate button (LC companies only)
+
+**Scenario**: Order was created with allocation to LC (Step 8, Option 1), now LC needs to distribute weight to transporters.
+
+#### 14.11.1 Access LC Allocate Page
+
+- [ ] **As LC company user**:
+  - [ ] Can see orders allocated to LC company
+  - [ ] "Allocate" button visible on order card/row
+  - [ ] Can click "Allocate" button
+  - [ ] Navigates to `/orders/allocate/[id]` page
+- [ ] **As Mine company user**:
+  - [ ] Cannot see "Allocate" button (not LC)
+- [ ] **As Transporter user**:
+  - [ ] Cannot see "Allocate" button (not LC)
+
+#### 14.11.2 Allocate Page Display
+
+- [ ] Page loads with order details
+- [ ] **Order Summary Section** (read-only):
+  - [ ] Order number
+  - [ ] Total weight
+  - [ ] Date range
+  - [ ] Product
+  - [ ] Client
+- [ ] **Per Truck Capacity Info** (blue info box, MATCHES CREATE ORDER DISPLAY):
+  - [ ] **Preferentially uses saved** `order.tripCapacityCalculation` (if available):
+    - [ ] "{tripsPerDay} trips per day × {weightPerTrip} kg per trip = {weightPerDay} kg/day"
+    - [ ] "Over {orderDurationDays} days: **{weightPerTruckOverDuration} kg per truck**"
+    - [ ] Calculation notes (if applicable)
+  - [ ] **Fallback**: Calculates from order data for existing orders without saved calculation:
+    - [ ] Shows orange warning: "⚠️ Calculated from order data (order created before capacity calculations were saved)"
+    - [ ] Uses order.tripLimit or order.tripDuration
+    - [ ] Calculates based on saved order config
+
+#### 14.11.3 Add Transporter to Allocation
+
+- [ ] "Add Transporter" button visible
+- [ ] Can click "Add Transporter"
+- [ ] **Transporter selection form**:
+  - [ ] Company dropdown (companyType = 'transporter')
+  - [ ] Can search/filter transporters
+  - [ ] **Truck Limit Field**:
+    - [ ] Number input for trucks to allocate
+    - [ ] When company selected: Fetches active trucks from Firestore (lazy-loaded)
+    - [ ] Displays "{count} active trucks available"
+    - [ ] Can enter number of trucks
+  - [ ] **Allocated Weight**:
+    - [ ] Number input (kg)
+    - [ ] Required field
+  - [ ] **Loading Dates**:
+    - [ ] Multi-date picker
+    - [ ] Shows dates from order date range
+    - [ ] Can select multiple dates
+  - [ ] "Add" button
+  - [ ] "Cancel" button
+
+#### 14.11.4 Allocation List Display
+
+- [ ] Added transporters appear in list
+- [ ] **Each allocation shows**:
+  - [ ] Company name
+  - [ ] Number of trucks allocated
+  - [ ] Weight allocated
+  - [ ] Loading dates (comma-separated)
+  - [ ] "Edit" button
+  - [ ] "Remove" button
+- [ ] Can edit existing allocation
+- [ ] Can remove allocation from list
+
+#### 14.11.5 Allocation Validation
+
+- [ ] **Total allocated weight display** visible
+- [ ] **Progress bar**: {allocated}/{total} kg
+- [ ] Visual indicator shows progress
+- [ ] **Validation**: Sum = total weight
+- [ ] **If sum < total**:
+  - [ ] Error: "Weight allocation incomplete ({sum}/{total})"
+  - [ ] Submit button disabled
+- [ ] **If sum > total**:
+  - [ ] Error: "Weight allocation exceeds total ({sum}/{total})"
+  - [ ] Submit button disabled
+- [ ] **If sum = total**:
+  - [ ] Success indicator (green)
+  - [ ] Submit button enabled
+
+#### 14.11.6 Submit Allocation
+
+- [ ] "Submit" button enabled when valid
+- [ ] Can click Submit
+- [ ] **Processing**:
+  - [ ] Loading state shows
+  - [ ] `order.allocations` array updated (includes `trucks` count for each)
+  - [ ] `order.status` updated to 'allocated'
+  - [ ] All transporter company IDs added to `allocatedCompanyIds` array
+- [ ] **Success**:
+  - [ ] Success toast notification
+  - [ ] Redirects to order details or orders list
+  - [ ] Notifications sent:
+    - [ ] To each transporter (always sent)
+    - [ ] To users with "order.allocated" notification enabled
+
+#### 14.11.7 Allocation - Loading Dates Validation
+
+- [ ] **Loading dates must be within order date range**:
+  - [ ] System validates dates are between dispatchStartDate and dispatchEndDate
+  - [ ] Error if date outside range
+  - [ ] Cannot add transporter with invalid dates
+
+### 14.12 Order Listing & Search
+
+**Location**: Orders page
+
+#### 14.12.1 View Orders List
+
+- [ ] Orders page loads without errors
+- [ ] **Company-specific order visibility**:
+  - [ ] **Mine company**: Sees orders created by mine
+  - [ ] **Transporter company**: Sees orders where transporter is in `allocatedCompanyIds`
+  - [ ] **LC company**: Sees orders where LC is in `allocatedCompanyIds`
+  - [ ] **Global Admin**: Can see all orders for current company context
+- [ ] Orders display in table or card view
+- [ ] **Each order shows**:
+  - [ ] Order number
+  - [ ] Order type (Receiving/Dispatching)
+  - [ ] Client name
+  - [ ] Product name
+  - [ ] Total weight
+  - [ ] Allocated weight / Completed weight
+  - [ ] Progress bar
+  - [ ] Dispatch date range
+  - [ ] Status badge
+  - [ ] Actions (View, Allocate if LC, Cancel)
+
+#### 14.12.2 Order Status Badges
+
+- [ ] **Status badge colors correct**:
+  - [ ] Gray: Pending
+  - [ ] Blue: Allocated
+  - [ ] Green: Completed
+  - [ ] Red: Cancelled
+- [ ] Status badge displays current status
+- [ ] Badge styling is consistent
+
+#### 14.12.3 Search Orders
+
+- [ ] Search bar visible at top
+- [ ] Can type in search bar
+- [ ] **Search filters by**:
+  - [ ] Order number
+  - [ ] Product name
+  - [ ] Client name
+- [ ] Search is case-insensitive
+- [ ] Real-time filtering as you type
+- [ ] Can clear search to see all orders
+- [ ] "No results" message if no matches
+
+#### 14.12.4 Filter Orders
+
+- [ ] **Status Filter**:
+  - [ ] Dropdown shows: All, Pending, Allocated, Completed, Cancelled
+  - [ ] Can select status
+  - [ ] Orders filter immediately
+  - [ ] Filter persists during session
+- [ ] **Order Type Filter**:
+  - [ ] Dropdown shows: All, Receiving, Dispatching
+  - [ ] Can select type
+  - [ ] Orders filter immediately
+- [ ] **Date Range Filter** (if implemented):
+  - [ ] Can select custom date range
+  - [ ] Orders filter to date range
+- [ ] **Allocated to Me Filter** (for transporters):
+  - [ ] Checkbox shows "Show only orders allocated to me"
+  - [ ] When checked: Filters to orders with company in allocatedCompanyIds
+- [ ] **Combined Filtering**:
+  - [ ] All filters work together
+  - [ ] Search + status + type + date range combine correctly
+  - [ ] Clear filters button resets all
+
+#### 14.12.5 Order Actions from List
+
+- [ ] **View button** (always visible):
+  - [ ] Click View navigates to order details page
+- [ ] **Allocate button** (LC companies only):
+  - [ ] Only visible for LC companies
+  - [ ] Only visible for orders where `allocations = []` OR order assigned to LC
+  - [ ] Click Allocate navigates to allocation page
+- [ ] **Cancel button** (mine companies only):
+  - [ ] Only visible for mine companies
+  - [ ] Hidden from LCs and transporters
+  - [ ] Only visible if order status ≠ 'cancelled' AND ≠ 'completed'
+  - [ ] Click Cancel opens cancellation modal
+
+### 14.13 Order Details Page
+
+**Location**: Orders → View Order
+
+#### 14.13.1 View Order Details
+
+- [ ] Can click "View" button on order card/row
+- [ ] Details page loads with order ID in URL
+- [ ] **Page Header**:
+  - [ ] Order number (large, prominent)
+  - [ ] Order type badge (Receiving/Dispatching)
+  - [ ] Status badge (Pending/Allocated/Completed/Cancelled)
+  - [ ] Action buttons (permission-based)
+- [ ] **Order Details Card**:
+  - [ ] Order number
+  - [ ] Type (Receiving/Dispatching)
+  - [ ] Client name
+  - [ ] Product name
+  - [ ] Total weight
+  - [ ] Dispatch date range (start - end)
+  - [ ] Collection site (name, address)
+  - [ ] Destination site (name, address)
+  - [ ] Seal requirements (required/not required, quantity)
+  - [ ] Limits (daily truck limit, daily weight limit, monthly limit)
+  - [ ] Trip configuration (trip limit or trip duration)
+  - [ ] Created by (user name)
+  - [ ] Created date
+
+#### 14.13.2 Trip Capacity Breakdown Display
+
+- [ ] **If `tripCapacityCalculation` field exists** (orders created after feature):
+  - [ ] Blue info box displays saved calculation
+  - [ ] Shows: "{tripsPerDay} trips per day × {weightPerTrip} kg per trip = {weightPerDay} kg/day"
+  - [ ] Shows: "Over {orderDurationDays} days: {weightPerTruckOverDuration} kg per truck"
+  - [ ] Shows calculation notes (if applicable)
+  - [ ] Shows operating hours used
+  - [ ] Shows calculation mode (trips or duration)
+
+#### 14.13.3 Progress Section
+
+- [ ] **Total weight progress**:
+  - [ ] Shows: {completed}/{total} kg
+  - [ ] Progress bar displays completion percentage
+  - [ ] Visual indicator accurate
+- [ ] **Completed trips** (if tracked):
+  - [ ] Shows number of completed trips
+- [ ] **Daily usage chart** (if implemented):
+  - [ ] Bar chart showing trucks/weight per day
+  - [ ] Chart displays data correctly
+
+#### 14.13.4 Allocations Section
+
+- [ ] **If order has allocations**:
+  - [ ] List of transporters displays
+  - [ ] **Each allocation shows**:
+    - [ ] Transporter company name
+    - [ ] Number of trucks allocated
+    - [ ] Weight allocated
+    - [ ] Weight completed (if tracking implemented)
+    - [ ] Progress per transporter
+    - [ ] Loading dates
+- [ ] **If no allocations**:
+  - [ ] Shows "Not yet allocated" or similar message
+  - [ ] If LC: "Allocate" button visible
+
+#### 14.13.5 Order Actions from Details Page
+
+- [ ] **Allocate button** (LC companies only):
+  - [ ] Only visible for LC companies
+  - [ ] Only visible if order not yet allocated
+  - [ ] Click navigates to allocation page
+- [ ] **Create Pre-Booking button** (transporter companies, if Phase 5 implemented):
+  - [ ] Only visible for transporters
+  - [ ] Only visible if order allocated to transporter
+  - [ ] Click navigates to pre-booking creation
+- [ ] **Cancel Order button** (RESTRICTED: mine companies only):
+  - [ ] Only visible for mine companies
+  - [ ] Hidden from LCs and transporters (even if they have ORDERS_CANCEL permission)
+  - [ ] Company type check: `company?.companyType === "mine"`
+  - [ ] Only visible if status ≠ 'cancelled' AND ≠ 'completed'
+  - [ ] Click opens cancellation modal
+- [ ] **Export to PDF button** (if implemented):
+  - [ ] Click generates PDF
+  - [ ] PDF downloads correctly
+
+### 14.14 Order Cancellation
+
+**Location**: Order details page or orders list → Cancel button (mine companies only)
+
+#### 14.14.1 Cancel Order - Mine Company
+
+- [ ] **As mine company user**:
+  - [ ] "Cancel Order" button visible on order details page
+  - [ ] "Cancel" button visible in orders table
+  - [ ] Can click Cancel button
+  - [ ] **Cancellation modal opens**:
+    - [ ] Title: "Cancel Order"
+    - [ ] Warning message
+    - [ ] Reason input field (required)
+    - [ ] Must enter cancellation reason
+    - [ ] "Cancel Order" button (confirm)
+    - [ ] "Close" button (abort)
+  - [ ] Can enter reason
+  - [ ] Can click "Cancel Order" to confirm
+  - [ ] **Processing**:
+    - [ ] `OrderService.cancel(id, reason)` called
+    - [ ] Order status updated to 'cancelled'
+    - [ ] Cancellation reason and timestamp saved
+  - [ ] **Success**:
+    - [ ] Success toast notification
+    - [ ] Modal closes
+    - [ ] Page updates to show cancelled status
+    - [ ] Notifications sent (if configured)
+
+#### 14.14.2 Cancel Order - Restricted for Non-Mine Companies
+
+- [ ] **As LC company user**:
+  - [ ] "Cancel Order" button is NOT visible on order details page
+  - [ ] "Cancel" button is NOT visible in orders table
+  - [ ] Even if user has ORDERS_CANCEL permission, button remains hidden
+  - [ ] Cannot cancel orders
+- [ ] **As Transporter company user**:
+  - [ ] "Cancel Order" button is NOT visible on order details page
+  - [ ] "Cancel" button is NOT visible in orders table
+  - [ ] Even if user has ORDERS_CANCEL permission, button remains hidden
+  - [ ] Cannot cancel orders
+
+#### 14.14.3 Cancel Button Visibility Logic
+
+- [ ] **Visibility conditions** (all must be true):
+  - [ ] User has ORDERS_CANCEL permission
+  - [ ] Company type is "mine"
+  - [ ] Order status ≠ 'cancelled'
+  - [ ] Order status ≠ 'completed'
+- [ ] **Hidden when**:
+  - [ ] User lacks permission
+  - [ ] Company is not mine type
+  - [ ] Order already cancelled
+  - [ ] Order already completed
+
+### 14.15 Order Permissions & Access Control
+
+#### 14.15.1 View Orders (ORDERS_VIEW permission)
+
+- [ ] **With ORDERS_VIEW permission**:
+  - [ ] Orders menu item visible in sidebar
+  - [ ] Can access orders page
+  - [ ] Can see orders list (scoped appropriately)
+  - [ ] Can click view button
+  - [ ] Can view order details
+- [ ] **Without ORDERS_VIEW permission**:
+  - [ ] Orders menu item NOT visible in sidebar
+  - [ ] Cannot access `/orders` (redirect)
+  - [ ] Cannot access `/orders/[id]` (redirect)
+
+#### 14.15.2 Create Orders (ORDERS_CREATE permission)
+
+- [ ] **With ORDERS_CREATE permission**:
+  - [ ] "Create Order" button visible on orders page
+  - [ ] Can access order creation wizard
+  - [ ] Can complete wizard and submit order
+- [ ] **Without ORDERS_CREATE permission**:
+  - [ ] "Create Order" button hidden
+  - [ ] Cannot access `/orders/new` (redirect or 403)
+
+#### 14.15.3 Cancel Orders (ORDERS_CANCEL permission + Mine Company)
+
+- [ ] **With ORDERS_CANCEL permission AND mine company**:
+  - [ ] "Cancel" button visible on orders
+  - [ ] Can cancel orders with reason
+- [ ] **With ORDERS_CANCEL permission BUT NOT mine company**:
+  - [ ] "Cancel" button remains hidden (company type restriction)
+  - [ ] Cannot cancel orders
+- [ ] **Without ORDERS_CANCEL permission**:
+  - [ ] "Cancel" button hidden regardless of company type
+
+#### 14.15.4 Allocate Orders (LC Company Access)
+
+- [ ] **As LC company user**:
+  - [ ] Can see orders allocated to LC
+  - [ ] "Allocate" button visible on unallocated orders
+  - [ ] Can access allocation page
+  - [ ] Can distribute weight to transporters
+- [ ] **As Non-LC company user**:
+  - [ ] Cannot see "Allocate" button
+  - [ ] Cannot access allocation page directly
+
+### 14.16 Multi-Company Order Visibility
+
+#### 14.16.1 Orders Created by Mine Company
+
+- [ ] **Mine company creates order**:
+  - [ ] Order saved with `companyId` = mine company ID
+  - [ ] If allocated to LC: `allocatedCompanyIds` includes LC company ID
+  - [ ] If allocated to transporters: `allocatedCompanyIds` includes all transporter company IDs
+
+#### 14.16.2 LC Company Views Allocated Orders
+
+- [ ] **LC user logs in**:
+  - [ ] Can see orders where LC company ID is in `allocatedCompanyIds`
+  - [ ] Can view order details
+  - [ ] Can see orders created by other mine companies (if allocated to this LC)
+  - [ ] Cannot see unrelated mine company orders
+
+#### 14.16.3 Transporter Company Views Allocated Orders
+
+- [ ] **Transporter user logs in**:
+  - [ ] Can see orders where transporter company ID is in `allocatedCompanyIds`
+  - [ ] Can view order details
+  - [ ] Can see orders created by other companies (if allocated to this transporter)
+  - [ ] Cannot see unrelated orders
+
+#### 14.16.4 Company Switch Affects Order Visibility
+
+- [ ] **Global Admin switches companies**:
+  - [ ] Switch from Mine Company A to Mine Company B
+  - [ ] Orders list updates to show Mine Company B's orders
+  - [ ] Cannot see Mine Company A's orders anymore (unless allocated to B)
+  - [ ] Switch to LC company
+  - [ ] Can see orders allocated to this LC
+  - [ ] Switch to Transporter company
+  - [ ] Can see orders allocated to this transporter
+
+### 14.17 Edge Cases & Validations
+
+#### 14.17.1 Trip Duration Calculation - Receiving vs Dispatching
+
+- [ ] **Dispatching Order**:
+  - [ ] Create dispatching order
+  - [ ] Select collection site with 10h operating hours
+  - [ ] Select trip duration: 4 hours
+  - [ ] System uses collection site operating hours
+  - [ ] Calculates: Math.floor(10 / 4) = 2 trips/day
+  - [ ] Displays correct calculation
+- [ ] **Receiving Order**:
+  - [ ] Create receiving order
+  - [ ] Select destination site with 8h operating hours
+  - [ ] Select trip duration: 3 hours
+  - [ ] System uses destination site operating hours
+  - [ ] Calculates: Math.floor(8 / 3) = 2 trips/day
+  - [ ] Displays correct calculation
+
+#### 14.17.2 Trip Duration Calculation - Operating Hours Changes
+
+- [ ] **Scenario**: Order created with site operating hours = 10h
+- [ ] Trip duration = 5h → 2 trips/day calculated and saved
+- [ ] **Later**: Site operating hours changed to 8h
+- [ ] **Existing order**:
+  - [ ] Still shows 2 trips/day (from saved `tripCapacityCalculation`)
+  - [ ] Consistent with calculation at creation time
+- [ ] **New order**:
+  - [ ] Uses updated 8h operating hours
+  - [ ] Calculates: Math.floor(8 / 5) = 1 trip/day
+  - [ ] Saves new calculation
+
+#### 14.17.3 Duplicate Order Number Validation
+
+- [ ] **Scenario**: Manual order number entry enabled
+- [ ] Enter order number "ORD-2025-001"
+- [ ] Submit wizard, order created
+- [ ] **Create second order**:
+  - [ ] Enter same order number "ORD-2025-001"
+  - [ ] System checks for duplicate on blur
+  - [ ] Error message appears
+  - [ ] Cannot proceed with duplicate
+  - [ ] Change to "ORD-2025-002"
+  - [ ] Duplicate check passes
+  - [ ] Can proceed
+
+#### 14.17.4 Weight Allocation - Exact Match Required
+
+- [ ] **Scenario**: Order total weight = 1000 kg
+- [ ] Allocate to Transporter A: 600 kg
+- [ ] Allocate to Transporter B: 300 kg
+- [ ] **Total allocated**: 900 kg
+- [ ] **Validation**:
+  - [ ] Error: "Weight allocation doesn't match total (900/1000)"
+  - [ ] Submit button disabled
+- [ ] Change Transporter B to 400 kg
+- [ ] **Total allocated**: 1000 kg
+- [ ] **Validation**:
+  - [ ] Success indicator
+  - [ ] Submit button enabled
+  - [ ] Can submit allocation
+
+#### 14.17.5 Date Range Validation
+
+- [ ] **Scenario**: Order creation Step 2
+- [ ] Set start date: 2025-10-01
+- [ ] Set end date: 2025-09-30 (before start)
+- [ ] **Validation**:
+  - [ ] Error: "End date must be after start date"
+  - [ ] Cannot proceed
+- [ ] Change end date to 2025-10-05
+- [ ] **Validation**:
+  - [ ] Validation passes
+  - [ ] Can proceed
+
+#### 14.17.6 Site Selection - Same Site Validation
+
+- [ ] **Scenario**: Order creation Step 3
+- [ ] Select collection site: "Mine Site A"
+- [ ] Select destination site: "Mine Site A" (same)
+- [ ] **Validation**:
+  - [ ] Error: "Collection and Destination sites must be different"
+  - [ ] Cannot proceed
+- [ ] Change destination site to "Port Site B"
+- [ ] **Validation**:
+  - [ ] Validation passes
+  - [ ] Can proceed
+
+### 14.18 Order Data Persistence
+
+#### 14.18.1 Trip Capacity Calculation Saved
+
+- [ ] Create order with trip duration = 30h
+- [ ] System calculates: 0.5 trips/day
+- [ ] Order submitted
+- [ ] **Check order document in Firestore**:
+  - [ ] `tripCapacityCalculation` field exists
+  - [ ] `tripsPerDay: 0.5`
+  - [ ] `weightPerTrip: {value}` (from orderConfigSnapshot)
+  - [ ] `weightPerDayPerTruck: {calculated}`
+  - [ ] `orderDurationDays: {calculated}`
+  - [ ] `weightPerTruckOverDuration: {calculated}`
+  - [ ] `operatingHoursUsed: {value}`
+  - [ ] `calculationMode: "duration"`
+  - [ ] `calculationNotes: "Multi-day trip - 2 days per trip"`
+
+#### 14.18.2 Order Config Snapshot Saved
+
+- [ ] Create order
+- [ ] **Check order document**:
+  - [ ] `orderConfigSnapshot` field exists
+  - [ ] Contains snapshot of company.orderConfig at creation time
+  - [ ] Includes: defaultWeightPerTruck, defaultDailyTruckLimit, etc.
+  - [ ] Ensures consistency if company settings change later
+
+#### 14.18.3 Allocated Company IDs Saved
+
+- [ ] **Scenario 1**: Order allocated to LC
+- [ ] **Check order document**:
+  - [ ] `allocatedCompanyIds: [lcCompanyId]`
+- [ ] **Scenario 2**: Order allocated to 2 transporters
+- [ ] **Check order document**:
+  - [ ] `allocatedCompanyIds: [transporter1Id, transporter2Id]`
+- [ ] **Scenario 3**: LC later allocates to transporters
+- [ ] **Check order document after LC allocation**:
+  - [ ] `allocatedCompanyIds: [lcCompanyId, transporter1Id, transporter2Id]`
+
+### 14.19 Order UI/UX
+
+#### 14.19.1 Wizard Navigation
+
+- [ ] Can navigate between wizard steps using Next/Back buttons
+- [ ] Step indicator shows current step
+- [ ] Can click step indicator to jump to previous steps
+- [ ] Cannot skip ahead to future steps
+- [ ] Wizard preserves data when navigating back
+- [ ] Can cancel wizard at any step
+
+#### 14.19.2 Loading States
+
+- [ ] **Fetching data**:
+  - [ ] Loading spinner shows when fetching products/clients/sites
+  - [ ] Skeleton loaders for dropdowns
+- [ ] **Submitting order**:
+  - [ ] Submit button shows "Creating..." text
+  - [ ] Submit button disabled during submission
+  - [ ] Loading spinner visible
+- [ ] **Allocating order**:
+  - [ ] Submit button shows "Allocating..." text
+  - [ ] Form fields disabled during submission
+
+#### 14.19.3 Error Handling
+
+- [ ] **Validation errors**:
+  - [ ] Clear error messages displayed
+  - [ ] Error styling (red border, red text)
+  - [ ] Field focuses on error
+- [ ] **Backend errors**:
+  - [ ] Toast notification shows error message
+  - [ ] Wizard/form remains open
+  - [ ] Can retry operation
+- [ ] **Network errors**:
+  - [ ] Error message explains network issue
+  - [ ] Can retry when connection restored
+
+#### 14.19.4 Responsive Design
+
+- [ ] **Desktop view**:
+  - [ ] Wizard displays in centered modal
+  - [ ] All steps display correctly
+  - [ ] Action buttons properly positioned
+- [ ] **Mobile view**:
+  - [ ] Wizard adapts to mobile screen
+  - [ ] Steps stack vertically
+  - [ ] Touch-friendly buttons
+  - [ ] Dropdowns work on mobile
+  - [ ] Date pickers mobile-optimized
+
+---
+
+## 15. Final Smoke Test
+
+### 15.1 Complete User Journey - Mine Company
 
 - [ ] Log in as global admin (mine company)
 - [ ] Create a new mine company
@@ -2659,7 +3649,7 @@
 - [ ] Verify user sees appropriate UI based on permissions
 - [ ] Log out
 
-### 14.2 Complete User Journey - Transporter Company
+### 15.2 Complete User Journey - Transporter Company
 
 - [ ] Log in as global admin
 - [ ] Switch to or create a transporter company
@@ -2678,7 +3668,7 @@
 - [ ] Verify Assets menu IS visible (own fleet management)
 - [ ] Log out
 
-### 14.3 Complete User Journey - Contact-Only User
+### 15.3 Complete User Journey - Contact-Only User
 
 - [ ] Create a contact-only user (canLogin: false)
 - [ ] Verify user appears in list with "Contact Only" indicator
