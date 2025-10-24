@@ -101,7 +101,7 @@ export default function OrderDetailsPage() {
               </Button>
             </Link>
           )}
-          {canCancel && order.status !== "cancelled" && order.status !== "completed" && (
+          {canCancel && company?.companyType === "mine" && order.status !== "cancelled" && order.status !== "completed" && (
             <Button
               variant="outline"
               size="sm"

@@ -260,7 +260,7 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
                 </Button>
               </Link>
             )}
-            {canCancel && order.status !== "cancelled" && order.status !== "completed" && (
+            {canCancel && company?.companyType === "mine" && order.status !== "cancelled" && order.status !== "completed" && (
               <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleCancel(order.id)}>
                 <XCircle className="h-4 w-4" />
               </Button>
