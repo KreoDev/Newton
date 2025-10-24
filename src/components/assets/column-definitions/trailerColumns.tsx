@@ -183,6 +183,9 @@ export const getTrailerColumns = (
         const status = row.getValue(columnId) as string
         return status === filterValue
       },
+      meta: {
+        label: "Status",
+      },
     },
     {
       id: "actions",
