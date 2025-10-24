@@ -2,7 +2,7 @@ import { signal, Signal } from "@preact/signals-react"
 import { log } from "@/services/console.service"
 import type { User, Company, Role, Product, Group, Site, Client, Asset, Order } from "@/types"
 import { createCollectionListener } from "@/lib/firebase-utils"
-import { Timestamp, where } from "firebase/firestore"
+import { where } from "firebase/firestore"
 
 class Data {
   private static instance: Data
@@ -50,7 +50,7 @@ class Data {
     const daysToLoad = Math.min(Math.max(orderHistoryDays, 1), 120)
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - daysToLoad)
-    const cutoffTimestamp = Timestamp.fromDate(cutoffDate)
+    const cutoffMillis = cutoffDate.getTime()
 
     // Companies: Load ALL (including inactive) for admin pages
     const companiesListener = createCollectionListener<Company>("companies", this.companies, {
@@ -103,9 +103,11 @@ class Data {
     })
 
     // Orders: Company-scoped with date filtering (last N days only)
+    // Use createdAt (client timestamp) instead of dbCreatedAt (server timestamp)
+    // because dbCreatedAt uses serverTimestamp() which is resolved asynchronously
     const ordersListener = createCollectionListener<Order>("orders", this.orders, {
       companyScoped: true,
-      additionalConstraints: [where("dbCreatedAt", ">=", cutoffTimestamp)],
+      additionalConstraints: [where("createdAt", ">=", cutoffMillis)],
       onFirstLoad: () => this.markCollectionLoaded("orders"),
     })
 
