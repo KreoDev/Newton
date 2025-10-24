@@ -113,6 +113,9 @@ class Data {
     const ordersListener = () => {
       let isFirstLoad = true
 
+      console.log("🔍 Orders Query - Company ID:", companyId)
+      console.log("🔍 Orders Query - Cutoff Date:", new Date(cutoffMillis).toISOString())
+
       // Create compound query: Each visibility condition must include the date filter
       // Firestore requires composite filters (or/and) to include all constraints
       const q = query(
