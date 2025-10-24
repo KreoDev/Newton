@@ -265,6 +265,8 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
           </div>
         )
       },
+      enableSorting: false,
+      enableHiding: false,
     },
   ]
 
