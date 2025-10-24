@@ -866,7 +866,39 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             {formData.tripConfigMode === "trips" ? (
               <div>
                 <Label>Maximum Trips Per Day</Label>
-                <Input type="number" value={formData.tripLimit} onChange={e => setFormData(prev => ({ ...prev, tripLimit: parseInt(e.target.value) || 0 }))} className="mt-2" placeholder="1" />
+                <div className="flex items-center gap-2 mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      if (formData.tripLimit > 1) {
+                        setFormData(prev => ({ ...prev, tripLimit: prev.tripLimit - 1 }))
+                      } else {
+                        toast.error("Minimum 1 trip per day required")
+                      }
+                    }}
+                    disabled={formData.tripLimit <= 1}
+                    className="h-10 w-10"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <div className="flex-1 text-center">
+                    <div className="text-2xl font-semibold">{formData.tripLimit}</div>
+                    <div className="text-xs text-muted-foreground">{formData.tripLimit === 1 ? "trip" : "trips"} per day</div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, tripLimit: prev.tripLimit + 1 }))
+                    }}
+                    className="h-10 w-10"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
