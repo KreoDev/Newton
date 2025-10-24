@@ -1394,14 +1394,17 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                     {formData.dispatchStartDate} to {formData.dispatchEndDate}
                   </p>
                 </div>
-                <div>
-                  <Label className="text-muted-foreground">Collection Site</Label>
-                  <p className="font-medium">{reviewCollectionSite?.name || "Unknown"}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Destination Site</Label>
-                  <p className="font-medium">{reviewDestinationSite?.name || "Unknown"}</p>
-                </div>
+                {formData.orderType === "dispatching" ? (
+                  <div>
+                    <Label className="text-muted-foreground">Collection Site</Label>
+                    <p className="font-medium">{reviewCollectionSite?.name || "Unknown"}</p>
+                  </div>
+                ) : (
+                  <div>
+                    <Label className="text-muted-foreground">Destination Site</Label>
+                    <p className="font-medium">{reviewDestinationSite?.name || "Unknown"}</p>
+                  </div>
+                )}
                 <div>
                   <Label className="text-muted-foreground">Seals</Label>
                   <p className="font-medium">{formData.sealRequired ? `Yes (${formData.sealQuantity})` : "No"}</p>
