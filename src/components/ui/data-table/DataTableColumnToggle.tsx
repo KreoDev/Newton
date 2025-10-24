@@ -43,7 +43,7 @@ export function DataTableColumnToggle<TData>({ table }: DataTableColumnTogglePro
                 checked={column.getIsVisible()}
                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
               >
-                {column.columnDef.header as string}
+                {(column.columnDef.meta as { label?: string })?.label || (typeof column.columnDef.header === "string" ? column.columnDef.header : column.id)}
               </DropdownMenuCheckboxItem>
             )
           })}
