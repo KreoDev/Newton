@@ -309,7 +309,8 @@ securityAlerts: {
 | monthlyLimit      | number          | no       | Monthly limit (kg)                        | 2000            |
 | tripLimit         | number          | yes      | Max trips per truck per day               | 2               |
 | tripDuration      | number          | no       | Trip duration in hours                    | 4               |
-| allocations       | array           | no       | Array of allocations                      | See below       |
+| assignedToLCId    | string          | no       | Logistics Coordinator company ID (if order assigned to LC for allocation) | c_789 |
+| allocations       | array           | no       | Array of allocations to transporters (empty if assigned to LC and not yet allocated) | See below       |
 | status            | enum            | yes      | pending\|allocated\|completed\|cancelled  | allocated       |
 | createdById       | string          | yes      | User who created order                    | u_123           |
 | createdAt         | number          | yes      | Client event time (ms)                    | Date.now()      |
@@ -319,12 +320,22 @@ securityAlerts: {
 | completedWeight   | number          | no       | Weight completed so far                   | 250             |
 | completedTrips    | number          | no       | Number of trips completed                 | 25              |
 
+#### Order Status Logic
+
+- **pending**: Order created and either:
+  - Assigned to a Logistics Coordinator (LC) via `assignedToLCId`, awaiting LC to allocate to transporters
+  - Created without allocations (not yet allocated)
+- **allocated**: Order has been allocated to transporter companies (allocations array populated)
+- **completed**: All weight delivered and order fulfilled
+- **cancelled**: Order cancelled (terminal state)
+
 #### allocations array structure
 
 ```javascript
 ;[
   {
-    companyId: "c_456",
+    companyId: "c_456", // Transporter company ID
+    numberOfTrucks: 4,
     allocatedWeight: 200,
     loadingDates: ["2024-01-15", "2024-01-16"],
     completedWeight: 150,
@@ -332,6 +343,11 @@ securityAlerts: {
   },
 ]
 ```
+
+**Notes:**
+- When order is assigned to LC (`assignedToLCId` is set), the `allocations` array is empty until the LC allocates to transporters
+- When LC completes allocation, `allocations` array is populated and `status` changes from "pending" to "allocated"
+- Direct allocation to transporters (skipping LC) populates `allocations` immediately with status "allocated"
 
 ### pre_bookings (documents)
 
