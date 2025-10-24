@@ -485,6 +485,65 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
+  // Calculate trip capacity breakdown for saving with order
+  const calculateTripCapacityForSaving = () => {
+    const relevantSiteId = formData.orderType === "dispatching" ? formData.collectionSiteId : formData.destinationSiteId
+    const relevantSite = relevantSiteId ? sites.find(s => s.id === relevantSiteId) : null
+
+    // Calculate operating hours
+    const calculateDailyOperatingHours = () => {
+      if (!relevantSite?.operatingHours) return 24
+      const hours = relevantSite.operatingHours
+      if (!hours || typeof hours !== "object") return 24
+      const today = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
+      const daySchedule = hours[today as keyof typeof hours]
+      if (!daySchedule || typeof daySchedule !== "object" || !("open" in daySchedule)) return 24
+      const { open, close } = daySchedule as { open: string; close: string }
+      if (open === "closed" || close === "closed") return 0
+      const openHour = parseInt(open.split(":")[0])
+      const closeHour = parseInt(close.split(":")[0])
+      return closeHour - openHour
+    }
+
+    const operatingHours = calculateDailyOperatingHours()
+    let tripsPerDay = 1
+    let calculationNotes: string | undefined
+
+    if (formData.tripConfigMode === "trips") {
+      tripsPerDay = formData.tripLimit
+    } else if (formData.tripConfigMode === "duration") {
+      const { tripDuration } = formData
+      if (tripDuration <= 24) {
+        if (tripDuration <= operatingHours) {
+          tripsPerDay = Math.floor(operatingHours / tripDuration)
+        } else {
+          tripsPerDay = 1
+          calculationNotes = "Trip duration exceeds operating hours but ≤24h - 1 trip per day possible"
+        }
+      } else {
+        tripsPerDay = 1 / Math.ceil(tripDuration / 24)
+        calculationNotes = `Multi-day trip - ${Math.ceil(tripDuration / 24)} days per trip`
+      }
+    }
+
+    const orderDurationDays = Math.max(1, Math.ceil((new Date(formData.dispatchEndDate).getTime() - new Date(formData.dispatchStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
+
+    const weightPerTrip = company.orderConfig?.defaultWeightPerTruck ?? 0
+    const weightPerDayPerTruck = tripsPerDay * weightPerTrip
+    const weightPerTruckOverDuration = weightPerDayPerTruck * orderDurationDays
+
+    return {
+      tripsPerDay,
+      weightPerTrip,
+      weightPerDayPerTruck,
+      orderDurationDays,
+      weightPerTruckOverDuration,
+      operatingHoursUsed: operatingHours,
+      calculationMode: formData.tripConfigMode,
+      calculationNotes,
+    }
+  }
+
   const handleSubmit = async () => {
     if (!validateStep(8)) return // Validate allocation step
 
@@ -519,6 +578,9 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
       const collectionSite = sites.find(s => s.id === formData.collectionSiteId)
       const destinationSite = sites.find(s => s.id === formData.destinationSiteId)
       const lcCompany = assignedToLCId ? transporterCompanies.find(c => c.id === assignedToLCId) : null
+
+      // Calculate trip capacity breakdown for saving
+      const tripCapacityCalculation = calculateTripCapacityForSaving()
 
       const orderData: Omit<Order, "id" | "createdAt" | "updatedAt" | "dbCreatedAt" | "dbUpdatedAt"> = {
         companyId: company.id,
@@ -601,6 +663,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         monthlyLimit: formData.monthlyLimit,
         tripLimit: formData.tripConfigMode === "trips" ? formData.tripLimit : undefined,
         tripDuration: formData.tripConfigMode === "duration" ? formData.tripDuration : undefined,
+        tripCapacityCalculation, // Pre-calculated capacity breakdown for consistent display
 
         // Allocations and status
         allocations, // With denormalized company names

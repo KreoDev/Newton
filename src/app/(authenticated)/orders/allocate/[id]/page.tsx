@@ -138,6 +138,25 @@ export default function OrderAllocationPage() {
     return Math.ceil(allocatedWeight / weightPerTruckOverDuration)
   }
 
+  // Calculate breakdown variables for display (fallback for orders without saved calculation)
+  const weightPerTruckOverDuration = calculateTruckCapacityOverDuration()
+  const orderDurationDays = order
+    ? Math.max(1, Math.ceil((new Date(order.dispatchEndDate).getTime() - new Date(order.dispatchStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)
+    : 1
+  const truckCapacity = order?.orderConfigSnapshot?.defaultWeightPerTruck ?? 0
+
+  // Calculate tripsPerDay for fallback display
+  let tripsPerDay = 1
+  if (order?.tripLimit) {
+    tripsPerDay = order.tripLimit
+  } else if (order?.tripDuration) {
+    if (order.tripDuration <= 24) {
+      tripsPerDay = 1
+    } else {
+      tripsPerDay = 1 / Math.ceil(order.tripDuration / 24)
+    }
+  }
+
   // Handler for adding transporter
   const handleAddTransporter = async () => {
     if (!selectedTransporterId) return
@@ -338,7 +357,6 @@ export default function OrderAllocationPage() {
   const totalAllocated = allocations.reduce((sum, a) => sum + a.allocatedWeight, 0)
   const remainingWeight = order.totalWeight - totalAllocated
   const allocationPercent = order.totalWeight > 0 ? (totalAllocated / order.totalWeight) * 100 : 0
-  const weightPerTruckOverDuration = calculateTruckCapacityOverDuration()
 
   return (
     <div className="p-6 space-y-6">
@@ -448,10 +466,39 @@ export default function OrderAllocationPage() {
                   </Button>
                 </div>
 
-                {/* Per Truck Capacity Info */}
+                {/* Per Truck Capacity Info - MATCHES CREATE ORDER DISPLAY */}
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded p-3 text-xs space-y-1">
                   <p className="font-semibold text-blue-700 dark:text-blue-300">Per Truck Capacity (Over Order Duration):</p>
-                  <p className="text-muted-foreground">• {weightPerTruckOverDuration.toLocaleString()} kg per truck over order duration</p>
+
+                  {order.tripCapacityCalculation ? (
+                    // Use saved pre-calculated values (PREFERRED - guaranteed accuracy)
+                    <>
+                      <p className="text-muted-foreground">
+                        • {order.tripCapacityCalculation.tripsPerDay} {order.tripCapacityCalculation.tripsPerDay === 1 ? "trip" : "trips"} per day ×{" "}
+                        {order.tripCapacityCalculation.weightPerTrip.toLocaleString()} kg per trip = {order.tripCapacityCalculation.weightPerDayPerTruck.toLocaleString()} kg/day
+                      </p>
+                      <p className="text-muted-foreground">
+                        • Over {order.tripCapacityCalculation.orderDurationDays} {order.tripCapacityCalculation.orderDurationDays === 1 ? "day" : "days"}:{" "}
+                        <span className="font-semibold">{order.tripCapacityCalculation.weightPerTruckOverDuration.toLocaleString()} kg per truck</span>
+                      </p>
+                      {order.tripCapacityCalculation.calculationNotes && (
+                        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">ℹ️ {order.tripCapacityCalculation.calculationNotes}</p>
+                      )}
+                    </>
+                  ) : (
+                    // Fallback: Calculate from order data (for existing orders without saved calculation)
+                    <>
+                      <p className="text-muted-foreground">
+                        • {tripsPerDay} {tripsPerDay === 1 ? "trip" : "trips"} per day × {truckCapacity.toLocaleString()} kg per trip = {(tripsPerDay * truckCapacity).toLocaleString()} kg/day
+                      </p>
+                      <p className="text-muted-foreground">
+                        • Over {orderDurationDays} {orderDurationDays === 1 ? "day" : "days"}: <span className="font-semibold">{weightPerTruckOverDuration.toLocaleString()} kg per truck</span>
+                      </p>
+                      <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                        ⚠️ Calculated from order data (order created before capacity calculations were saved)
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 {/* Allocated Weight Input (PRIMARY) */}

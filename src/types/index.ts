@@ -325,6 +325,18 @@ export interface Order extends Timestamped, CompanyScoped {
   tripLimit?: number // Optional - only set when using "trips per day" mode
   tripDuration?: number // Optional - only set when using "trip duration" mode
 
+  // Trip capacity calculations (saved at creation time for display consistency)
+  tripCapacityCalculation?: {
+    tripsPerDay: number // e.g., 1 or 0.5 or 3
+    weightPerTrip: number // e.g., 30,000 kg (from orderConfigSnapshot)
+    weightPerDayPerTruck: number // tripsPerDay × weightPerTrip
+    orderDurationDays: number // Calculated from dispatchStartDate/dispatchEndDate
+    weightPerTruckOverDuration: number // weightPerDayPerTruck × orderDurationDays
+    operatingHoursUsed: number // Operating hours used in calculation (10, 24, etc.)
+    calculationMode: "trips" | "duration" // Which mode was used
+    calculationNotes?: string // e.g., "Trip exceeds operating hours" or "Multi-day trip"
+  }
+
   // Allocations and status
   allocations: Allocation[] // Array of allocations to transporters (empty if assigned to LC and not yet allocated)
   allocatedCompanyIds: string[] // Flat array of transporter company IDs from allocations (for Firestore querying)
