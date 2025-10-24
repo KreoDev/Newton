@@ -288,7 +288,7 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
       data={orders}
       columns={columns}
       tableId="orders-table"
-      defaultColumnOrder={["orderNumber", "orderType", "client", "product", "totalWeight", "progress", "dateRange", "status", "actions"]}
+      defaultColumnOrder={["orderNumber", "orderType", "client", "product", "totalWeight", "progress", "dateRange", "allocatedTo", "daysRemaining", "status", "actions"]}
       defaultPageSize={20}
       searchPlaceholder="Search by order #, client, or product..."
       enablePagination={true}
