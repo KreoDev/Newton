@@ -121,7 +121,8 @@ class Data {
         collection(db, "orders"),
         or(
           and(where("companyId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // Mine companies
-          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)) // LC companies
+          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // LC companies
+          and(where("allocations", "array-contains", companyId), where("createdAt", ">=", cutoffMillis)) // Transporter companies
         )
       )
 

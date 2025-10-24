@@ -43,21 +43,20 @@ export default function OrdersPage() {
       return allOrders.filter(o => o.companyId === company.id)
     }
 
-    // Transporters: See orders allocated to them
-    if (company.companyType === "transporter") {
-      return allOrders.filter(o =>
-        o.allocations.some(a => a.companyId === company.id)
-      )
-    }
+    // For transporter and LC companies, check primary role AND dual-role flags
+    const isTransporter = company.companyType === "transporter" || company.isAlsoTransporter
+    const isLC = company.companyType === "logistics_coordinator" || company.isAlsoLogisticsCoordinator
 
-    // LCs: See orders assigned to them for allocation
-    if (company.companyType === "logistics_coordinator") {
-      return allOrders.filter(o =>
-        o.assignedToLCId === company.id
-      )
-    }
+    return allOrders.filter(o => {
+      // Check if order is allocated to this company as transporter
+      const allocatedToTransporter = isTransporter && o.allocations.some(a => a.companyId === company.id)
 
-    return []
+      // Check if order is assigned to this company as LC
+      const assignedToLC = isLC && o.assignedToLCId === company.id
+
+      // Show order if either condition is true
+      return allocatedToTransporter || assignedToLC
+    })
   }, [company, globalData.orders.value])
 
   // Combine real-time and historical orders
