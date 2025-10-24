@@ -1127,6 +1127,13 @@
               "styling": "text-destructive",
               "usage": "Opens confirmation dialog before deletion"
             },
+            "cancel": {
+              "icon": "XCircle",
+              "purpose": "Cancel an order or action",
+              "styling": "text-destructive",
+              "usage": "Used for orders to cancel instead of delete (orders cannot be deleted, only cancelled)",
+              "note": "XCircle icon avoids confusion with Trash2 which implies deletion. Use this for cancellation actions where the entity persists but is marked as cancelled."
+            },
             "toggle_active": {
               "icon": "ToggleRight (active) / ToggleLeft (inactive)",
               "purpose": "Toggle active/inactive status",
@@ -1149,7 +1156,8 @@
           "companies_list": "ToggleRight/Left + Edit + Delete + Active/Inactive badge",
           "roles_list": "Eye/EyeOff (visibility) + Edit + Delete + Active/Inactive badge",
           "assets_list": "FileText (view) + Delete + Active/Inactive/Expired badge",
-          "users_list": "FileText (view) + Edit + Delete + Active/Inactive badge"
+          "users_list": "FileText (view) + Edit + Delete + Active/Inactive badge",
+          "orders_list": "FileText (view) + XCircle (cancel) + Status badge"
         }
       }
     }

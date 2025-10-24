@@ -7,7 +7,7 @@ import { DataTable } from "@/components/ui/data-table/DataTable"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Calendar as CalendarIcon, FileText, Trash2, History, ChevronDown, X } from "lucide-react"
+import { Calendar as CalendarIcon, FileText, XCircle, History, ChevronDown, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { OrderStatusBadge } from "./OrderStatusBadge"
 import { FilterableColumnHeader } from "@/components/ui/data-table/FilterableColumnHeader"
@@ -206,7 +206,7 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
 
             {canCancel && order.status !== "cancelled" && order.status !== "completed" && (
               <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleCancel(order.id)}>
-                <Trash2 className="h-4 w-4" />
+                <XCircle className="h-4 w-4" />
               </Button>
             )}
           </div>

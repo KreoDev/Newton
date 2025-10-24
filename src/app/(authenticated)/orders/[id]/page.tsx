@@ -7,7 +7,7 @@ import { useCompany } from "@/contexts/CompanyContext"
 import { usePermission } from "@/hooks/usePermission"
 import { PERMISSIONS } from "@/lib/permissions"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Trash2 } from "lucide-react"
+import { ArrowLeft, XCircle } from "lucide-react"
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge"
 import { OrderService } from "@/services/order.service"
 import { data as globalData } from "@/services/data.service"
@@ -108,7 +108,7 @@ export default function OrderDetailsPage() {
               className="text-destructive hover:text-destructive gap-2"
               onClick={handleCancel}
             >
-              <Trash2 className="h-4 w-4" />
+              <XCircle className="h-4 w-4" />
               Cancel Order
             </Button>
           )}
