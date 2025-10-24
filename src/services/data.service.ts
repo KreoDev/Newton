@@ -112,17 +112,15 @@ class Data {
     const ordersListener = () => {
       let isFirstLoad = true
 
-      console.log("🔍 Orders Query - Company ID:", companyId)
-      console.log("🔍 Orders Query - Cutoff Date:", new Date(cutoffMillis).toISOString())
-
       // Create compound query: Each visibility condition must include the date filter
       // Firestore requires composite filters (or/and) to include all constraints
+      // Note: Mine and LC orders are loaded via query, transporter orders are filtered client-side
+      // because allocations is an array of objects and can't be queried with array-contains
       const q = query(
         collection(db, "orders"),
         or(
           and(where("companyId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // Mine companies
-          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // LC companies
-          and(where("allocations", "array-contains", companyId), where("createdAt", ">=", cutoffMillis)) // Transporter companies
+          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)) // LC companies
         )
       )
 
@@ -134,16 +132,6 @@ class Data {
             ...doc.data(),
           })) as Order[]
 
-          console.log("✅ Orders loaded:", data.length, "orders")
-          if (data.length > 0) {
-            console.log("📋 First order:", {
-              id: data[0].id,
-              companyId: data[0].companyId,
-              assignedToLCId: data[0].assignedToLCId,
-              orderNumber: data[0].orderNumber,
-            })
-          }
-
           this.orders.value = data
 
           if (isFirstLoad) {
@@ -152,9 +140,7 @@ class Data {
           }
         },
         error => {
-          console.error("❌ ERROR loading orders:", error)
-          console.error("Error code:", error.code)
-          console.error("Error message:", error.message)
+          console.error("Error loading orders:", error)
           log.i("Data Service", "Failed to load orders")
         }
       )
