@@ -1162,16 +1162,20 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                       const calculateTripCapacity = () => {
                         if (formData.tripConfigMode === "trips") {
                           return formData.tripLimit
-                        } else if (formData.tripConfigMode === "duration" && formData.collectionSiteId) {
-                          const collectionSite = sites.find(s => s.id === formData.collectionSiteId)
-                          if (!collectionSite?.operatingHours) return 1
+                        } else if (formData.tripConfigMode === "duration") {
+                          // Get the relevant site based on order type
+                          // For dispatching: collection site (where trucks pick up from)
+                          // For receiving: destination site (where trucks deliver to)
+                          const relevantSiteId = formData.orderType === "dispatching" ? formData.collectionSiteId : formData.destinationSiteId
+                          const relevantSite = relevantSiteId ? sites.find(s => s.id === relevantSiteId) : null
 
                           const calculateDailyOperatingHours = () => {
-                            const hours = collectionSite.operatingHours
-                            if (!hours || typeof hours !== "object") return 12
+                            if (!relevantSite?.operatingHours) return 24 // Default 24 hours if not configured
+                            const hours = relevantSite.operatingHours
+                            if (!hours || typeof hours !== "object") return 24
                             const today = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
                             const daySchedule = hours[today as keyof typeof hours]
-                            if (!daySchedule || typeof daySchedule !== "object" || !("open" in daySchedule)) return 12
+                            if (!daySchedule || typeof daySchedule !== "object" || !("open" in daySchedule)) return 24
                             const { open, close } = daySchedule as { open: string; close: string }
                             if (open === "closed" || close === "closed") return 0
                             const openHour = parseInt(open.split(":")[0])

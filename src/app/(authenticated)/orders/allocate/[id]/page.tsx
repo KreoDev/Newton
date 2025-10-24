@@ -80,14 +80,19 @@ export default function OrderAllocationPage() {
       tripsPerDay = order.tripLimit
     } else if (order.tripDuration) {
       // Use denormalized operating hours (no cross-company lookup!)
-      const operatingHours = order.collectionSiteOperatingHours
+      // For dispatching: collection site (where trucks pick up from)
+      // For receiving: destination site (where trucks deliver to)
+      const operatingHours = order.orderType === "dispatching"
+        ? order.collectionSiteOperatingHours
+        : order.destinationSiteOperatingHours
+
       if (operatingHours) {
         const calculateDailyOperatingHours = () => {
           const hours = operatingHours
-          if (!hours || typeof hours !== "object") return 12
+          if (!hours || typeof hours !== "object") return 24 // Default 24 hours
           const today = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
           const daySchedule = hours[today as keyof typeof hours]
-          if (!daySchedule || typeof daySchedule !== "object" || !("open" in daySchedule)) return 12
+          if (!daySchedule || typeof daySchedule !== "object" || !("open" in daySchedule)) return 24
           const { open, close } = daySchedule as { open: string; close: string }
           if (open === "closed" || close === "closed") return 0
           const openHour = parseInt(open.split(":")[0])
