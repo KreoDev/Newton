@@ -101,8 +101,18 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
   const collectionSites = sites.filter(s => s.siteType === "collection")
   const destinationSites = sites.filter(s => s.siteType === "destination")
-  const lcCompanies = companies.filter(c => c.companyType === "logistics_coordinator")
-  const transporterCompanies = companies.filter(c => c.companyType === "transporter")
+
+  // LC companies: logistics_coordinator OR transporter with isAlsoLogisticsCoordinator flag
+  const lcCompanies = companies.filter(c =>
+    c.companyType === "logistics_coordinator" ||
+    (c.companyType === "transporter" && c.isAlsoLogisticsCoordinator === true)
+  )
+
+  // Transporter companies: transporter OR logistics_coordinator with isAlsoTransporter flag
+  const transporterCompanies = companies.filter(c =>
+    c.companyType === "transporter" ||
+    (c.companyType === "logistics_coordinator" && c.isAlsoTransporter === true)
+  )
 
   // State for transporter selection in Step 8
   const [selectedTransporterId, setSelectedTransporterId] = useState<string>("")
