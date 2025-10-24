@@ -2439,7 +2439,24 @@ When saved column order in localStorage doesn't contain ALL current columns, Dat
 
 ---
 
-## Phase 4: Order Management
+## Phase 4: Order Management ✅ COMPLETED
+
+### Status: Production Ready (Phase 4)
+
+All order management features have been fully implemented and tested. This includes comprehensive order creation wizard with trip capacity calculations, logistics coordinator allocation, multi-company order visibility, and complete tracking capabilities.
+
+**Key Achievements:**
+
+- ✅ 8-step order creation wizard with auto/manual order numbers
+- ✅ Trip capacity calculations (trips per day and multi-day trips)
+- ✅ Trip capacity calculation snapshots saved with orders for consistency
+- ✅ Logistics coordinator allocation with weight distribution
+- ✅ Direct transporter allocation during order creation
+- ✅ Multi-company order visibility via `allocatedCompanyIds`
+- ✅ Order cancellation restricted to mine companies only
+- ✅ Full support for receiving and dispatching orders
+- ✅ Real-time order tracking and progress monitoring
+- ✅ Comprehensive truck capacity calculations displayed in allocation UI
 
 ### Overview
 
@@ -2571,24 +2588,49 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
 
   **Option 2: Trip Duration (hours)**
 
-  - Number input (hours, e.g., 4)
+  - Number input (hours, e.g., 4, 15, 30)
   - System calculates possible trips based on:
-    - Collection site operating hours (from sites.operatingHours)
+    - **Relevant site operating hours** (conditional on order type):
+      - **Dispatching orders**: Use collection site operating hours
+      - **Receiving orders**: Use destination site operating hours
     - Order date range (start to end)
-    - Formula: `possibleTrips = floor(operatingHours / tripDuration)`
-  - Display calculated trips per day
-  - Display total trips for order
-  - Note: "If trip duration exceeds daily operating window, it spans to next operating day"
-  - Validation: Trip duration > 0 and <= 24
+  - **Trip Calculation Formulas** (implemented):
+    - **Multiple trips per day** (tripDuration ≤ operatingHours):
+      - `tripsPerDay = Math.floor(operatingHours / tripDuration)`
+      - Example: 10h operating hours ÷ 4h trip = 2.5 → 2 trips/day
+    - **Single trip** (tripDuration > operatingHours but ≤ 24h):
+      - `tripsPerDay = 1`
+      - Note: "Trip duration exceeds operating hours but ≤24h - 1 trip per day possible"
+    - **Multi-day trips** (tripDuration > 24h):
+      - `tripsPerDay = 1 / Math.ceil(tripDuration / 24)`
+      - Example: 30h trip = 2 days per trip → 0.5 trips/day
+      - Note: "Multi-day trip - {days} days per trip"
+  - Display calculated trips per day (including fractional values like 0.5)
+  - Display warning for trips exceeding operating hours
+  - Validation: Trip duration > 0
 
 - Display summary:
 
   - "This order allows {tripsPerDay} trips per day"
-  - "Total trips across {days} days: {totalTrips}"
+  - Per-truck capacity breakdown:
+    - "{tripsPerDay} trips/day × {weightPerTrip} kg/trip = {weightPerDay} kg/day"
+    - "Over {orderDurationDays} days: {weightPerTruckOverDuration} kg per truck"
+  - Calculation notes (if applicable)
 
 - Next button
 
+**Implementation Note:** The complete trip capacity calculation is saved with the order in the `tripCapacityCalculation` field to ensure consistent display across Create Order and LC Allocate pages.
+
 **Step 8: Allocation Method**
+
+- **Truck Capacity Display** (shown at top of step):
+  - Blue info box showing per-truck capacity breakdown
+  - Displays complete calculation from Step 7:
+    - "{tripsPerDay} trips per day × {weightPerTrip} kg per trip = {weightPerDay} kg/day"
+    - "Over {orderDurationDays} days: **{weightPerTruckOverDuration} kg per truck**"
+  - Calculation notes (e.g., "Multi-day trip - 2 days per trip")
+  - Uses real-time calculation from `calculateTruckCapacityOverDuration()` function
+  - Respects conditional site selection (dispatching vs receiving)
 
 - Radio buttons:
 
@@ -2598,6 +2640,7 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
   - Note: "LC will distribute weight to transporters later"
   - On save:
     - Create order with `allocations = []`
+    - Add LC company ID to `allocatedCompanyIds` array
     - Send notification to LC contacts (always sent)
     - Send notification to users with "order.allocated" enabled
 
@@ -2606,11 +2649,14 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
   - Add Transporter button:
     - Opens mini-modal:
       - Company dropdown (companyType = 'transporter')
+      - **Truck limit field**: Number of trucks allocated
+      - **Fetches transporter's active trucks** from Firestore (lazy-loaded)
       - Allocated weight (number input, kg)
       - Loading dates (multi-date picker from order date range)
       - Add button
   - List of added transporters:
     - Company name
+    - Number of trucks allocated
     - Allocated weight
     - Loading dates (comma-separated)
     - Remove button
@@ -2618,11 +2664,14 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
   - If mismatch: Show error "Weight allocation doesn't match total ({sum}/{total})"
   - Block next until match
   - On save:
-    - Create order with `allocations` array
+    - Create order with `allocations` array (includes `trucks` count)
+    - Add all transporter company IDs to `allocatedCompanyIds` array
     - Send notification to each transporter (always sent)
     - Send notification to users with "order.allocated" enabled
 
 - Next button (disabled if allocation invalid)
+
+**Implementation Note:** The `allocatedCompanyIds` field enables multi-company order visibility - LCs and transporters can see orders they're allocated to, even if created by a different company.
 
 **Step 9: Review & Submit**
 
@@ -2701,13 +2750,24 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
     - Total weight
     - Date range
     - Product
+  - **Per Truck Capacity Info** (blue info box, MATCHES CREATE ORDER DISPLAY):
+    - **Preferentially uses saved** `order.tripCapacityCalculation` (if available):
+      - "{tripsPerDay} trips per day × {weightPerTrip} kg per trip = {weightPerDay} kg/day"
+      - "Over {orderDurationDays} days: **{weightPerTruckOverDuration} kg per truck**"
+      - Calculation notes (if applicable)
+    - **Fallback**: Calculates from order data for existing orders without saved calculation
+      - Shows orange warning: "⚠️ Calculated from order data (order created before capacity calculations were saved)"
   - Add Transporter section:
     - Company dropdown (companyType = 'transporter')
+    - **Truck limit field**: Number of trucks to allocate
+    - **Fetches transporter's active trucks** from Firestore when company selected (lazy-loaded)
+    - **Displays truck count**: "{count} active trucks available"
     - Allocated weight (number input)
     - Loading dates (multi-date picker)
     - Add button
   - List of allocations:
     - Company name
+    - **Number of trucks** allocated
     - Weight allocated
     - Loading dates
     - Edit / Remove buttons
@@ -2716,8 +2776,9 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
   - Validation: Sum = total weight
 - Submit button (disabled until valid)
 - On submit:
-  - Update order.allocations array
+  - Update order.allocations array (includes `trucks` count for each allocation)
   - Update order.status = 'allocated'
+  - Add all transporter company IDs to `allocatedCompanyIds` array
   - Send notifications to each transporter (always sent)
   - Send notification to users with "order.allocated" enabled
   - Show success message
@@ -2848,7 +2909,10 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
 - Actions:
   - Allocate (if LC and pending)
   - Create Pre-Booking (if transporter)
-  - Cancel Order (if permitted)
+  - **Cancel Order** (RESTRICTED: mine companies only)
+    - Hidden from LCs and transporters (even if they have ORDERS_CANCEL permission)
+    - Implemented via company type check: `company?.companyType === "mine"`
+    - Applies to both order detail page and orders table view
   - Export to PDF
 
 **Methods/Functions:**
@@ -2857,7 +2921,7 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
 - `OrderService.getProgress(id: string)` - Calculate completion stats
 - `OrderService.getPreBookings(orderId: string)` - Related pre-bookings
 - `OrderService.getWeighingRecords(orderId: string)` - Related weighing records
-- `OrderService.cancel(id: string, reason: string)` - Cancel order
+- `OrderService.cancel(id: string, reason: string)` - Cancel order (mine companies only)
 
 **Acceptance Criteria:**
 
@@ -2868,6 +2932,213 @@ Implement order creation, allocation, and tracking. Orders depend on products, c
 - ✅ Weighing records listed
 - ✅ Cancel flow requires reason
 - ✅ Cancelled orders send notifications
+- ✅ **Cancel button only visible to mine companies** (implemented in both detail page and table view)
+
+---
+
+### Phase 4: Implementation Notes & Recent Changes
+
+This section documents key implementation details, architectural decisions, and bug fixes from Phase 4 development.
+
+#### 4.5.1 Multi-Company Order Visibility
+
+**Feature:** Orders created by one company can be viewed and managed by allocated LCs and transporters.
+
+**Implementation:**
+
+- Added `allocatedCompanyIds: string[]` field to Order interface
+- Populated automatically when:
+  - LC assigned to order (Step 8, Option 1)
+  - Transporters allocated during creation (Step 8, Option 2)
+  - Transporters allocated post-creation (Section 4.2)
+- Order listing queries filter by: `companyId === user.companyId OR allocatedCompanyIds.includes(user.companyId)`
+- Enables proper multi-tenancy for order management workflow
+
+**Files Modified:**
+
+- [src/types/index.ts](../src/types/index.ts) - Added `allocatedCompanyIds` to Order interface
+- [src/components/orders/OrderCreationWizard.tsx](../src/components/orders/OrderCreationWizard.tsx) - Populate during creation
+- [src/app/(authenticated)/orders/allocate/[id]/page.tsx](../src/app/(authenticated)/orders/allocate/[id]/page.tsx) - Update during post-creation allocation
+
+#### 4.5.2 Trip Capacity Calculation Snapshots
+
+**Problem:** Trip capacity calculations depend on site operating hours, which can change over time. Displaying inconsistent calculations between Create Order and LC Allocate pages caused confusion.
+
+**Solution:** Save complete trip capacity calculation breakdown at order creation time as a snapshot.
+
+**Implementation:**
+
+- Added `tripCapacityCalculation` optional field to Order interface:
+
+  ```typescript
+  tripCapacityCalculation?: {
+    tripsPerDay: number            // e.g., 1, 0.5, 3
+    weightPerTrip: number           // From orderConfigSnapshot
+    weightPerDayPerTruck: number    // tripsPerDay × weightPerTrip
+    orderDurationDays: number       // Calculated from date range
+    weightPerTruckOverDuration: number  // weightPerDayPerTruck × orderDurationDays
+    operatingHoursUsed: number      // Operating hours at creation time
+    calculationMode: "trips" | "duration"
+    calculationNotes?: string       // e.g., "Multi-day trip - 2 days per trip"
+  }
+  ```
+
+- Created `calculateTripCapacityForSaving()` function in OrderCreationWizard
+- Saved with order during creation (Step 9 submit)
+- LC Allocate page preferentially uses saved calculation, falls back to live calculation for existing orders
+- Ensures consistent display across all pages
+
+**Files Modified:**
+
+- [src/types/index.ts:328-338](../src/types/index.ts#L328-L338) - Added field to Order interface
+- [src/components/orders/OrderCreationWizard.tsx:488-545](../src/components/orders/OrderCreationWizard.tsx#L488-L545) - Calculation function
+- [src/app/(authenticated)/orders/allocate/[id]/page.tsx:470-503](../src/app/(authenticated)/orders/allocate/[id]/page.tsx#L470-L503) - Display with fallback
+
+#### 4.5.3 Conditional Site Selection (Dispatching vs Receiving)
+
+**Problem:** Trip capacity calculations only worked for dispatching orders because code hard-coded `collectionSiteId`. Receiving orders use `destinationSiteId` instead.
+
+**Solution:** Conditional site selection based on `orderType` field.
+
+**Pattern:**
+
+```typescript
+const relevantSiteId = formData.orderType === "dispatching"
+  ? formData.collectionSiteId
+  : formData.destinationSiteId
+const relevantSite = relevantSiteId ? sites.find(s => s.id === relevantSiteId) : null
+```
+
+**Applied in:**
+
+- Step 7: Trip Configuration display
+- Step 8: Allocation Method truck capacity display
+- `calculateTripCapacityForSaving()` function
+
+**Rationale:**
+
+- **Dispatching orders**: Trucks load at collection site → use collection site operating hours
+- **Receiving orders**: Trucks deliver to destination site → use destination site operating hours
+
+**Files Modified:**
+
+- [src/components/orders/OrderCreationWizard.tsx:165-170](../src/components/orders/OrderCreationWizard.tsx#L165-L170) - Step 8 display
+- [src/components/orders/OrderCreationWizard.tsx:494-497](../src/components/orders/OrderCreationWizard.tsx#L494-L497) - Saving function
+
+#### 4.5.4 Transporter Truck Tracking
+
+**Feature:** Track number of trucks allocated to each transporter for order fulfillment.
+
+**Implementation:**
+
+- Added `trucks: number` field to Allocation interface
+- Step 8 (Option 2): Truck limit input field when adding transporters
+- Lazy-load transporter's active trucks from Firestore when company selected
+- Display "{count} active trucks available"
+- Section 4.2 (LC Allocate): Same functionality for post-creation allocation
+- Saved in `order.allocations[].trucks`
+
+**Use Case:** Enables mine companies and LCs to track resource allocation and ensure transporters have sufficient capacity.
+
+**Files Modified:**
+
+- [src/types/index.ts](../src/types/index.ts) - Added `trucks` to Allocation interface
+- [src/components/orders/OrderCreationWizard.tsx](../src/components/orders/OrderCreationWizard.tsx) - Truck limit input in Step 8
+- [src/app/(authenticated)/orders/allocate/[id]/page.tsx](../src/app/(authenticated)/orders/allocate/[id]/page.tsx) - Same for post-creation allocation
+
+#### 4.5.5 Order Cancellation Restrictions
+
+**Requirement:** Only mine companies should be able to cancel orders. LCs and transporters cannot cancel orders, even if allocated to them.
+
+**Implementation:**
+
+- Combined permission check with company type check:
+
+  ```typescript
+  {canCancel && company?.companyType === "mine" && order.status !== "cancelled" && ...}
+  ```
+
+- Applied to:
+  - Order detail page ([src/app/(authenticated)/orders/[id]/page.tsx:104](../src/app/(authenticated)/orders/[id]/page.tsx#L104))
+  - Orders table view ([src/components/orders/OrdersTableView.tsx:263](../src/components/orders/OrdersTableView.tsx#L263))
+- Cancel button completely hidden from non-mine companies
+
+**Rationale:** Mine companies own the orders and control the workflow. LCs and transporters are service providers who should not modify order status.
+
+#### 4.5.6 Bug Fixes
+
+##### Bug #1: Create Order Step 8 Wrong Truck Calculations
+
+**Symptom:** Create New Order Step 8 showed 2 trucks needed, but LC Allocate page correctly showed 3 trucks needed for the same order.
+
+**Root Cause:** TWO `calculateTruckCapacityOverDuration()` functions existed:
+
+- OLD function (line 158) - Used for Step 8 real-time display, only checked `collectionSiteId` (broken for receiving orders)
+- NEW function (line 489) - Used for saving, properly handled both order types
+
+**Fix:** Updated OLD function to use conditional site selection based on order type (lines 165-170).
+
+##### Bug #2: Receiving Orders Not Calculating Trips
+
+**Symptom:** Trip duration calculations only worked for dispatching orders, not receiving orders.
+
+**Root Cause:** Code only checked `formData.collectionSiteId`, which doesn't exist for receiving orders.
+
+**Fix:** Applied conditional site selection pattern across all trip calculation locations (Step 7, Step 8, saving function).
+
+##### Bug #3: Trip Duration Display Missing
+
+**Symptom:** When entering 30-hour trip duration, UI showed "2 days required per trip" but NOT "0.5 trips per day".
+
+**Root Cause:** Calculation logic was correct but UI wasn't displaying the `tripsPerDay` result for multi-day trips.
+
+**Fix:** Added `tripsPerDay` calculation and display line to Step 7's multi-day trip warning box (including fractional values).
+
+##### Bug #4: Optional Trip Configuration Fields
+
+**Symptom:** When using "Trip Duration" mode, `tripLimit` was still saved with default value (1), causing incorrect calculations later.
+
+**Root Cause:** `tripLimit` was required (`number`) instead of optional (`number?`), so it was always saved.
+
+**Fix:**
+
+- Made `tripLimit` and `tripDuration` optional in Order interface
+- Only save `tripLimit` when `tripConfigMode === "trips"`
+- Only save `tripDuration` when `tripConfigMode === "duration"`
+
+#### 4.5.7 Trip Calculation Formulas (Reference)
+
+Complete implementation of trip capacity calculations:
+
+```typescript
+// Multiple trips per day (tripDuration ≤ operatingHours)
+tripsPerDay = Math.floor(operatingHours / tripDuration)
+// Example: 10h ÷ 4h = 2.5 → 2 trips/day
+
+// Single trip (tripDuration > operatingHours but ≤ 24h)
+tripsPerDay = 1
+calculationNotes = "Trip duration exceeds operating hours but ≤24h - 1 trip per day possible"
+
+// Multi-day trips (tripDuration > 24h)
+tripsPerDay = 1 / Math.ceil(tripDuration / 24)
+calculationNotes = "Multi-day trip - {days} days per trip"
+// Example: 30h trip = 2 days per trip → 0.5 trips/day
+```
+
+**Per-Truck Capacity Breakdown:**
+
+```typescript
+weightPerDayPerTruck = tripsPerDay × weightPerTrip
+weightPerTruckOverDuration = weightPerDayPerTruck × orderDurationDays
+```
+
+**Order Duration Calculation:**
+
+```typescript
+orderDurationDays = Math.max(1, Math.ceil(
+  (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+) + 1)
+```
 
 ---
 
