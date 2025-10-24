@@ -120,8 +120,8 @@ class Data {
       const q = query(
         collection(db, "orders"),
         or(
-          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // LC companies
-          and(where("companyId", "==", companyId), where("createdAt", ">=", cutoffMillis)) // Mine companies
+          and(where("companyId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // Mine companies
+          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)) // LC companies
         )
       )
 
@@ -139,7 +139,7 @@ class Data {
               id: data[0].id,
               companyId: data[0].companyId,
               assignedToLCId: data[0].assignedToLCId,
-              orderNumber: data[0].orderNumber
+              orderNumber: data[0].orderNumber,
             })
           }
 

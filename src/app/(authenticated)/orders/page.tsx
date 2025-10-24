@@ -50,11 +50,10 @@ export default function OrdersPage() {
       )
     }
 
-    // LCs: See orders they manage (either assigned to them or created by them)
+    // LCs: See orders assigned to them for allocation
     if (company.companyType === "logistics_coordinator") {
       return allOrders.filter(o =>
-        o.companyId === company.id ||
-        o.allocations.some(a => a.companyId === company.id)
+        o.assignedToLCId === company.id
       )
     }
 
