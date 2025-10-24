@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCompany } from "@/contexts/CompanyContext"
 import { usePermission } from "@/hooks/usePermission"
@@ -57,6 +57,16 @@ export default function OrderAllocationPage() {
     // Order must be pending or already allocated to this LC
     return order.status === "pending" || order.allocations.some(a => a.companyId === company.id)
   }, [company, order, canAllocate])
+
+  // Fetch trucks for existing allocations when order loads
+  useEffect(() => {
+    if (order?.allocations && order.allocations.length > 0) {
+      // Fetch trucks for all existing allocations
+      order.allocations.forEach(allocation => {
+        fetchTrucksForTransporter(allocation.companyId)
+      })
+    }
+  }, [order?.id]) // Only run when order changes
 
   // Helper function to calculate truck capacity over order duration (LC-specific)
   const calculateTruckCapacityOverDuration = () => {
