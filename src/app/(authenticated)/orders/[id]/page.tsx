@@ -221,14 +221,17 @@ export default function OrderDetailsPage() {
               {format(new Date(order.dispatchStartDate), "MMM d, yyyy")} - {format(new Date(order.dispatchEndDate), "MMM d, yyyy")}
             </p>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Collection Site</p>
-            <p className="font-medium">{collectionSite?.name || "Unknown"}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Destination Site</p>
-            <p className="font-medium">{destinationSite?.name || "Unknown"}</p>
-          </div>
+          {order.orderType === "dispatching" ? (
+            <div>
+              <p className="text-sm text-muted-foreground">Collection Site</p>
+              <p className="font-medium">{collectionSite?.name || "Unknown"}</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-muted-foreground">Destination Site</p>
+              <p className="font-medium">{destinationSite?.name || "Unknown"}</p>
+            </div>
+          )}
           <div>
             <p className="text-sm text-muted-foreground">Seals</p>
             <p className="font-medium">
