@@ -223,10 +223,22 @@ export default function OrderDetailsPage() {
             <p className="text-sm text-muted-foreground">Daily Weight Limit</p>
             <p className="font-medium">{order.dailyWeightLimit} kg</p>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Trip Limit</p>
-            <p className="font-medium">{order.tripLimit} per day</p>
-          </div>
+          {order.tripLimit !== undefined ? (
+            <div>
+              <p className="text-sm text-muted-foreground">Trip Limit</p>
+              <p className="font-medium">{order.tripLimit} per day</p>
+            </div>
+          ) : order.tripDuration !== undefined ? (
+            <div>
+              <p className="text-sm text-muted-foreground">Trip Duration</p>
+              <p className="font-medium">{order.tripDuration} hours</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-muted-foreground">Trip Configuration</p>
+              <p className="font-medium text-muted-foreground">Not configured</p>
+            </div>
+          )}
         </div>
       </div>
 

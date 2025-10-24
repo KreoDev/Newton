@@ -599,7 +599,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         dailyTruckLimit: formData.dailyTruckLimit,
         dailyWeightLimit: formData.dailyWeightLimit,
         monthlyLimit: formData.monthlyLimit,
-        tripLimit: formData.tripLimit,
+        tripLimit: formData.tripConfigMode === "trips" ? formData.tripLimit : undefined,
         tripDuration: formData.tripConfigMode === "duration" ? formData.tripDuration : undefined,
 
         // Allocations and status

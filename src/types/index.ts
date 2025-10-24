@@ -322,8 +322,8 @@ export interface Order extends Timestamped, CompanyScoped {
   dailyTruckLimit: number
   dailyWeightLimit: number
   monthlyLimit?: number
-  tripLimit: number
-  tripDuration?: number
+  tripLimit?: number // Optional - only set when using "trips per day" mode
+  tripDuration?: number // Optional - only set when using "trip duration" mode
 
   // Allocations and status
   allocations: Allocation[] // Array of allocations to transporters (empty if assigned to LC and not yet allocated)
