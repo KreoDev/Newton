@@ -981,18 +981,19 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
                 {formData.tripDuration > 0 && formData.collectionSiteId && (() => {
                   const collectionSite = sites.find(s => s.id === formData.collectionSiteId)
-                  if (!collectionSite?.operatingHours) return null
 
                   // Calculate operating hours for the collection site
                   const calculateDailyOperatingHours = () => {
+                    if (!collectionSite?.operatingHours) return 24 // Default 24 hours if not configured
+
                     const hours = collectionSite.operatingHours
-                    if (!hours || typeof hours !== 'object') return 12 // Default 12 hours
+                    if (!hours || typeof hours !== 'object') return 24 // Default 24 hours
 
                     // Get today's day of week
                     const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
                     const daySchedule = hours[today as keyof typeof hours]
 
-                    if (!daySchedule || typeof daySchedule !== 'object' || !('open' in daySchedule)) return 12
+                    if (!daySchedule || typeof daySchedule !== 'object' || !('open' in daySchedule)) return 24
 
                     const { open, close } = daySchedule as { open: string; close: string }
                     if (open === 'closed' || close === 'closed') return 0
@@ -1005,6 +1006,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
                   const operatingHours = calculateDailyOperatingHours()
                   const { tripDuration } = formData
+                  const hasOperatingHours = !!collectionSite?.operatingHours
 
                   if (tripDuration <= 24) {
                     // Trip can be completed within a day
@@ -1029,6 +1031,9 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                         <div className="text-sm">
                           <p>• <span className="font-semibold">{tripsPerDay} {tripsPerDay === 1 ? "trip" : "trips"} per day per truck</span> (based on {operatingHours}-hour operating window)</p>
                         </div>
+                        {!hasOperatingHours && (
+                          <p className="text-sm text-muted-foreground mt-2">ℹ️ Collection site has no operating hours configured. Using default 24-hour window.</p>
+                        )}
                         {exceedsOperatingHours && (
                           <p className="text-sm text-yellow-600 mt-2">⚠️ Trip duration ({tripDuration}h) exceeds operating hours ({operatingHours}h), but trucks can still complete 1 trip per day by starting within the operating window.</p>
                         )}
@@ -1037,14 +1042,19 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                   } else {
                     // Trip exceeds 24 hours
                     const daysPerTrip = Math.ceil(tripDuration / 24)
+                    const tripsPerDay = 1 / daysPerTrip
                     return (
                       <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-yellow-600">⚠️ Multi-Day Trip Warning (Per Truck):</span>
+                          <span className="text-sm font-medium text-yellow-600">⚠️ Multi-Day Trip Warning:</span>
                         </div>
                         <div className="text-sm space-y-1">
                           <p>• Trip duration exceeds 24 hours</p>
                           <p>• <span className="font-semibold">{daysPerTrip} days required per trip per truck</span></p>
+                          <p>• <span className="font-semibold">{tripsPerDay} trips per day per truck</span> (based on {operatingHours}-hour operating window)</p>
+                          {!hasOperatingHours && (
+                            <p className="text-xs text-muted-foreground mt-2">ℹ️ Collection site has no operating hours configured. Using default 24-hour window.</p>
+                          )}
                           <p className="text-xs text-muted-foreground mt-2">Each truck&apos;s trip will span multiple days. Consider reducing trip duration or adjusting order timeline.</p>
                         </div>
                       </div>
