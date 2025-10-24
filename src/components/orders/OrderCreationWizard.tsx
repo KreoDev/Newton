@@ -452,6 +452,23 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             )
             return false
           }
+
+          // Validate daily weight limit constraint
+          const orderDurationDays = Math.max(
+            1,
+            Math.ceil((new Date(formData.dispatchEndDate).getTime() - new Date(formData.dispatchStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
+          )
+          const totalDailyWeight = formData.allocations.reduce((sum, a) => sum + a.allocatedWeight / orderDurationDays, 0)
+          const dailyWeightLimit = formData.dailyWeightLimit
+
+          if (totalDailyWeight > dailyWeightLimit) {
+            const excess = totalDailyWeight - dailyWeightLimit
+            showError(
+              "Daily Limit Exceeded",
+              `Total daily weight required (${Math.round(totalDailyWeight).toLocaleString()} kg/day) exceeds daily weight limit (${dailyWeightLimit.toLocaleString()} kg/day) by ${Math.round(excess).toLocaleString()} kg/day. The allocated weights cannot be fulfilled within the daily limit constraints. Please reduce allocations or extend the order duration.`
+            )
+            return false
+          }
         }
         return true
 
@@ -1250,6 +1267,56 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                         <span className="text-muted-foreground">Total Trucks:</span>
                         <span className="font-semibold">{formData.allocations.reduce((sum, a) => sum + a.numberOfTrucks, 0)} trucks</span>
                       </div>
+                    </div>
+
+                    {/* Daily Weight Limit Check */}
+                    <div className="border-t pt-3 space-y-2">
+                      {(() => {
+                        const orderDurationDays = Math.max(
+                          1,
+                          Math.ceil((new Date(formData.dispatchEndDate).getTime() - new Date(formData.dispatchStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
+                        )
+                        const totalDailyWeight = formData.allocations.reduce((sum, a) => sum + a.allocatedWeight / orderDurationDays, 0)
+                        const dailyWeightLimit = formData.dailyWeightLimit
+                        const dailyUsagePercent = dailyWeightLimit > 0 ? (totalDailyWeight / dailyWeightLimit) * 100 : 0
+                        const exceedsDailyLimit = totalDailyWeight > dailyWeightLimit
+
+                        return (
+                          <>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Daily Weight Required:</span>
+                              <span className={exceedsDailyLimit ? "text-red-600 font-semibold" : "font-semibold"}>
+                                {Math.round(totalDailyWeight).toLocaleString()} / {dailyWeightLimit.toLocaleString()} kg/day
+                              </span>
+                            </div>
+
+                            {/* Daily Limit Progress Bar */}
+                            <div className="space-y-1">
+                              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full transition-all ${
+                                    dailyUsagePercent <= 100 ? "bg-blue-500" : "bg-red-500"
+                                  }`}
+                                  style={{ width: `${Math.min(dailyUsagePercent, 100)}%` }}
+                                />
+                              </div>
+                              <p className="text-xs text-right text-muted-foreground">{dailyUsagePercent.toFixed(1)}% of daily limit</p>
+                            </div>
+
+                            {exceedsDailyLimit && (
+                              <p className="text-xs text-red-600">
+                                ⚠️ Daily weight required ({Math.round(totalDailyWeight).toLocaleString()} kg/day) exceeds daily limit ({dailyWeightLimit.toLocaleString()} kg/day). Reduce allocations or extend order duration.
+                              </p>
+                            )}
+
+                            {!exceedsDailyLimit && totalDailyWeight > 0 && dailyUsagePercent > 80 && (
+                              <p className="text-xs text-yellow-600">
+                                ⚠️ Using {dailyUsagePercent.toFixed(1)}% of daily weight limit. Consider the daily limit constraint when planning operations.
+                              </p>
+                            )}
+                          </>
+                        )
+                      })()}
                     </div>
                   </div>
                 )}
