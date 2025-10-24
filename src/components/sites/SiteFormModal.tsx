@@ -15,6 +15,7 @@ import { createDocument, updateDocument } from "@/lib/firebase-utils"
 import { OperatingHoursEditor, type OperatingHours } from "./OperatingHoursEditor"
 import { data as globalData } from "@/services/data.service"
 import { useSignals } from "@preact/signals-react/runtime"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface SiteFormModalProps {
   open: boolean
@@ -193,9 +194,7 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
       <DialogContent className="max-w-[calc(100vw-3rem)] max-h-[calc(100vh-3rem)] w-auto h-auto overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{viewOnly ? "View Site" : isEditing ? "Edit Site" : "Create New Site"}</DialogTitle>
-          <DialogDescription>
-            {viewOnly ? "View site information and operating hours" : isEditing ? "Update site information and operating hours" : "Add a new collection or destination site"}
-          </DialogDescription>
+          <DialogDescription>{viewOnly ? "View site information and operating hours" : isEditing ? "Update site information and operating hours" : "Add a new collection or destination site"}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -210,32 +209,22 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
             <Label htmlFor="siteType">
               Site Type <span className="text-destructive">*</span>
             </Label>
-            <select
-              id="siteType"
-              value={siteType}
-              onChange={e => setSiteType(e.target.value as "collection" | "destination")}
-              className="w-full border rounded-md px-3 py-2 bg-background"
-              required
-              disabled={viewOnly}
-            >
-              <option value="collection">Collection</option>
-              <option value="destination">Destination</option>
-            </select>
+            <Select value={siteType} onValueChange={value => setSiteType(value as "collection" | "destination")} disabled={viewOnly}>
+              <SelectTrigger id="siteType" className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="collection">Collection</SelectItem>
+                <SelectItem value="destination">Destination</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="physicalAddress">
               Physical Address <span className="text-destructive">*</span>
             </Label>
-            <Textarea
-              id="physicalAddress"
-              value={physicalAddress}
-              onChange={e => setPhysicalAddress(e.target.value)}
-              placeholder="Enter full address"
-              rows={2}
-              required
-              disabled={viewOnly}
-            />
+            <Textarea id="physicalAddress" value={physicalAddress} onChange={e => setPhysicalAddress(e.target.value)} placeholder="Enter full address" rows={2} required disabled={viewOnly} />
           </div>
 
           {/* Primary Contact */}
@@ -248,21 +237,18 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
             ) : users.length === 0 ? (
               <p className="text-sm text-muted-foreground">No users with phone numbers available.</p>
             ) : (
-              <select
-                id="mainContactId"
-                value={mainContactId}
-                onChange={e => setMainContactId(e.target.value)}
-                className="w-full border rounded-md px-3 py-2 bg-background"
-                required
-                disabled={viewOnly}
-              >
-                <option value="">-- Select Primary Contact --</option>
-                {users.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.firstName} {u.lastName} ({u.email}) - {u.phoneNumber}
-                  </option>
-                ))}
-              </select>
+              <Select value={mainContactId || undefined} onValueChange={value => setMainContactId(value)} disabled={viewOnly}>
+                <SelectTrigger id="mainContactId" className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                  <SelectValue placeholder="-- Select Primary Contact --" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map(u => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.displayName} ({u.phoneNumber})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
             <p className="text-xs text-muted-foreground">Main site contact person (required)</p>
           </div>
@@ -283,13 +269,7 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
                         {contactUser.firstName} {contactUser.lastName} ({contactUser.email}) - {contactUser.phoneNumber}
                       </span>
                       {!viewOnly && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeSecondaryContact(userId)}
-                          className="h-6 w-6 p-0"
-                        >
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeSecondaryContact(userId)} className="h-6 w-6 p-0">
                           <X className="h-4 w-4" />
                         </Button>
                       )}
@@ -301,27 +281,36 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
 
             {/* Add secondary contact dropdown */}
             {!viewOnly && availableSecondaryContacts.length > 0 && (
-              <select
-                onChange={e => {
-                  if (e.target.value) {
-                    addSecondaryContact(e.target.value)
-                    e.target.value = ""
-                  }
-                }}
-                className="w-full border rounded-md px-3 py-2 bg-background"
-              >
-                <option value="">-- Add Secondary Contact --</option>
-                {availableSecondaryContacts.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.firstName} {u.lastName} ({u.email}) - {u.phoneNumber}
-                  </option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                <Select
+                  onValueChange={value => {
+                    addSecondaryContact(value)
+                  }}
+                  disabled={viewOnly}>
+                  <SelectTrigger className="mt-2 flex-1 glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                    <SelectValue placeholder="-- Select Secondary Contact --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSecondaryContacts.map(u => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.displayName} ({u.phoneNumber})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    // handler handled via Select onValueChange
+                  }}
+                  disabled={viewOnly}>
+                  Add
+                </Button>
+              </div>
             )}
 
-            <p className="text-xs text-muted-foreground">
-              {secondaryContactIds.length} secondary contact(s) selected. Only users with phone numbers are shown.
-            </p>
+            <p className="text-xs text-muted-foreground">{secondaryContactIds.length} secondary contact(s) selected. Only users with phone numbers are shown.</p>
           </div>
 
           {/* Group selector - only for mine companies */}
@@ -333,21 +322,20 @@ export function SiteFormModal({ open, onClose, onSuccess, site, viewOnly = false
               ) : groups.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No groups available. Create groups in company settings.</p>
               ) : (
-                <select
-                  id="groupId"
-                  value={groupId}
-                  onChange={e => setGroupId(e.target.value)}
-                  className="w-full border rounded-md px-3 py-2 bg-background"
-                  disabled={viewOnly}
-                >
-                  <option value="">-- No Group --</option>
-                  {groups.map(g => (
-                    <option key={g.id} value={g.id}>
-                      {g.path.length > 0 ? '\u00A0\u00A0'.repeat(g.level) : ''}{g.name}
-                      {g.description ? ` - ${g.description}` : ''}
-                    </option>
-                  ))}
-                </select>
+                <Select value={groupId || undefined} onValueChange={setGroupId} disabled={viewOnly}>
+                  <SelectTrigger id="groupId" className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                    <SelectValue placeholder="-- Select Group (Optional) --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {groups.map(group => (
+                      <SelectItem key={group.id} value={group.id}>
+                        {group.path.length > 0 ? "\u00A0\u00A0".repeat(group.level) : ""}
+                        {group.name}
+                        {group.description ? ` - ${group.description}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
               <p className="text-xs text-muted-foreground">Assign this site to an organizational group</p>
             </div>

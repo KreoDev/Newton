@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from "react"
 import { SearchService, SearchConfig } from "@/services/search.service"
 
+// Re-export SearchConfig for convenience
+export type { SearchConfig }
+
 export interface UseOptimizedSearchResult<T> {
   searchTerm: string
   setSearchTerm: (term: string) => void

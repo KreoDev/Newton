@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { adminAuth, adminDb } from "@/lib/firebase-admin"
+import { FieldValue } from "firebase-admin/firestore"
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
     await adminDb.collection("users").doc(userId).update({
       canLogin: true,
       updatedAt: Date.now(),
+      dbUpdatedAt: FieldValue.serverTimestamp(),
     })
 
     return NextResponse.json({

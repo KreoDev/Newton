@@ -73,7 +73,8 @@ export interface User extends Timestamped, CompanyScoped {
   profilePicture?: string // Optional profile image URL (data-model.md:30)
   preferredEmail?: string // Alternative email for notifications (data-model.md:32)
   notificationPreferences: NotificationPreferences
-  preferredAssetView?: "card" | "table" // User preference for assets page view (defaults to "card")
+  preferredListView?: "card" | "table" // User preference for all entity list views (defaults to "card")
+  preferredAssetView?: "card" | "table" // @deprecated Use preferredListView instead. Kept for backward compatibility.
   isActive: boolean
   isGlobal: boolean
   canLogin?: boolean // If false, user is contact-only (no Firebase Auth account). Defaults to true.
@@ -112,6 +113,8 @@ export interface LogisticsCoordinatorConfig {
 export interface OrderConfig {
   orderNumberMode: "autoOnly" | "manualAllowed"
   orderNumberPrefix?: string
+  orderHistoryDays: number // Days of recent orders to load in real-time (default: 60, max: 120)
+  minTotalWeight: number // Minimum total weight in kg
   defaultDailyTruckLimit: number
   defaultDailyWeightLimit: number
   defaultMonthlyLimit?: number
@@ -239,24 +242,104 @@ export interface Asset extends Timestamped, CompanyScoped {
   deletedReason?: string
 }
 
+// Order allocation structure
+export interface Allocation {
+  companyId: string // Transporter company receiving allocation
+  companyName: string // DENORMALIZED: Transporter company name (saved at allocation time)
+  numberOfTrucks: number // Number of trucks assigned to this allocation
+  allocatedWeight: number // Weight allocated to this transporter
+  loadingDates: string[] // ISO date strings for loading dates
+  completedWeight: number // Weight completed so far
+  status: "pending" | "in_progress" | "completed" // Allocation status
+}
+
 export interface Order extends Timestamped, CompanyScoped {
   id: string
   orderNumber: string
   orderType: "receiving" | "dispatching"
+
+  // Foreign key IDs (relationships)
   clientCompanyId: string
-  dispatchStartDate: string
-  dispatchEndDate: string
-  totalWeight: number
   collectionSiteId: string
   destinationSiteId: string
   productId: string
+  assignedToLCId?: string // Logistics Coordinator company ID (if order assigned to LC for allocation)
+
+  // DENORMALIZED DATA - Saved at order creation time for cross-company access
+  // Future-proof: All data needed for display, reports, and future features
+
+  // Product data (from productId)
+  productName: string
+  productCode: string
+  productCategoryId?: string
+  productSpecifications?: string
+  productIsActive: boolean
+
+  // Client data (from clientCompanyId)
+  clientName: string
+  clientRegistrationNumber?: string
+  clientVatNumber?: string
+  clientPhysicalAddress: string
+  clientContactName: string
+  clientContactEmail: string
+  clientContactPhone: string
+
+  // Collection Site data
+  collectionSiteName: string
+  collectionSiteAddress?: string
+  collectionSiteType: string
+  collectionSiteOperatingHours?: Record<string, { open: string; close: string }>
+  collectionSiteGroupId?: string
+
+  // Destination Site data
+  destinationSiteName: string
+  destinationSiteAddress?: string
+  destinationSiteType: string
+  destinationSiteOperatingHours?: Record<string, { open: string; close: string }>
+  destinationSiteGroupId?: string
+
+  // Mine company data (order creator)
+  companyName: string
+  companyRegistrationNumber?: string
+  companyVatNumber?: string
+  companyPhysicalAddress: string
+
+  // Order configuration snapshot (as it was at creation time)
+  orderConfigSnapshot: OrderConfig
+
+  // LC data (if assigned to LC)
+  assignedToLCName?: string
+  assignedToLCRegistrationNumber?: string
+  assignedToLCVatNumber?: string
+  assignedToLCPhysicalAddress?: string
+
+  // Order details
+  dispatchStartDate: string
+  dispatchEndDate: string
+  totalWeight: number
   sealRequired: boolean
   sealQuantity?: number
   dailyTruckLimit: number
   dailyWeightLimit: number
   monthlyLimit?: number
-  tripLimit: number
-  tripDuration?: number
+  tripLimit?: number // Optional - only set when using "trips per day" mode
+  tripDuration?: number // Optional - only set when using "trip duration" mode
+
+  // Trip capacity calculations (saved at creation time for display consistency)
+  tripCapacityCalculation?: {
+    tripsPerDay: number // e.g., 1 or 0.5 or 3
+    weightPerTrip: number // e.g., 30,000 kg (from orderConfigSnapshot)
+    weightPerDayPerTruck: number // tripsPerDay × weightPerTrip
+    orderDurationDays: number // Calculated from dispatchStartDate/dispatchEndDate
+    weightPerTruckOverDuration: number // weightPerDayPerTruck × orderDurationDays
+    operatingHoursUsed: number // Operating hours used in calculation (10, 24, etc.)
+    calculationMode: "trips" | "duration" // Which mode was used
+    calculationNotes?: string // e.g., "Trip exceeds operating hours" or "Multi-day trip"
+  }
+
+  // Allocations and status
+  allocations: Allocation[] // Array of allocations to transporters (empty if assigned to LC and not yet allocated)
+  allocatedCompanyIds: string[] // Flat array of transporter company IDs from allocations (for Firestore querying)
   status: "pending" | "allocated" | "completed" | "cancelled"
   createdById: string
   completedWeight?: number

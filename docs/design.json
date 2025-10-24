@@ -714,6 +714,44 @@
         "borderRadius": "sm",
         "backdropFilter": "blur(10px)"
       },
+      "input": {
+        "background": {
+          "light": "oklch(1 0 0 / 0.32)",
+          "dark": "oklch(1 0 260 / 0.04)"
+        },
+        "border": "effects.border_styles.light.base",
+        "borderDark": "effects.border_styles.dark.base",
+        "shadow": "shadows.inner_soft",
+        "backdropFilter": "blur(18px)",
+        "height": "36px",
+        "padding": "0 12px",
+        "fontSize": "sm"
+      },
+      "textarea": {
+        "background": {
+          "light": "oklch(1 0 0 / 0.32)",
+          "dark": "oklch(1 0 260 / 0.04)"
+        },
+        "border": "effects.border_styles.light.base",
+        "borderDark": "effects.border_styles.dark.base",
+        "shadow": "shadows.inner_soft",
+        "backdropFilter": "blur(18px)",
+        "padding": "12px",
+        "fontSize": "sm"
+      },
+      "dateTrigger": {
+        "background": {
+          "light": "oklch(1 0 0 / 0.32)",
+          "dark": "oklch(1 0 260 / 0.04)"
+        },
+        "border": "effects.border_styles.light.base",
+        "borderDark": "effects.border_styles.dark.base",
+        "backdropFilter": "blur(18px)",
+        "height": "36px",
+        "padding": "0 12px",
+        "fontSize": "sm",
+        "icon": "Calendar icon left-aligned"
+      },
       "error": {
         "marginTop": "4px",
         "fontSize": "sm",
@@ -740,16 +778,16 @@
     "dropdown_menu": {
       "surface": {
         "light": {
-          "background": "oklch(1 0 0 / 0.50)",
+          "background": "oklch(1 0 0 / 0.32)",
           "border": "oklch(0.50 0 0 / 0.40)",
           "backdropFilter": "blur(28px)",
           "shadow": "shadows.lg"
         },
         "dark": {
-          "background": "oklch(0.22 0.03 260 / 0.42)",
-          "border": "oklch(0.82 0.04 290 / 0.60)",
+          "background": "oklch(0.22 0.03 260 / 0.34)",
+          "border": "oklch(0.82 0.04 290 / 0.55)",
           "backdropFilter": "blur(28px)",
-          "shadow": "0 38px 110px -40px rgb(5 10 25 / 0.85)"
+          "shadow": "0 38px 110px -40px rgb(5 10 25 / 0.8)"
         }
       },
       "label": {
@@ -777,6 +815,57 @@
           "light": "oklch(0.577 0.245 27.325 / 0.12)",
           "dark": "oklch(0.55 0.20 25 / 0.42)"
         }
+      }
+    },
+    "select": {
+      "trigger": {
+        "light": {
+          "background": "oklch(1 0 0 / 0.72)",
+          "border": "effects.border_styles.light.base",
+          "shadow": "shadows.inner_soft",
+          "backdropFilter": "blur(18px)"
+        },
+        "dark": {
+          "background": "oklch(0.26 0.015 270 / 0.58)",
+          "border": "effects.border_styles.dark.base",
+          "shadow": "shadows.inner_soft",
+          "backdropFilter": "blur(18px)"
+        }
+      },
+      "content": {
+        "light": {
+          "background": "oklch(1 0 0 / 0.32)",
+          "border": "effects.border_styles.light.base",
+          "shadow": "shadows.lg",
+          "backdropFilter": "blur(28px)",
+          "itemHighlight": "oklch(1 0 0 / 0.12)",
+          "itemSelected": "oklch(1 0 0 / 0.18)"
+        },
+        "dark": {
+          "background": "oklch(0.22 0.03 260 / 0.34)",
+          "border": "effects.border_styles.dark.base",
+          "shadow": "0 38px 110px -40px rgb(5 10 25 / 0.8)",
+          "itemHighlight": "oklch(0.28 0.04 255 / 0.42)",
+          "itemSelected": "oklch(0.205 0 0 / 0.28)"
+        }
+      }
+    },
+    "wizard_steps": {
+      "inactive": {
+        "background": "oklch(1 0 0 / 0.18)",
+        "backgroundDark": "oklch(0.22 0.03 260 / 0.05)",
+        "border": "effects.border_styles.light.base",
+        "borderDark": "effects.border_styles.dark.base",
+        "text": "oklch(0.62 0.04 260)",
+        "textDark": "oklch(0.88 0.04 260)",
+        "blur": "blur(12px)"
+      },
+      "connector": {
+        "inactive": {
+          "background": "oklch(1 0 0 / 0.12)",
+          "backgroundDark": "oklch(0.22 0.03 260 / 0.05)"
+        },
+        "active": "oklch(0.577 0.245 27.325)"
       }
     }
   },
@@ -1038,6 +1127,13 @@
               "styling": "text-destructive",
               "usage": "Opens confirmation dialog before deletion"
             },
+            "cancel": {
+              "icon": "XCircle",
+              "purpose": "Cancel an order or action",
+              "styling": "text-destructive",
+              "usage": "Used for orders to cancel instead of delete (orders cannot be deleted, only cancelled)",
+              "note": "XCircle icon avoids confusion with Trash2 which implies deletion. Use this for cancellation actions where the entity persists but is marked as cancelled."
+            },
             "toggle_active": {
               "icon": "ToggleRight (active) / ToggleLeft (inactive)",
               "purpose": "Toggle active/inactive status",
@@ -1060,7 +1156,8 @@
           "companies_list": "ToggleRight/Left + Edit + Delete + Active/Inactive badge",
           "roles_list": "Eye/EyeOff (visibility) + Edit + Delete + Active/Inactive badge",
           "assets_list": "FileText (view) + Delete + Active/Inactive/Expired badge",
-          "users_list": "FileText (view) + Edit + Delete + Active/Inactive badge"
+          "users_list": "FileText (view) + Edit + Delete + Active/Inactive badge",
+          "orders_list": "FileText (view) + XCircle (cancel) + Status badge"
         }
       }
     }

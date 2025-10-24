@@ -5,14 +5,8 @@ import type { Asset } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { updateDocument } from "@/lib/firebase-utils"
 import { useAlert } from "@/hooks/useAlert"
 import { useCompany } from "@/contexts/CompanyContext"
@@ -25,12 +19,7 @@ interface BulkGroupModalProps {
   onSuccess: () => void
 }
 
-export function BulkGroupModal({
-  selectedAssets,
-  isOpen,
-  onClose,
-  onSuccess,
-}: BulkGroupModalProps) {
+export function BulkGroupModal({ selectedAssets, isOpen, onClose, onSuccess }: BulkGroupModalProps) {
   useSignals()
   const { company } = useCompany()
   const { showSuccess, showError, showConfirm } = useAlert()
@@ -39,9 +28,7 @@ export function BulkGroupModal({
   const [clearGroup, setClearGroup] = useState(false)
 
   // Get active groups from company settings
-  const activeGroups = company?.systemSettings?.groupOptions?.filter(
-    group => !company.systemSettings?.inactiveGroups?.includes(group)
-  ) || []
+  const activeGroups = company?.systemSettings?.groupOptions?.filter(group => !company.systemSettings?.inactiveGroups?.includes(group)) || []
 
   const handleSubmit = async () => {
     // Validation
@@ -50,11 +37,7 @@ export function BulkGroupModal({
       return
     }
 
-    const confirmed = await showConfirm(
-      clearGroup ? "Clear Groups" : "Update Groups",
-      `Are you sure you want to ${clearGroup ? "clear" : "update"} the group for ${selectedAssets.length} asset${selectedAssets.length > 1 ? "s" : ""}?`,
-      clearGroup ? "Clear" : "Update"
-    )
+    const confirmed = await showConfirm(clearGroup ? "Clear Groups" : "Update Groups", `Are you sure you want to ${clearGroup ? "clear" : "update"} the group for ${selectedAssets.length} asset${selectedAssets.length > 1 ? "s" : ""}?`, clearGroup ? "Clear" : "Update")
     if (!confirmed) return
 
     setLoading(true)
@@ -68,20 +51,14 @@ export function BulkGroupModal({
         )
       )
 
-      showSuccess(
-        clearGroup ? "Groups Cleared" : "Groups Updated",
-        `${selectedAssets.length} asset${selectedAssets.length > 1 ? "s have" : " has"} been updated.`
-      )
+      showSuccess(clearGroup ? "Groups Cleared" : "Groups Updated", `${selectedAssets.length} asset${selectedAssets.length > 1 ? "s have" : " has"} been updated.`)
       onSuccess()
       onClose()
       // Reset form
       setSelectedGroup("")
       setClearGroup(false)
     } catch (error) {
-      showError(
-        "Failed to Update",
-        error instanceof Error ? error.message : "An error occurred"
-      )
+      showError("Failed to Update", error instanceof Error ? error.message : "An error occurred")
     } finally {
       setLoading(false)
     }
@@ -101,33 +78,23 @@ export function BulkGroupModal({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="group">{company?.systemSettings?.transporterGroupLabel || "Group"}</Label>
-            <select
-              id="group"
-              value={selectedGroup}
-              onChange={(e) => setSelectedGroup(e.target.value)}
-              disabled={clearGroup || loading}
-              className="w-full px-4 py-2 rounded-md border bg-background"
-            >
-              <option value="">Select {company?.systemSettings?.transporterGroupLabel?.toLowerCase() || "group"}...</option>
-              {activeGroups.map((group) => (
-                <option key={group} value={group}>
-                  {group}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedGroup || undefined} onValueChange={setSelectedGroup} disabled={clearGroup || loading}>
+              <SelectTrigger id="group" className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                <SelectValue placeholder={`Select ${company?.systemSettings?.transporterGroupLabel?.toLowerCase() || "group"}...`} />
+              </SelectTrigger>
+              <SelectContent>
+                {activeGroups.map(group => (
+                  <SelectItem key={group} value={group}>
+                    {group}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center space-x-2">
-            <Checkbox
-              id="clearGroup"
-              checked={clearGroup}
-              onCheckedChange={(checked) => setClearGroup(checked === true)}
-              disabled={loading}
-            />
-            <Label
-              htmlFor="clearGroup"
-              className="text-sm font-normal cursor-pointer"
-            >
+            <Checkbox id="clearGroup" checked={clearGroup} onCheckedChange={checked => setClearGroup(checked === true)} disabled={loading} />
+            <Label htmlFor="clearGroup" className="text-sm font-normal cursor-pointer">
               Clear {company?.systemSettings?.transporterGroupLabel?.toLowerCase() || "group"} (remove from all selected assets)
             </Label>
           </div>

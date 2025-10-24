@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CompanyService } from "@/services/company.service"
 import { AssetService } from "@/services/asset.service"
 import type { Company, User, Group, Asset } from "@/types"
@@ -50,6 +51,8 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   // Order Config (Mine only)
   const [orderNumberMode, setOrderNumberMode] = useState<"autoOnly" | "manualAllowed">("autoOnly")
   const [orderNumberPrefix, setOrderNumberPrefix] = useState("")
+  const [orderHistoryDays, setOrderHistoryDays] = useState(60)
+  const [minTotalWeight, setMinTotalWeight] = useState(30000)
   const [defaultDailyTruckLimit, setDefaultDailyTruckLimit] = useState(10)
   const [defaultDailyWeightLimit, setDefaultDailyWeightLimit] = useState(100)
   const [defaultMonthlyLimit, setDefaultMonthlyLimit] = useState(1000)
@@ -119,36 +122,19 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   // Check if fleet numbers are in use by active assets
   const assetsWithFleetNumbers = useMemo(() => {
     if (!isEditing || !company) return []
-    return assets.filter(
-      asset =>
-        asset.companyId === company.id &&
-        asset.isActive &&
-        asset.fleetNumber &&
-        asset.fleetNumber.trim() !== ""
-    )
+    return assets.filter(asset => asset.companyId === company.id && asset.isActive && asset.fleetNumber && asset.fleetNumber.trim() !== "")
   }, [assets, isEditing, company])
 
   // Get list of assets using groups
   const assetsWithGroups = useMemo(() => {
     if (!isEditing || !company) return []
-    return assets.filter(
-      asset =>
-        asset.companyId === company.id &&
-        asset.isActive &&
-        asset.groupId &&
-        asset.groupId.trim() !== ""
-    )
+    return assets.filter(asset => asset.companyId === company.id && asset.isActive && asset.groupId && asset.groupId.trim() !== "")
   }, [assets, isEditing, company])
 
   // Check if a specific group name is in use by active assets
   const isGroupNameInUse = (groupName: string) => {
     if (!isEditing || !company) return false
-    return assets.some(
-      asset =>
-        asset.companyId === company.id &&
-        asset.isActive &&
-        asset.groupId === groupName
-    )
+    return assets.some(asset => asset.companyId === company.id && asset.isActive && asset.groupId === groupName)
   }
 
   // Check if Logistics Coordinator has assets (prevents disabling transporter role)
@@ -178,7 +164,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
       } catch (error) {
         showError("Error", "Failed to load users for this company")
         setLocalUsers([])
-      } finally{
+      } finally {
         setLoadingLocalUsers(false)
       }
     }
@@ -237,6 +223,8 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
       if (company.orderConfig) {
         setOrderNumberMode(company.orderConfig.orderNumberMode)
         setOrderNumberPrefix(company.orderConfig.orderNumberPrefix || "")
+        setOrderHistoryDays(company.orderConfig.orderHistoryDays || 60)
+        setMinTotalWeight(company.orderConfig.minTotalWeight || 30000)
         setDefaultDailyTruckLimit(company.orderConfig.defaultDailyTruckLimit)
         setDefaultDailyWeightLimit(company.orderConfig.defaultDailyWeightLimit)
         setDefaultMonthlyLimit(company.orderConfig.defaultMonthlyLimit || 1000)
@@ -286,9 +274,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     }
 
     // Use appropriate data source based on which company is being edited
-    const existingGroups = editingCurrentCompany
-      ? globalData.groups.value.filter(g => g.companyId === company.id)
-      : localGroups
+    const existingGroups = editingCurrentCompany ? globalData.groups.value.filter(g => g.companyId === company.id) : localGroups
 
     // Convert existing groups to pending groups
     const pending: PendingGroup[] = existingGroups.map(g => ({
@@ -348,6 +334,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     setIsAlsoTransporter(false)
     setOrderNumberMode("autoOnly")
     setOrderNumberPrefix("")
+    setOrderHistoryDays(60)
     setDefaultDailyTruckLimit(10)
     setDefaultDailyWeightLimit(100)
     setDefaultMonthlyLimit(1000)
@@ -396,9 +383,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
         const isExisting = existingIds.has(pending.tempId)
 
         // Map parent tempId to real ID if needed
-        const parentGroupId = pending.parentTempId
-          ? tempIdToRealId.get(pending.parentTempId) || pending.parentTempId
-          : undefined
+        const parentGroupId = pending.parentTempId ? tempIdToRealId.get(pending.parentTempId) || pending.parentTempId : undefined
 
         const groupData: any = {
           name: pending.name,
@@ -530,10 +515,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     setSecondaryContactIds(secondaryContactIds.filter(id => id !== userId))
   }
 
-  const availableSecondaryContacts = useMemo(
-    () => users.filter(user => user.id !== mainContactId && !secondaryContactIds.includes(user.id)),
-    [users, mainContactId, secondaryContactIds]
-  )
+  const availableSecondaryContacts = useMemo(() => users.filter(user => user.id !== mainContactId && !secondaryContactIds.includes(user.id)), [users, mainContactId, secondaryContactIds])
 
   const addGroupOption = () => {
     const trimmedOption = newGroupOption.trim()
@@ -555,10 +537,7 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
   const removeGroupOption = (option: string) => {
     // Check if this group is in use by active assets
     if (isGroupNameInUse(option)) {
-      showError(
-        "Cannot Delete Group",
-        `The group "${option}" is currently assigned to active assets. Please mark it as inactive instead of deleting it.`
-      )
+      showError("Cannot Delete Group", `The group "${option}" is currently assigned to active assets. Please mark it as inactive instead of deleting it.`)
       return
     }
 
@@ -585,7 +564,6 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
     // Just update the state - validation happens on submit
     setTransporterGroupEnabled(checked)
   }
-
 
   // Extracted save logic - called after validation or after bulk removal
   const performSave = async () => {
@@ -617,6 +595,8 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
       if (companyType === "mine") {
         companyData.orderConfig = {
           orderNumberMode,
+          orderHistoryDays,
+          minTotalWeight,
           defaultDailyTruckLimit,
           defaultDailyWeightLimit,
           defaultMonthlyLimit,
@@ -637,13 +617,9 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
       const shouldHaveFleetSettings = companyType === "transporter" || (companyType === "logistics_coordinator" && isAlsoTransporter)
       if (shouldHaveFleetSettings) {
         // Check if fleet or group were canceled - if so, use original values
-        const finalFleetEnabled = canceledFields.has("fleetNumber") && company
-          ? (company.systemSettings?.fleetNumberEnabled || false)
-          : fleetNumberEnabled
+        const finalFleetEnabled = canceledFields.has("fleetNumber") && company ? company.systemSettings?.fleetNumberEnabled || false : fleetNumberEnabled
 
-        const finalGroupEnabled = canceledFields.has("group") && company
-          ? (company.systemSettings?.transporterGroupEnabled || false)
-          : transporterGroupEnabled
+        const finalGroupEnabled = canceledFields.has("group") && company ? company.systemSettings?.transporterGroupEnabled || false : transporterGroupEnabled
 
         companyData.systemSettings = {
           fleetNumberEnabled: finalFleetEnabled,
@@ -699,16 +675,12 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
 
       if (currentField === "fleetNumber") {
         // Update all affected assets to remove fleet number
-        const promises = assetsWithFleetNumbers.map(asset =>
-          AssetService.update(asset.id, { fleetNumber: null })
-        )
+        const promises = assetsWithFleetNumbers.map(asset => AssetService.update(asset.id, { fleetNumber: null }))
         await Promise.all(promises)
         toast.success(`Removed fleet numbers from ${assetsWithFleetNumbers.length} asset${assetsWithFleetNumbers.length !== 1 ? "s" : ""}`)
       } else {
         // Update all affected assets to remove group
-        const promises = assetsWithGroups.map(asset =>
-          AssetService.update(asset.id, { groupId: null })
-        )
+        const promises = assetsWithGroups.map(asset => AssetService.update(asset.id, { groupId: null }))
         await Promise.all(promises)
         toast.success(`Removed groups from ${assetsWithGroups.length} asset${assetsWithGroups.length !== 1 ? "s" : ""}`)
       }
@@ -749,554 +721,453 @@ export function CompanyFormModal({ open, onClose, onSuccess, company, viewOnly =
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="!max-w-6xl w-[98vw] sm:!max-w-6xl max-h-[95vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{viewOnly ? "View Company" : isEditing ? "Edit Company" : "Create New Company"}</DialogTitle>
-          <DialogDescription>
-            {viewOnly ? "View company information and settings" : isEditing ? "Update company information and settings" : "Create a new company with initial configuration"}
-          </DialogDescription>
-        </DialogHeader>
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="!max-w-6xl w-[98vw] sm:!max-w-6xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewOnly ? "View Company" : isEditing ? "Edit Company" : "Create New Company"}</DialogTitle>
+            <DialogDescription>{viewOnly ? "View company information and settings" : isEditing ? "Update company information and settings" : "Create a new company with initial configuration"}</DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${2 + (showOrderConfig ? 1 : 0) + (showFleet ? 1 : 0) + (showGroups ? 1 : 0)}, 1fr)` }}>
-              <TabsTrigger value="basic">Basic Info</TabsTrigger>
-              {showOrderConfig && <TabsTrigger value="order">Order Config</TabsTrigger>}
-              {showFleet && <TabsTrigger value="fleet">Fleet</TabsTrigger>}
-              {showGroups && <TabsTrigger value="groups">Groups</TabsTrigger>}
-              <TabsTrigger value="escalation">Escalation</TabsTrigger>
-            </TabsList>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${2 + (showOrderConfig ? 1 : 0) + (showFleet ? 1 : 0) + (showGroups ? 1 : 0)}, 1fr)` }}>
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                {showOrderConfig && <TabsTrigger value="order">Order Config</TabsTrigger>}
+                {showFleet && <TabsTrigger value="fleet">Fleet</TabsTrigger>}
+                {showGroups && <TabsTrigger value="groups">Groups</TabsTrigger>}
+                <TabsTrigger value="escalation">Escalation</TabsTrigger>
+              </TabsList>
 
-            {/* Basic Info Tab */}
-            <TabsContent value="basic" className="space-y-4">
-              <fieldset disabled={viewOnly} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">
-                    Company Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Enter company name" required />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="companyType">
-                    Company Type <span className="text-destructive">*</span>
-                  </Label>
-                  <select
-                    id="companyType"
-                    value={companyType}
-                    onChange={e => setCompanyType(e.target.value as "mine" | "transporter" | "logistics_coordinator")}
-                    className="w-full border rounded-md px-3 py-2 bg-background"
-                    required>
-                    <option value="mine">Mine</option>
-                    <option value="transporter">Transporter</option>
-                    <option value="logistics_coordinator">Logistics Coordinator</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Dual-role options */}
-              {companyType === "transporter" && (
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="isAlsoLC" checked={isAlsoLogisticsCoordinator} onCheckedChange={checked => setIsAlsoLogisticsCoordinator(checked as boolean)} />
-                  <Label htmlFor="isAlsoLC" className="cursor-pointer">
-                    Is also a Logistics Coordinator
-                  </Label>
-                </div>
-              )}
-
-              {companyType === "logistics_coordinator" && (
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="isAlsoTransporter"
-                      checked={isAlsoTransporter}
-                      onCheckedChange={checked => setIsAlsoTransporter(checked as boolean)}
-                      disabled={logisticsCoordinatorHasAssets}
-                    />
-                    <Label htmlFor="isAlsoTransporter" className={logisticsCoordinatorHasAssets ? "cursor-not-allowed opacity-60" : "cursor-pointer"}>
-                      Is also a Transporter
-                    </Label>
-                  </div>
-                  {logisticsCoordinatorHasAssets && (
-                    <p className="text-xs text-muted-foreground ml-6">
-                      Cannot be disabled because this company has assets. Assets can only belong to transporters.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="registrationNumber">Registration Number</Label>
-                  <Input id="registrationNumber" value={registrationNumber} onChange={e => setRegistrationNumber(e.target.value)} placeholder="Optional" />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="vatNumber">VAT Number</Label>
-                  <Input id="vatNumber" value={vatNumber} onChange={e => setVatNumber(e.target.value)} placeholder="Optional" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="physicalAddress">
-                  Physical Address <span className="text-destructive">*</span>
-                </Label>
-                <Input id="physicalAddress" value={physicalAddress} onChange={e => setPhysicalAddress(e.target.value)} placeholder="Enter address" required />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="mainContactId">Main Contact</Label>
-                {!isEditing ? (
-                  <div className="border rounded-md p-3 bg-muted/50">
-                    <p className="text-sm text-muted-foreground">Main contact can be assigned after the company is created and users have been added to this company.</p>
-                  </div>
-                ) : loadingUsers ? (
-                  <div className="text-sm text-muted-foreground">Loading users...</div>
-                ) : (
-                  <select
-                    id="mainContactId"
-                    value={mainContactId}
-                    onChange={e => setMainContactId(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2 bg-background">
-                    <option value="">Select main contact (optional)</option>
-                    {users.map(user => (
-                      <option key={user.id} value={user.id}>
-                        {user.displayName} ({user.email})
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label>Secondary Contacts</Label>
-                {!isEditing ? (
-                  <div className="border rounded-md p-3 bg-muted/50">
-                    <p className="text-sm text-muted-foreground">Secondary contacts can be assigned after the company is created and users have been added to this company.</p>
-                  </div>
-                ) : loadingUsers ? (
-                  <div className="text-sm text-muted-foreground">Loading users...</div>
-                ) : !hasMainContact ? (
-                  <div className="border rounded-md p-3 bg-muted/50">
-                    <p className="text-sm text-muted-foreground">Please select a main contact first before adding secondary contacts</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex gap-2">
-                      <select
-                        value={selectedSecondaryContact}
-                        onChange={e => setSelectedSecondaryContact(e.target.value)}
-                        className="flex-1 border rounded-md px-3 py-2 bg-background">
-                        <option value="">Select a contact to add...</option>
-                        {availableSecondaryContacts.map(user => (
-                          <option key={user.id} value={user.id}>
-                            {user.displayName} ({user.email})
-                          </option>
-                        ))}
-                      </select>
-                      <Button type="button" variant="outline" onClick={addSecondaryContact} disabled={!selectedSecondaryContact}>
-                        Add
-                      </Button>
-                    </div>
-
-                    {/* List of added secondary contacts */}
-                    {secondaryContactIds.length > 0 && (
-                      <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
-                        {secondaryContactIds.map(contactId => {
-                          const user = users.find(u => u.id === contactId)
-                          if (!user) return null
-                          return (
-                            <div key={contactId} className="flex items-center justify-between p-2 bg-accent/50 rounded-md">
-                              <span className="text-sm">
-                                {user.displayName} ({user.email})
-                              </span>
-                              <Button type="button" variant="ghost" size="sm" onClick={() => removeSecondaryContact(contactId)} className="h-6 w-6 p-0">
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    <p className="text-xs text-muted-foreground">
-                      {secondaryContactIds.length === 0 ? "No secondary contacts added yet" : `${secondaryContactIds.length} contact(s) added`}
-                    </p>
-                  </>
-                )}
-              </div>
-              </fieldset>
-            </TabsContent>
-
-            {/* Order Config Tab (Mine only) */}
-            {showOrderConfig && (
-              <TabsContent value="order" className="space-y-4">
+              {/* Basic Info Tab */}
+              <TabsContent value="basic" className="space-y-4">
                 <fieldset disabled={viewOnly} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="orderNumberMode">Order Number Mode</Label>
-                    <select
-                      id="orderNumberMode"
-                      value={orderNumberMode}
-                      onChange={e => setOrderNumberMode(e.target.value as "autoOnly" | "manualAllowed")}
-                      className="w-full border rounded-md px-3 py-2 bg-background">
-                      <option value="autoOnly">Auto-Generated Only</option>
-                      <option value="manualAllowed">Manual Entry Allowed</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="orderNumberPrefix">Order Number Prefix</Label>
-                    <Input id="orderNumberPrefix" value={orderNumberPrefix} onChange={e => setOrderNumberPrefix(e.target.value)} placeholder="e.g., ORD-" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="defaultDailyTruckLimit">Default Daily Truck Limit</Label>
-                    <Input
-                      id="defaultDailyTruckLimit"
-                      type="number"
-                      value={defaultDailyTruckLimit}
-                      onChange={e => setDefaultDailyTruckLimit(Number(e.target.value))}
-                      min="1"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="defaultDailyWeightLimit">Default Daily Weight Limit (tons)</Label>
-                    <Input
-                      id="defaultDailyWeightLimit"
-                      type="number"
-                      value={defaultDailyWeightLimit}
-                      onChange={e => setDefaultDailyWeightLimit(Number(e.target.value))}
-                      min="1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="defaultMonthlyLimit">Default Monthly Limit (tons)</Label>
-                    <Input
-                      id="defaultMonthlyLimit"
-                      type="number"
-                      value={defaultMonthlyLimit}
-                      onChange={e => setDefaultMonthlyLimit(Number(e.target.value))}
-                      min="1"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="defaultTripLimit">Default Trip Limit (per day)</Label>
-                    <Input id="defaultTripLimit" type="number" value={defaultTripLimit} onChange={e => setDefaultTripLimit(Number(e.target.value))} min="1" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="defaultWeightPerTruck">Default Weight Per Truck (tons)</Label>
-                    <Input
-                      id="defaultWeightPerTruck"
-                      type="number"
-                      value={defaultWeightPerTruck}
-                      onChange={e => setDefaultWeightPerTruck(Number(e.target.value))}
-                      min="1"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="preBookingMode">Pre-Booking Mode</Label>
-                    <select
-                      id="preBookingMode"
-                      value={preBookingMode}
-                      onChange={e => setPreBookingMode(e.target.value as "compulsory" | "optional")}
-                      className="w-full border rounded-md px-3 py-2 bg-background">
-                      <option value="compulsory">Compulsory</option>
-                      <option value="optional">Optional</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="advanceBookingHours">Advance Booking Hours</Label>
-                    <Input
-                      id="advanceBookingHours"
-                      type="number"
-                      value={advanceBookingHours}
-                      onChange={e => setAdvanceBookingHours(Number(e.target.value))}
-                      min="1"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="defaultSealQuantity">Default Seal Quantity</Label>
-                    <Input
-                      id="defaultSealQuantity"
-                      type="number"
-                      value={defaultSealQuantity}
-                      onChange={e => setDefaultSealQuantity(Number(e.target.value))}
-                      min="0"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="defaultSealRequired" checked={defaultSealRequired} onCheckedChange={checked => setDefaultSealRequired(checked as boolean)} />
-                  <Label htmlFor="defaultSealRequired" className="cursor-pointer">
-                    Seals Required by Default
-                  </Label>
-                </div>
-                </fieldset>
-              </TabsContent>
-            )}
-
-            {/* Fleet Tab (Transporter or dual-role LC) */}
-            {showFleet && (
-              <TabsContent value="fleet" className="space-y-4">
-                <fieldset disabled={viewOnly} className="space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="fleetNumberEnabled"
-                      checked={fleetNumberEnabled}
-                      onCheckedChange={checked => handleFleetNumberEnabledChange(checked as boolean)}
-                    />
-                    <Label htmlFor="fleetNumberEnabled" className="cursor-pointer">
-                      Enable Fleet Number
-                    </Label>
-                  </div>
-
-                  {fleetNumberEnabled && (
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="fleetNumberLabel">Fleet Number Label</Label>
-                      <Input id="fleetNumberLabel" value={fleetNumberLabel} onChange={e => setFleetNumberLabel(e.target.value)} placeholder="e.g., Fleet No." />
+                      <Label htmlFor="name">
+                        Company Name <span className="text-destructive">*</span>
+                      </Label>
+                      <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Enter company name" required />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="companyType">
+                        Company Type <span className="text-destructive">*</span>
+                      </Label>
+                      <Select value={companyType} onValueChange={value => setCompanyType(value as "mine" | "transporter" | "logistics_coordinator")} required>
+                        <SelectTrigger id="companyType" className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                          <SelectValue placeholder="Select company type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mine">Mine</SelectItem>
+                          <SelectItem value="transporter">Transporter</SelectItem>
+                          <SelectItem value="logistics_coordinator">Logistics Coordinator</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Dual-role options */}
+                  {companyType === "transporter" && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="isAlsoLC" checked={isAlsoLogisticsCoordinator} onCheckedChange={checked => setIsAlsoLogisticsCoordinator(checked as boolean)} />
+                      <Label htmlFor="isAlsoLC" className="cursor-pointer">
+                        Is also a Logistics Coordinator
+                      </Label>
                     </div>
                   )}
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="transporterGroupEnabled"
-                      checked={transporterGroupEnabled}
-                      onCheckedChange={checked => handleTransporterGroupEnabledChange(checked as boolean)}
-                    />
-                    <Label htmlFor="transporterGroupEnabled" className="cursor-pointer">
-                      Enable Transporter Group
-                    </Label>
+                  {companyType === "logistics_coordinator" && (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="isAlsoTransporter" checked={isAlsoTransporter} onCheckedChange={checked => setIsAlsoTransporter(checked as boolean)} disabled={logisticsCoordinatorHasAssets} />
+                        <Label htmlFor="isAlsoTransporter" className={logisticsCoordinatorHasAssets ? "cursor-not-allowed opacity-60" : "cursor-pointer"}>
+                          Is also a Transporter
+                        </Label>
+                      </div>
+                      {logisticsCoordinatorHasAssets && <p className="text-xs text-muted-foreground ml-6">Cannot be disabled because this company has assets. Assets can only belong to transporters.</p>}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="registrationNumber">Registration Number</Label>
+                      <Input id="registrationNumber" value={registrationNumber} onChange={e => setRegistrationNumber(e.target.value)} placeholder="Optional" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="vatNumber">VAT Number</Label>
+                      <Input id="vatNumber" value={vatNumber} onChange={e => setVatNumber(e.target.value)} placeholder="Optional" />
+                    </div>
                   </div>
 
-                  {transporterGroupEnabled && (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="transporterGroupLabel">Transporter Group Label</Label>
-                        <Input
-                          id="transporterGroupLabel"
-                          value={transporterGroupLabel}
-                          onChange={e => setTransporterGroupLabel(e.target.value)}
-                          placeholder="e.g., Group"
-                        />
-                      </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="physicalAddress">
+                      Physical Address <span className="text-destructive">*</span>
+                    </Label>
+                    <Input id="physicalAddress" value={physicalAddress} onChange={e => setPhysicalAddress(e.target.value)} placeholder="Enter address" required />
+                  </div>
 
-                      <div className="space-y-2">
-                        <Label>
-                          Group Options <span className="text-destructive">*</span>
-                        </Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="mainContactId">Main Contact</Label>
+                    {!isEditing ? (
+                      <div className="border rounded-md p-3 bg-muted/50">
+                        <p className="text-sm text-muted-foreground">Main contact can be assigned after the company is created and users have been added to this company.</p>
+                      </div>
+                    ) : loadingUsers ? (
+                      <div className="text-sm text-muted-foreground">Loading users...</div>
+                    ) : (
+                      <Select value={mainContactId || undefined} onValueChange={setMainContactId}>
+                        <SelectTrigger id="mainContactId" className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                          <SelectValue placeholder="Select main contact (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map(user => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.displayName} ({user.email})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Secondary Contacts</Label>
+                    {!isEditing ? (
+                      <div className="border rounded-md p-3 bg-muted/50">
+                        <p className="text-sm text-muted-foreground">Secondary contacts can be assigned after the company is created and users have been added to this company.</p>
+                      </div>
+                    ) : loadingUsers ? (
+                      <div className="text-sm text-muted-foreground">Loading users...</div>
+                    ) : !hasMainContact ? (
+                      <div className="border rounded-md p-3 bg-muted/50">
+                        <p className="text-sm text-muted-foreground">Please select a main contact first before adding secondary contacts</p>
+                      </div>
+                    ) : (
+                      <>
                         <div className="flex gap-2">
-                          <Input
-                            value={newGroupOption}
-                            onChange={e => setNewGroupOption(e.target.value)}
-                            placeholder="Enter group name..."
-                            onKeyDown={e => {
-                              if (e.key === "Enter") {
-                                e.preventDefault()
-                                addGroupOption()
-                              }
-                            }}
-                          />
-                          <Button type="button" variant="outline" onClick={addGroupOption} disabled={!newGroupOption.trim()}>
+                          <Select value={selectedSecondaryContact || undefined} onValueChange={setSelectedSecondaryContact}>
+                            <SelectTrigger className="mt-2 flex-1 glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                              <SelectValue placeholder="Select a contact to add..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableSecondaryContacts.map(user => (
+                                <SelectItem key={user.id} value={user.id}>
+                                  {user.displayName} ({user.email})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button type="button" variant="outline" onClick={addSecondaryContact} disabled={!selectedSecondaryContact}>
                             Add
                           </Button>
                         </div>
 
-                        {/* List of added group options */}
-                        {groupOptions.length > 0 && (
+                        {/* List of added secondary contacts */}
+                        {secondaryContactIds.length > 0 && (
                           <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
-                            {groupOptions.map((option, index) => {
-                              const isInactive = inactiveGroups.includes(option)
-                              const isInUse = isGroupNameInUse(option)
-
+                            {secondaryContactIds.map(contactId => {
+                              const user = users.find(u => u.id === contactId)
+                              if (!user) return null
                               return (
-                                <div
-                                  key={index}
-                                  className={`flex items-center justify-between p-2 rounded-md ${
-                                    isInactive ? "bg-muted opacity-60" : "bg-accent/50"
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm">{option}</span>
-                                    {isInactive && (
-                                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted-foreground/20 text-muted-foreground">
-                                        Inactive
-                                      </span>
-                                    )}
-                                    {isInUse && !isInactive && (
-                                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-700 dark:text-blue-300">
-                                        In Use
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex gap-1">
-                                    {isInUse ? (
-                                      // If in use, show inactive toggle instead of delete
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => toggleGroupInactive(option)}
-                                        className="h-6 px-2 text-xs"
-                                      >
-                                        {isInactive ? "Activate" : "Deactivate"}
-                                      </Button>
-                                    ) : (
-                                      // Not in use - can delete
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => removeGroupOption(option)}
-                                        className="h-6 w-6 p-0"
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
-                                    )}
-                                  </div>
+                                <div key={contactId} className="flex items-center justify-between p-2 bg-accent/50 rounded-md">
+                                  <span className="text-sm">
+                                    {user.displayName} ({user.email})
+                                  </span>
+                                  <Button type="button" variant="ghost" size="sm" onClick={() => removeSecondaryContact(contactId)} className="h-6 w-6 p-0">
+                                    <X className="h-4 w-4" />
+                                  </Button>
                                 </div>
                               )
                             })}
                           </div>
                         )}
 
-                        <p className="text-xs text-muted-foreground">
-                          {groupOptions.length === 0 ? "No group options added yet" : `${groupOptions.length} group option(s) added`}
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
-                </fieldset>
-              </TabsContent>
-            )}
-
-            {/* Groups Tab (Mine only) */}
-            {showGroups && (
-              <TabsContent value="groups" className="space-y-4">
-                <fieldset disabled={viewOnly} className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Organizational Groups</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Create and manage hierarchical groups for your organization. Groups can be assigned to sites for better organization.
-                  </p>
-                  <p className="text-xs text-muted-foreground italic">
-                    Note: Groups will be saved when you submit the company form.
-                  </p>
-                </div>
-                <LocalGroupsManager
-                  groups={pendingGroups}
-                  onChange={setPendingGroups}
-                  companyId={company?.id}
-                  existingGroupIdMap={existingGroupIdMap}
-                />
-                </fieldset>
-              </TabsContent>
-            )}
-
-            {/* Escalation Tab */}
-            <TabsContent value="escalation" className="space-y-4">
-              <fieldset disabled={viewOnly} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="primaryContactId">Primary Contact</Label>
-                {!isEditing ? (
-                  <div className="border rounded-md p-3 bg-muted/50">
-                    <p className="text-sm text-muted-foreground">Primary contact for escalation can be assigned after the company is created and users have been added to this company.</p>
+                        <p className="text-xs text-muted-foreground">{secondaryContactIds.length === 0 ? "No secondary contacts added yet" : `${secondaryContactIds.length} contact(s) added`}</p>
+                      </>
+                    )}
                   </div>
-                ) : loadingUsers ? (
-                  <div className="text-sm text-muted-foreground">Loading users...</div>
-                ) : (
-                  <select
-                    id="primaryContactId"
-                    value={primaryContactId}
-                    onChange={e => setPrimaryContactId(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2 bg-background">
-                    <option value="">Select primary contact</option>
-                    {users.map(user => (
-                      <option key={user.id} value={user.id}>
-                        {user.displayName} ({user.email})
-                      </option>
-                    ))}
-                  </select>
-                )}
+                </fieldset>
+              </TabsContent>
+
+              {/* Order Config Tab (Mine only) */}
+              {showOrderConfig && (
+                <TabsContent value="order" className="space-y-4">
+                  <fieldset disabled={viewOnly} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="orderNumberMode">Order Number Mode</Label>
+                        <Select value={orderNumberMode} onValueChange={value => setOrderNumberMode(value as "autoOnly" | "manualAllowed")}>
+                          <SelectTrigger id="orderNumberMode" className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                            <SelectValue placeholder="Select mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="autoOnly">Auto-Generated Only</SelectItem>
+                            <SelectItem value="manualAllowed">Manual Entry Allowed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="orderNumberPrefix">Order Number Prefix</Label>
+                        <Input id="orderNumberPrefix" value={orderNumberPrefix} onChange={e => setOrderNumberPrefix(e.target.value)} placeholder="e.g., ORD-" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="orderHistoryDays">Order History Window (Days)</Label>
+                        <Input id="orderHistoryDays" type="number" value={orderHistoryDays} onChange={e => setOrderHistoryDays(Math.min(Math.max(Number(e.target.value), 1), 120))} min="1" max="120" />
+                        <p className="text-xs text-muted-foreground">Max 120 days</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="minTotalWeight">Minimum Total Weight (kg)</Label>
+                        <Input id="minTotalWeight" type="number" value={minTotalWeight} onChange={e => setMinTotalWeight(Number(e.target.value))} min="1" />
+                        <p className="text-xs text-muted-foreground">Required for new orders</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="defaultDailyTruckLimit">Default Daily Truck Limit</Label>
+                        <Input id="defaultDailyTruckLimit" type="number" value={defaultDailyTruckLimit} onChange={e => setDefaultDailyTruckLimit(Number(e.target.value))} min="1" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="defaultDailyWeightLimit">Default Daily Weight Limit (kg)</Label>
+                        <Input id="defaultDailyWeightLimit" type="number" value={defaultDailyWeightLimit} onChange={e => setDefaultDailyWeightLimit(Number(e.target.value))} min="1" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="defaultMonthlyLimit">Default Monthly Limit (kg)</Label>
+                        <Input id="defaultMonthlyLimit" type="number" value={defaultMonthlyLimit} onChange={e => setDefaultMonthlyLimit(Number(e.target.value))} min="1" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="defaultTripLimit">Default Trip Limit (per day)</Label>
+                        <Input id="defaultTripLimit" type="number" value={defaultTripLimit} onChange={e => setDefaultTripLimit(Number(e.target.value))} min="1" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="defaultWeightPerTruck">Default Weight Per Truck (kg)</Label>
+                        <Input id="defaultWeightPerTruck" type="number" value={defaultWeightPerTruck} onChange={e => setDefaultWeightPerTruck(Number(e.target.value))} min="1" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="preBookingMode">Pre-Booking Mode</Label>
+                        <Select value={preBookingMode} onValueChange={value => setPreBookingMode(value as "compulsory" | "optional")}>
+                          <SelectTrigger id="preBookingMode" className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                            <SelectValue placeholder="Choose mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="compulsory">Compulsory</SelectItem>
+                            <SelectItem value="optional">Optional</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="advanceBookingHours">Advance Booking Hours</Label>
+                        <Input id="advanceBookingHours" type="number" value={advanceBookingHours} onChange={e => setAdvanceBookingHours(Number(e.target.value))} min="1" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="defaultSealQuantity">Default Seal Quantity</Label>
+                        <Input id="defaultSealQuantity" type="number" value={defaultSealQuantity} onChange={e => setDefaultSealQuantity(Number(e.target.value))} min="0" />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="defaultSealRequired" checked={defaultSealRequired} onCheckedChange={checked => setDefaultSealRequired(checked as boolean)} />
+                      <Label htmlFor="defaultSealRequired" className="cursor-pointer">
+                        Seals Required by Default
+                      </Label>
+                    </div>
+                  </fieldset>
+                </TabsContent>
+              )}
+
+              {/* Fleet Tab (Transporter or dual-role LC) */}
+              {showFleet && (
+                <TabsContent value="fleet" className="space-y-4">
+                  <fieldset disabled={viewOnly} className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="fleetNumberEnabled" checked={fleetNumberEnabled} onCheckedChange={checked => handleFleetNumberEnabledChange(checked as boolean)} />
+                        <Label htmlFor="fleetNumberEnabled" className="cursor-pointer">
+                          Enable Fleet Number
+                        </Label>
+                      </div>
+
+                      {fleetNumberEnabled && (
+                        <div className="space-y-2">
+                          <Label htmlFor="fleetNumberLabel">Fleet Number Label</Label>
+                          <Input id="fleetNumberLabel" value={fleetNumberLabel} onChange={e => setFleetNumberLabel(e.target.value)} placeholder="e.g., Fleet No." />
+                        </div>
+                      )}
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="transporterGroupEnabled" checked={transporterGroupEnabled} onCheckedChange={checked => handleTransporterGroupEnabledChange(checked as boolean)} />
+                        <Label htmlFor="transporterGroupEnabled" className="cursor-pointer">
+                          Enable Transporter Group
+                        </Label>
+                      </div>
+
+                      {transporterGroupEnabled && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="transporterGroupLabel">Transporter Group Label</Label>
+                            <Input id="transporterGroupLabel" value={transporterGroupLabel} onChange={e => setTransporterGroupLabel(e.target.value)} placeholder="e.g., Group" />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>
+                              Group Options <span className="text-destructive">*</span>
+                            </Label>
+                            <div className="flex gap-2">
+                              <Input
+                                value={newGroupOption}
+                                onChange={e => setNewGroupOption(e.target.value)}
+                                placeholder="Enter group name..."
+                                onKeyDown={e => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault()
+                                    addGroupOption()
+                                  }
+                                }}
+                              />
+                              <Button type="button" variant="outline" onClick={addGroupOption} disabled={!newGroupOption.trim()}>
+                                Add
+                              </Button>
+                            </div>
+
+                            {/* List of added group options */}
+                            {groupOptions.length > 0 && (
+                              <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+                                {groupOptions.map((option, index) => {
+                                  const isInactive = inactiveGroups.includes(option)
+                                  const isInUse = isGroupNameInUse(option)
+
+                                  return (
+                                    <div key={index} className={`flex items-center justify-between p-2 rounded-md ${isInactive ? "bg-muted opacity-60" : "bg-accent/50"}`}>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm">{option}</span>
+                                        {isInactive && <span className="text-xs px-2 py-0.5 rounded-full bg-muted-foreground/20 text-muted-foreground">Inactive</span>}
+                                        {isInUse && !isInactive && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-700 dark:text-blue-300">In Use</span>}
+                                      </div>
+                                      <div className="flex gap-1">
+                                        {isInUse ? (
+                                          // If in use, show inactive toggle instead of delete
+                                          <Button type="button" variant="ghost" size="sm" onClick={() => toggleGroupInactive(option)} className="h-6 px-2 text-xs">
+                                            {isInactive ? "Activate" : "Deactivate"}
+                                          </Button>
+                                        ) : (
+                                          // Not in use - can delete
+                                          <Button type="button" variant="ghost" size="sm" onClick={() => removeGroupOption(option)} className="h-6 w-6 p-0">
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+
+                            <p className="text-xs text-muted-foreground">{groupOptions.length === 0 ? "No group options added yet" : `${groupOptions.length} group option(s) added`}</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </fieldset>
+                </TabsContent>
+              )}
+
+              {/* Groups Tab (Mine only) */}
+              {showGroups && (
+                <TabsContent value="groups" className="space-y-4">
+                  <fieldset disabled={viewOnly} className="space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold">Organizational Groups</h3>
+                      <p className="text-sm text-muted-foreground">Create and manage hierarchical groups for your organization. Groups can be assigned to sites for better organization.</p>
+                      <p className="text-xs text-muted-foreground italic">Note: Groups will be saved when you submit the company form.</p>
+                    </div>
+                    <LocalGroupsManager groups={pendingGroups} onChange={setPendingGroups} companyId={company?.id} existingGroupIdMap={existingGroupIdMap} />
+                  </fieldset>
+                </TabsContent>
+              )}
+
+              {/* Escalation Tab */}
+              <TabsContent value="escalation" className="space-y-4">
+                <fieldset disabled={viewOnly} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="primaryContactId">Primary Contact</Label>
+                    {!isEditing ? (
+                      <div className="border rounded-md p-3 bg-muted/50">
+                        <p className="text-sm text-muted-foreground">Primary contact for escalation can be assigned after the company is created and users have been added to this company.</p>
+                      </div>
+                    ) : loadingUsers ? (
+                      <div className="text-sm text-muted-foreground">Loading users...</div>
+                    ) : (
+                      <Select value={primaryContactId || undefined} onValueChange={setPrimaryContactId}>
+                        <SelectTrigger id="primaryContactId" className="mt-2 w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                          <SelectValue placeholder="Select primary contact (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map(user => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.displayName} ({user.email})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 items-end">
+                    <div className="space-y-2">
+                      <Label htmlFor="escalationMinutes">Escalation Time (minutes)</Label>
+                      <Input id="escalationMinutes" type="number" value={escalationMinutes} onChange={e => setEscalationMinutes(Number(e.target.value))} min="1" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="requiredResponseMinutes">Required Response Time (minutes)</Label>
+                      <Input id="requiredResponseMinutes" type="number" value={requiredResponseMinutes} onChange={e => setRequiredResponseMinutes(Number(e.target.value))} min="1" />
+                    </div>
+                  </div>
+                </fieldset>
+              </TabsContent>
+            </Tabs>
+
+            {viewOnly ? (
+              <div className="flex justify-end pt-4 border-t">
+                <Button type="button" onClick={onClose}>
+                  Close
+                </Button>
               </div>
-
-              <div className="grid grid-cols-2 gap-4 items-end">
-                <div className="space-y-2">
-                  <Label htmlFor="escalationMinutes">Escalation Time (minutes)</Label>
-                  <Input
-                    id="escalationMinutes"
-                    type="number"
-                    value={escalationMinutes}
-                    onChange={e => setEscalationMinutes(Number(e.target.value))}
-                    min="1"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="requiredResponseMinutes">Required Response Time (minutes)</Label>
-                  <Input
-                    id="requiredResponseMinutes"
-                    type="number"
-                    value={requiredResponseMinutes}
-                    onChange={e => setRequiredResponseMinutes(Number(e.target.value))}
-                    min="1"
-                  />
-                </div>
+            ) : (
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Saving..." : isEditing ? "Update Company" : "Create Company"}
+                </Button>
               </div>
-              </fieldset>
-            </TabsContent>
-          </Tabs>
-
-          {viewOnly ? (
-            <div className="flex justify-end pt-4 border-t">
-              <Button type="button" onClick={onClose}>
-                Close
-              </Button>
-            </div>
-          ) : (
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : isEditing ? "Update Company" : "Create Company"}
-              </Button>
-            </div>
-          )}
-        </form>
-      </DialogContent>
-    </Dialog>
+            )}
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* AssetListModal for bulk removal */}
-      <AssetListModal
-        open={assetListModalOpen}
-        onClose={() => setAssetListModalOpen(false)}
-        assets={affectedAssets}
-        field={modalField}
-        fieldLabel={modalFieldLabel}
-        onBulkRemove={handleBulkRemove}
-        onCancel={handleCancel}
-      />
+      <AssetListModal open={assetListModalOpen} onClose={() => setAssetListModalOpen(false)} assets={affectedAssets} field={modalField} fieldLabel={modalFieldLabel} onBulkRemove={handleBulkRemove} onCancel={handleCancel} />
     </>
   )
 }

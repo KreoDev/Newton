@@ -328,6 +328,9 @@ export const getDriverColumns = (
         const status = row.getValue(columnId) as string
         return status === filterValue
       },
+      meta: {
+        label: "Status",
+      },
     },
     {
       id: "actions",

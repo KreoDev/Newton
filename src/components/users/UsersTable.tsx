@@ -205,6 +205,9 @@ export function UsersTable({ users, canViewAllCompanies, canManage, canManagePer
         const status = row.getValue(columnId) as string
         return status === filterValue
       },
+      meta: {
+        label: "Status",
+      },
     },
     ...(canManage || isViewOnly
       ? [

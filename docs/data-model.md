@@ -298,18 +298,20 @@ securityAlerts: {
 | clientCompanyId   | string          | yes      | Client company reference (mine/logistics) | c_789           |
 | dispatchStartDate | timestamp       | yes      | Dispatch period start                     | 2024-01-15      |
 | dispatchEndDate   | timestamp       | yes      | Dispatch period end                       | 2024-01-20      |
-| totalWeight       | number          | yes      | Total weight in tons                      | 500             |
+| totalWeight       | number          | yes      | Total weight in kg                        | 500             |
 | collectionSiteId  | string          | yes      | Collection site reference (sites doc)     | site_123        |
 | destinationSiteId | string          | yes      | Destination site reference (sites doc)    | site_456        |
 | productId         | string          | yes      | Product reference                         | p_coal          |
 | sealRequired      | boolean         | yes      | Are seals required                        | true            |
 | sealQuantity      | number          | no       | Number of seals required                  | 2               |
 | dailyTruckLimit   | number          | yes      | Max trucks per day                        | 10              |
-| dailyWeightLimit  | number          | yes      | Max weight per day (tons)                 | 100             |
-| monthlyLimit      | number          | no       | Monthly limit (tons)                      | 2000            |
+| dailyWeightLimit  | number          | yes      | Max weight per day (kg)                   | 100             |
+| monthlyLimit      | number          | no       | Monthly limit (kg)                        | 2000            |
 | tripLimit         | number          | yes      | Max trips per truck per day               | 2               |
 | tripDuration      | number          | no       | Trip duration in hours                    | 4               |
-| allocations       | array           | no       | Array of allocations                      | See below       |
+| assignedToLCId    | string          | no       | Logistics Coordinator company ID (if order assigned to LC for allocation) | c_789 |
+| allocations       | array           | no       | Array of allocations to transporters (empty if assigned to LC and not yet allocated) | See below       |
+| allocatedCompanyIds | array         | yes      | Flat array of transporter company IDs from allocations (for querying) | ["c_456", "c_789"] |
 | status            | enum            | yes      | pending\|allocated\|completed\|cancelled  | allocated       |
 | createdById       | string          | yes      | User who created order                    | u_123           |
 | createdAt         | number          | yes      | Client event time (ms)                    | Date.now()      |
@@ -319,12 +321,22 @@ securityAlerts: {
 | completedWeight   | number          | no       | Weight completed so far                   | 250             |
 | completedTrips    | number          | no       | Number of trips completed                 | 25              |
 
+#### Order Status Logic
+
+- **pending**: Order created and either:
+  - Assigned to a Logistics Coordinator (LC) via `assignedToLCId`, awaiting LC to allocate to transporters
+  - Created without allocations (not yet allocated)
+- **allocated**: Order has been allocated to transporter companies (allocations array populated)
+- **completed**: All weight delivered and order fulfilled
+- **cancelled**: Order cancelled (terminal state)
+
 #### allocations array structure
 
 ```javascript
 ;[
   {
-    companyId: "c_456",
+    companyId: "c_456", // Transporter company ID
+    numberOfTrucks: 4,
     allocatedWeight: 200,
     loadingDates: ["2024-01-15", "2024-01-16"],
     completedWeight: 150,
@@ -332,6 +344,38 @@ securityAlerts: {
   },
 ]
 ```
+
+**Notes:**
+- When order is assigned to LC (`assignedToLCId` is set), the `allocations` array is empty until the LC allocates to transporters
+- When LC completes allocation, `allocations` array is populated and `status` changes from "pending" to "allocated"
+- Direct allocation to transporters (skipping LC) populates `allocations` immediately with status "allocated"
+- `allocatedCompanyIds` is populated whenever `allocations` is populated, extracting all `companyId` values for efficient querying
+
+#### Order Visibility (Multi-Company Query)
+
+Different company types see different orders based on their role:
+
+- **Mine Companies**: See orders they created (`companyId == currentCompanyId`)
+- **Logistics Coordinator Companies**: See orders assigned to them for allocation (`assignedToLCId == currentCompanyId`)
+- **Transporter Companies**: See orders allocated to them (`allocatedCompanyIds contains currentCompanyId`)
+
+The `data.service.ts` uses a compound Firestore query with OR logic to load relevant orders:
+
+```typescript
+query(
+  collection(db, "orders"),
+  or(
+    and(where("companyId", "==", companyId), where("createdAt", ">=", cutoffMillis)),
+    and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)),
+    and(where("allocatedCompanyIds", "array-contains", companyId), where("createdAt", ">=", cutoffMillis))
+  )
+)
+```
+
+**Required Firestore Composite Indexes:**
+- `orders` collection: `companyId` (ASC), `createdAt` (ASC)
+- `orders` collection: `assignedToLCId` (ASC), `createdAt` (ASC)
+- `orders` collection: `allocatedCompanyIds` (ARRAY), `createdAt` (ASC)
 
 ### pre_bookings (documents)
 
@@ -441,8 +485,8 @@ securityAlerts: {
 | assetId         | string          | yes      | Truck asset reference       | a_456                  |
 | weighbridgeId   | string          | yes      | Weighbridge reference       | wb_01                  |
 | status          | enum            | yes      | tare_only\|completed        | completed              |
-| tareWeight      | number          | yes      | Empty weight in tons        | 8.5                    |
-| grossWeight     | number          | no       | Loaded weight in tons       | 35.2                   |
+| tareWeight      | number          | yes      | Empty weight in kg          | 8.5                    |
+| grossWeight     | number          | no       | Loaded weight in kg         | 35.2                   |
 | netWeight       | number          | no       | Net weight (gross - tare)   | 26.7                   |
 | tareTimestamp   | timestamp       | yes      | When tare was captured      | 2024-01-15T08:30:00    |
 | grossTimestamp  | timestamp       | no       | When gross was captured     | 2024-01-15T10:45:00    |
@@ -484,8 +528,8 @@ securityAlerts: {
 | id                | string (doc id) | yes      | Unique calibration id          | cal_123         |
 | companyId         | string          | yes      | Owning company reference       | c_123           |
 | weighbridgeId     | string          | yes      | Weighbridge reference          | wb_01           |
-| knownWeight       | number          | yes      | Known test weight (tons)       | 10.0            |
-| measuredWeight    | number          | yes      | Measured weight (tons)         | 10.02           |
+| knownWeight       | number          | yes      | Known test weight (kg)         | 10.0            |
+| measuredWeight    | number          | yes      | Measured weight (kg)           | 10.02           |
 | variance          | number          | yes      | Variance percentage            | 0.2             |
 | adjustmentFactor  | number          | yes      | Calibration adjustment         | 0.998           |
 | certificateNumber | string          | no       | Calibration certificate number | CERT-2024-001   |

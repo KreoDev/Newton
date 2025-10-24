@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle } from "lucide-react"
+import { WizardSteps } from "@/components/ui/wizard-steps"
 import { Step1QRScan } from "./wizard-steps/Step1QRScan"
 import { Step2LicenseScan } from "./wizard-steps/Step2LicenseScan"
 import { Step3OptionalFields } from "./wizard-steps/Step3OptionalFields"
@@ -131,23 +131,7 @@ export function InductionWizard({ onComplete }: InductionWizardProps) {
   return (
     <div className="w-full space-y-6">
       {/* Progress Indicator - Shows user-facing steps (3 or 4 depending on optional fields) */}
-      <div className="w-full">
-        <div className="flex items-center justify-between w-full">
-          {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step, index) => {
-            return (
-              <React.Fragment key={step}>
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-colors ${step < currentStep ? "bg-green-500 text-white" : step === currentStep ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{step < currentStep ? <CheckCircle className="h-4 w-4" /> : step}</div>
-                {index < totalSteps - 1 && <div className={`h-1 flex-1 ${step < currentStep ? "bg-green-500" : "bg-muted"}`} />}
-              </React.Fragment>
-            )
-          })}
-        </div>
-        <div className="mt-2">
-          <p className="text-sm text-muted-foreground">
-            Step {currentStep} of {totalSteps}
-          </p>
-        </div>
-      </div>
+      <WizardSteps currentStep={currentStep} totalSteps={totalSteps} />
 
       {/* Step Content */}
       <Card>

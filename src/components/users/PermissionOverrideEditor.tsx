@@ -14,6 +14,8 @@ import { AlertTriangle } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCompany } from "@/contexts/CompanyContext"
 import { getPermissionCategoriesForCompanyType } from "@/lib/permission-config"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface PermissionOverrideEditorProps {
   open: boolean
@@ -49,9 +51,7 @@ export function PermissionOverrideEditor({ open, onClose, onSuccess, user, viewO
 
     // Only global admins with manageGlobalAdmins permission can see/assign that permission
     if (filteredCategories.Administrative && (!currentUser?.isGlobal || !canManageGlobalAdmins)) {
-      filteredCategories.Administrative = filteredCategories.Administrative.filter(
-        p => p.key !== "admin.users.manageGlobalAdmins"
-      )
+      filteredCategories.Administrative = filteredCategories.Administrative.filter(p => p.key !== "admin.users.manageGlobalAdmins")
     }
 
     return filteredCategories
@@ -164,68 +164,67 @@ export function PermissionOverrideEditor({ open, onClose, onSuccess, user, viewO
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{viewOnly ? "View Permission Overrides" : "Edit Permission Overrides"}</DialogTitle>
-          <DialogDescription>
-            {viewOnly ? `View permissions for ${user.firstName} ${user.lastName}` : `Customize permissions for ${user.firstName} ${user.lastName}`}
-          </DialogDescription>
+          <DialogDescription>{viewOnly ? `View permissions for ${user.firstName} ${user.lastName}` : `Customize permissions for ${user.firstName} ${user.lastName}`}</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <fieldset disabled={viewOnly || !canManagePermissions} className="space-y-4">
-          {!viewOnly && !canManagePermissions && (
-            <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-destructive">
-                <strong>Permission Denied:</strong> You don&apos;t have permission to manage permission overrides. Contact your administrator to grant you &quot;Manage Permissions&quot; access.
+            {!viewOnly && !canManagePermissions && (
+              <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-destructive">
+                  <strong>Permission Denied:</strong> You don&apos;t have permission to manage permission overrides. Contact your administrator to grant you &quot;Manage Permissions&quot; access.
+                </p>
+              </div>
+            )}
+
+            <div className="border rounded-md p-3 bg-muted/20">
+              <p className="text-sm text-muted-foreground">
+                These overrides will take precedence over permissions inherited from assigned roles.
+                {hasOverrides && <span className="block mt-1 text-primary">Currently {Object.keys(overrides).length} override(s) active</span>}
               </p>
             </div>
-          )}
 
-          <div className="border rounded-md p-3 bg-muted/20">
-            <p className="text-sm text-muted-foreground">
-              These overrides will take precedence over permissions inherited from assigned roles.
-              {hasOverrides && (
-                <span className="block mt-1 text-primary">
-                  Currently {Object.keys(overrides).length} override(s) active
-                </span>
-              )}
-            </p>
-          </div>
+            <div className="space-y-6">
+              {Object.entries(getFilteredPermissions()).map(([category, permissions]) => (
+                <div key={category} className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-semibold">{category}</Label>
+                  </div>
+                  <div className="space-y-2 pl-4">
+                    {permissions.map(permission => {
+                      const currentValue = overrides[permission.key] || "default"
+                      const hasOverride = overrides[permission.key] !== undefined
 
-          <div className="space-y-6">
-            {Object.entries(getFilteredPermissions()).map(([category, permissions]) => (
-              <div key={category} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-semibold">{category}</Label>
-                </div>
-                <div className="space-y-2 pl-4">
-                  {permissions.map(permission => {
-                    const currentValue = overrides[permission.key] || "default"
-                    const hasOverride = overrides[permission.key] !== undefined
-
-                    return (
-                      <div key={permission.key} className="flex items-center justify-between py-2 border-b last:border-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">{permission.label}</span>
-                          {hasOverride && <Badge variant="secondary" className="text-xs">Overridden</Badge>}
+                      return (
+                        <div key={permission.key} className="flex items-center justify-between py-2 border-b last:border-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{permission.label}</span>
+                            {hasOverride && (
+                              <Badge variant="secondary" className="text-xs">
+                                Overridden
+                              </Badge>
+                            )}
+                          </div>
+                          <Select value={currentValue} onValueChange={value => handleOverrideChange(permission.key, value)}>
+                            <SelectTrigger className="w-[200px] glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ACCESS_LEVELS.map(level => (
+                                <SelectItem key={level.value} value={level.value}>
+                                  {level.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <select
-                          value={currentValue}
-                          onChange={e => handleOverrideChange(permission.key, e.target.value)}
-                          className="border rounded-md px-2 py-1 text-sm bg-background w-[180px]"
-                        >
-                          {ACCESS_LEVELS.map(level => (
-                            <option key={level.value} value={level.value}>
-                              {level.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
           </fieldset>
 
           {viewOnly ? (

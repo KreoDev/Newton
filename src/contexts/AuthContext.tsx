@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react"
 import { User as FirebaseUser, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "firebase/auth"
 import { auth, db } from "@/lib/firebase"
-import { doc, getDoc, setDoc } from "firebase/firestore"
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
 import { User } from "@/types"
 
 interface AuthContextType {
@@ -132,6 +132,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      dbCreatedAt: serverTimestamp() as any,
+      dbUpdatedAt: serverTimestamp() as any,
       isActive: true,
       isGlobal: false,
     }

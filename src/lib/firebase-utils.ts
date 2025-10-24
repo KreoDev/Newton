@@ -7,8 +7,13 @@ export const createDocument = async (collectionName: string, data: Record<string
     const localStorageCompany = typeof window !== "undefined" ? localStorage.getItem("newton-layout-company") : null
     const inferredCompanyId = typeof data.companyId === "string" ? data.companyId : localStorageCompany
 
+    // Filter out undefined values (Firestore doesn't accept them)
+    const cleanedData = Object.fromEntries(
+      Object.entries(data).filter(([_, value]) => value !== undefined)
+    )
+
     const docRef = await addDoc(collection(db, collectionName), {
-      ...data,
+      ...cleanedData,
       ...(inferredCompanyId ? { companyId: inferredCompanyId } : {}),
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -24,8 +29,13 @@ export const createDocument = async (collectionName: string, data: Record<string
 
 export const updateDocument = async (collectionName: string, id: string, data: Record<string, unknown>, successMessage?: string) => {
   try {
+    // Filter out undefined values (Firestore doesn't accept them)
+    const cleanedData = Object.fromEntries(
+      Object.entries(data).filter(([_, value]) => value !== undefined)
+    )
+
     const updateData = {
-      ...data,
+      ...cleanedData,
       updatedAt: Date.now(),
       dbUpdatedAt: serverTimestamp(),
     }
@@ -50,6 +60,7 @@ export function createCollectionListener<T>(
   options?: {
     companyScoped?: boolean
     filter?: (item: T) => boolean
+    additionalConstraints?: any[] // Additional Firestore query constraints (e.g., where, orderBy)
     onFirstLoad?: () => void
   }
 ) {
@@ -59,6 +70,11 @@ export function createCollectionListener<T>(
 
     if (options?.companyScoped && companyId) {
       constraints.push(where("companyId", "==", companyId))
+    }
+
+    // Add any additional constraints (e.g., date filtering)
+    if (options?.additionalConstraints) {
+      constraints.push(...options.additionalConstraints)
     }
 
     const q = constraints.length > 0 ? query(collection(db, collectionName), ...constraints) : collection(db, collectionName)
@@ -83,6 +99,9 @@ export function createCollectionListener<T>(
         }
       },
       error => {
+        console.error(`Error in ${collectionName} listener:`, error)
+        console.error('Error code:', error.code)
+        console.error('Error message:', error.message)
         signal.value = []
         if (isFirstLoad && options?.onFirstLoad) {
           options.onFirstLoad()
