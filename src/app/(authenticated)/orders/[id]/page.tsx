@@ -116,10 +116,15 @@ export default function OrderDetailsPage() {
           <p className="text-muted-foreground mb-4">
             This order has been assigned to a logistics coordinator and is awaiting allocation to transporter companies.
           </p>
-          {order.assignedToLCName && (
-            <div className="mb-4">
-              <p className="text-sm text-muted-foreground">Assigned to:</p>
-              <p className="font-medium text-lg">{order.assignedToLCName}</p>
+          {order.assignedToLCId && (
+            <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <p className="text-sm text-muted-foreground mb-1">Assigned to Logistics Coordinator:</p>
+              <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">
+                {order.assignedToLCName || "Logistics Coordinator"}
+              </p>
+              {order.assignedToLCPhysicalAddress && (
+                <p className="text-sm text-muted-foreground mt-2">{order.assignedToLCPhysicalAddress}</p>
+              )}
             </div>
           )}
           {canAllocate && (
@@ -215,6 +220,14 @@ export default function OrderDetailsPage() {
               {order.sealRequired ? `Required (${order.sealQuantity})` : "Not Required"}
             </p>
           </div>
+          {order.assignedToLCId && (
+            <div>
+              <p className="text-sm text-muted-foreground">Assigned Logistics Coordinator</p>
+              <p className="font-medium text-blue-600 dark:text-blue-400">
+                {order.assignedToLCName || "Logistics Coordinator"}
+              </p>
+            </div>
+          )}
           <div>
             <p className="text-sm text-muted-foreground">Daily Truck Limit</p>
             <p className="font-medium">{order.dailyTruckLimit} trucks</p>
