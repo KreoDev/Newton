@@ -18,8 +18,7 @@ import { useAlert } from "@/hooks/useAlert"
 import { toast } from "sonner"
 import type { Allocation } from "@/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { db } from "@/lib/firebase"
-import { collection, query, where, getDocs } from "firebase/firestore"
+import { useTransporterTrucks } from "@/hooks/useTransporterTrucks"
 
 export default function OrderAllocationPage() {
   useSignals()
@@ -29,14 +28,15 @@ export default function OrderAllocationPage() {
   const { showSuccess, showError } = useAlert()
   const canAllocate = usePermission(PERMISSIONS.ORDERS_ALLOCATE)
 
+  // Use custom truck fetching hook
+  const { fetchTrucksForTransporter, getAvailableTrucks, isLoadingTrucks, isAnyLoading } = useTransporterTrucks()
+
   const orderId = params.id as string
   const order = useMemo(() => OrderService.getById(orderId), [orderId, globalData.orders.value])
 
   const [allocations, setAllocations] = useState<Allocation[]>(order?.allocations || [])
   const [loading, setLoading] = useState(false)
   const [selectedTransporterId, setSelectedTransporterId] = useState<string>("")
-  const [transporterTrucks, setTransporterTrucks] = useState<Record<string, number>>({})
-  const [loadingTrucksFor, setLoadingTrucksFor] = useState<string | null>(null)
 
   const sites = globalData.sites.value.filter(s => s.isActive)
   const transporterCompanies = useMemo(() =>
@@ -58,36 +58,7 @@ export default function OrderAllocationPage() {
     return order.status === "pending" || order.allocations.some(a => a.companyId === company.id)
   }, [company, order, canAllocate])
 
-  // Helper function to get available trucks for a transporter
-  const getAvailableTrucks = (transporterId: string): number => {
-    return transporterTrucks[transporterId] ?? 0
-  }
-
-  // Fetch trucks for a specific transporter
-  const fetchTrucksForTransporter = async (transporterId: string) => {
-    // If already fetched, don't fetch again
-    if (transporterId in transporterTrucks) return
-
-    setLoadingTrucksFor(transporterId)
-    try {
-      const assetsRef = collection(db, "assets")
-      const q = query(assetsRef, where("companyId", "==", transporterId), where("type", "==", "truck"), where("isActive", "==", true))
-
-      const snapshot = await getDocs(q)
-
-      setTransporterTrucks(prev => ({
-        ...prev,
-        [transporterId]: snapshot.size,
-      }))
-    } catch (error) {
-      console.error("Error fetching transporter trucks:", error)
-      toast.error("Failed to load truck count for transporter")
-    } finally {
-      setLoadingTrucksFor(null)
-    }
-  }
-
-  // Helper function to calculate truck capacity over order duration
+  // Helper function to calculate truck capacity over order duration (LC-specific)
   const calculateTruckCapacityOverDuration = () => {
     if (!order || !company) return 0
 
@@ -388,7 +359,7 @@ export default function OrderAllocationPage() {
         <h2 className="text-xl font-bold mb-4">Add Transporters</h2>
         <div className="flex gap-2">
           <div className="flex-1">
-            <Select value={selectedTransporterId} onValueChange={setSelectedTransporterId} disabled={loadingTrucksFor !== null}>
+            <Select value={selectedTransporterId} onValueChange={setSelectedTransporterId} disabled={isAnyLoading()}>
               <SelectTrigger className="w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
                 <SelectValue placeholder="Select transporter to add..." />
               </SelectTrigger>
@@ -403,8 +374,8 @@ export default function OrderAllocationPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={handleAddTransporter} disabled={!selectedTransporterId || loadingTrucksFor !== null}>
-            {loadingTrucksFor !== null ? (
+          <Button onClick={handleAddTransporter} disabled={!selectedTransporterId || isAnyLoading()}>
+            {isAnyLoading() ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 Loading...
@@ -422,7 +393,7 @@ export default function OrderAllocationPage() {
           {allocations.map((allocation, index) => {
             const transporter = transporterCompanies.find(t => t.id === allocation.companyId)
             const availableTrucks = getAvailableTrucks(allocation.companyId)
-            const isLoadingTrucks = loadingTrucksFor === allocation.companyId
+            const isLoading = isLoadingTrucks(allocation.companyId)
             const minimumTrucks = calculateMinimumTrucks(allocation.allocatedWeight)
             const weightPercentage = order.totalWeight > 0 ? ((allocation.allocatedWeight / order.totalWeight) * 100).toFixed(1) : "0.0"
             const totalCapacity = allocation.numberOfTrucks * weightPerTruckOverDuration
@@ -435,7 +406,7 @@ export default function OrderAllocationPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <h4 className="font-semibold">{transporter?.name || "Unknown Transporter"}</h4>
-                    {isLoadingTrucks ? (
+                    {isLoading ? (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         <span>Loading truck count...</span>
@@ -472,7 +443,7 @@ export default function OrderAllocationPage() {
                       }}
                       placeholder="Enter weight to allocate..."
                       className={allocation.allocatedWeight > order.totalWeight ? "border-destructive" : ""}
-                      disabled={isLoadingTrucks}
+                      disabled={isLoading}
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
                       {weightPercentage}%
@@ -522,7 +493,7 @@ export default function OrderAllocationPage() {
                             toast.error(`Cannot reduce below minimum ${minimumTrucks} trucks required for ${allocation.allocatedWeight.toLocaleString()} kg`)
                           }
                         }}
-                        disabled={isLoadingTrucks || allocation.numberOfTrucks <= minimumTrucks}
+                        disabled={isLoading || allocation.numberOfTrucks <= minimumTrucks}
                         className="h-10 w-10"
                       >
                         <Minus className="h-4 w-4" />
@@ -542,7 +513,7 @@ export default function OrderAllocationPage() {
                             toast.error(`Maximum ${availableTrucks} trucks available for this transporter`)
                           }
                         }}
-                        disabled={isLoadingTrucks || allocation.numberOfTrucks >= availableTrucks}
+                        disabled={isLoading || allocation.numberOfTrucks >= availableTrucks}
                         className="h-10 w-10"
                       >
                         <Plus className="h-4 w-4" />
