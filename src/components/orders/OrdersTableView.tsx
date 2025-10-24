@@ -159,6 +159,58 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
       ),
     },
     {
+      id: "allocatedTo",
+      header: "Allocated To",
+      cell: ({ row }) => {
+        const order = row.original
+        if (order.assignedToLCName) {
+          return (
+            <div className="text-sm">
+              <div className="font-medium text-blue-600">{order.assignedToLCName}</div>
+              <div className="text-xs text-muted-foreground">Logistics Coordinator</div>
+            </div>
+          )
+        }
+        if (order.allocations.length > 0) {
+          return (
+            <div className="text-sm">
+              <div className="font-medium">{order.allocations.length} Transporter{order.allocations.length > 1 ? "s" : ""}</div>
+              <div className="text-xs text-muted-foreground">Direct allocation</div>
+            </div>
+          )
+        }
+        return <span className="text-sm text-muted-foreground">Not allocated</span>
+      },
+    },
+    {
+      id: "daysRemaining",
+      accessorFn: row => row.dispatchEndDate,
+      header: "Days Left",
+      cell: ({ row }) => {
+        const endDate = new Date(row.original.dispatchEndDate)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        endDate.setHours(0, 0, 0, 0)
+
+        const daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+        let colorClass = "text-muted-foreground"
+        if (daysLeft < 0) {
+          colorClass = "text-red-600 font-semibold"
+        } else if (daysLeft <= 3) {
+          colorClass = "text-orange-600 font-semibold"
+        } else if (daysLeft <= 7) {
+          colorClass = "text-yellow-600"
+        }
+
+        return (
+          <div className={`text-sm ${colorClass}`}>
+            {daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : daysLeft === 0 ? "Today" : daysLeft === 1 ? "1 day" : `${daysLeft} days`}
+          </div>
+        )
+      },
+    },
+    {
       id: "status",
       accessorFn: row => row.status,
       header: ({ column }) => (

@@ -532,17 +532,63 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         productId: formData.productId,
         assignedToLCId,
 
-        // DENORMALIZED DATA - for cross-company access
+        // DENORMALIZED DATA - Comprehensive future-proof data
+        // Product data
         productName: product?.name ?? "Unknown",
         productCode: product?.code ?? "",
+        productCategoryId: product?.categoryId,
+        productSpecifications: product?.specifications,
+        productIsActive: product?.isActive ?? true,
+
+        // Client data
         clientName: client?.name ?? "Unknown",
+        clientRegistrationNumber: client?.registrationNumber,
+        clientVatNumber: client?.vatNumber,
+        clientPhysicalAddress: client?.physicalAddress ?? "",
+        clientContactName: client?.contactName ?? "",
+        clientContactEmail: client?.contactEmail ?? "",
+        clientContactPhone: client?.contactPhone ?? "",
+
+        // Collection site data
         collectionSiteName: collectionSite?.name ?? "Unknown",
         collectionSiteAddress: collectionSite?.physicalAddress,
+        collectionSiteType: collectionSite?.siteType ?? "collection",
+        collectionSiteOperatingHours: collectionSite?.operatingHours,
+        collectionSiteGroupId: collectionSite?.groupId,
+
+        // Destination site data
         destinationSiteName: destinationSite?.name ?? "Unknown",
         destinationSiteAddress: destinationSite?.physicalAddress,
+        destinationSiteType: destinationSite?.siteType ?? "destination",
+        destinationSiteOperatingHours: destinationSite?.operatingHours,
+        destinationSiteGroupId: destinationSite?.groupId,
+
+        // Mine company data
         companyName: company.name,
-        defaultWeightPerTruck: company.orderConfig?.defaultWeightPerTruck ?? 0,
+        companyRegistrationNumber: company.registrationNumber,
+        companyVatNumber: company.vatNumber,
+        companyPhysicalAddress: company.physicalAddress,
+
+        // Order configuration snapshot (preserve exact config at creation time)
+        orderConfigSnapshot: company.orderConfig ?? {
+          orderNumberMode: "autoOnly",
+          orderHistoryDays: 60,
+          minTotalWeight: 0,
+          defaultDailyTruckLimit: 10,
+          defaultDailyWeightLimit: 100000,
+          defaultTripLimit: 7,
+          defaultWeightPerTruck: 30000,
+          preBookingMode: "optional",
+          advanceBookingHours: 24,
+          defaultSealRequired: false,
+          defaultSealQuantity: 2,
+        },
+
+        // LC data (if assigned)
         assignedToLCName: lcCompany?.name,
+        assignedToLCRegistrationNumber: lcCompany?.registrationNumber,
+        assignedToLCVatNumber: lcCompany?.vatNumber,
+        assignedToLCPhysicalAddress: lcCompany?.physicalAddress,
 
         // Order details
         dispatchStartDate: formData.dispatchStartDate,

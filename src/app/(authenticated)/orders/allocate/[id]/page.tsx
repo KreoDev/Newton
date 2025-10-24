@@ -72,8 +72,8 @@ export default function OrderAllocationPage() {
   const calculateTruckCapacityOverDuration = () => {
     if (!order) return 0
 
-    // Use denormalized truck capacity from order (no cross-company lookup!)
-    const truckCapacity = order.defaultWeightPerTruck ?? 0
+    // Use denormalized truck capacity from order config snapshot (no cross-company lookup!)
+    const truckCapacity = order.orderConfigSnapshot?.defaultWeightPerTruck ?? 0
 
     // Calculate trips per day
     let tripsPerDay = 1

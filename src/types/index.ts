@@ -266,27 +266,52 @@ export interface Order extends Timestamped, CompanyScoped {
   assignedToLCId?: string // Logistics Coordinator company ID (if order assigned to LC for allocation)
 
   // DENORMALIZED DATA - Saved at order creation time for cross-company access
+  // Future-proof: All data needed for display, reports, and future features
+
   // Product data (from productId)
   productName: string
   productCode: string
+  productCategoryId?: string
+  productSpecifications?: string
+  productIsActive: boolean
 
   // Client data (from clientCompanyId)
   clientName: string
+  clientRegistrationNumber?: string
+  clientVatNumber?: string
+  clientPhysicalAddress: string
+  clientContactName: string
+  clientContactEmail: string
+  clientContactPhone: string
 
-  // Site data
+  // Collection Site data
   collectionSiteName: string
   collectionSiteAddress?: string
+  collectionSiteType: string
+  collectionSiteOperatingHours?: Record<string, { open: string; close: string }>
+  collectionSiteGroupId?: string
+
+  // Destination Site data
   destinationSiteName: string
   destinationSiteAddress?: string
+  destinationSiteType: string
+  destinationSiteOperatingHours?: Record<string, { open: string; close: string }>
+  destinationSiteGroupId?: string
 
   // Mine company data (order creator)
-  companyName: string // Mine company name
+  companyName: string
+  companyRegistrationNumber?: string
+  companyVatNumber?: string
+  companyPhysicalAddress: string
 
-  // Truck capacity config (CRITICAL for LC/Transporter calculations)
-  defaultWeightPerTruck: number // From mine's orderConfig
+  // Order configuration snapshot (as it was at creation time)
+  orderConfigSnapshot: OrderConfig
 
   // LC data (if assigned to LC)
-  assignedToLCName?: string // From assignedToLCId
+  assignedToLCName?: string
+  assignedToLCRegistrationNumber?: string
+  assignedToLCVatNumber?: string
+  assignedToLCPhysicalAddress?: string
 
   // Order details
   dispatchStartDate: string
