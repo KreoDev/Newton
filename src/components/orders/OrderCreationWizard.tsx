@@ -979,14 +979,18 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                   <Input type="number" value={formData.tripDuration} onChange={e => setFormData(prev => ({ ...prev, tripDuration: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="4" />
                 </div>
 
-                {formData.tripDuration > 0 && formData.collectionSiteId && (() => {
-                  const collectionSite = sites.find(s => s.id === formData.collectionSiteId)
+                {formData.tripDuration > 0 && (() => {
+                  // Get the relevant site based on order type
+                  // For dispatching: collection site (where trucks pick up from)
+                  // For receiving: destination site (where trucks deliver to)
+                  const relevantSiteId = formData.orderType === "dispatching" ? formData.collectionSiteId : formData.destinationSiteId
+                  const relevantSite = relevantSiteId ? sites.find(s => s.id === relevantSiteId) : null
 
-                  // Calculate operating hours for the collection site
+                  // Calculate operating hours for the relevant site
                   const calculateDailyOperatingHours = () => {
-                    if (!collectionSite?.operatingHours) return 24 // Default 24 hours if not configured
+                    if (!relevantSite?.operatingHours) return 24 // Default 24 hours if not configured
 
-                    const hours = collectionSite.operatingHours
+                    const hours = relevantSite.operatingHours
                     if (!hours || typeof hours !== 'object') return 24 // Default 24 hours
 
                     // Get today's day of week
@@ -1006,7 +1010,9 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
                   const operatingHours = calculateDailyOperatingHours()
                   const { tripDuration } = formData
-                  const hasOperatingHours = !!collectionSite?.operatingHours
+                  const hasOperatingHours = !!relevantSite?.operatingHours
+                  const hasSite = !!relevantSite
+                  const siteType = formData.orderType === "dispatching" ? "collection site" : "destination site"
 
                   if (tripDuration <= 24) {
                     // Trip can be completed within a day
@@ -1031,8 +1037,11 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                         <div className="text-sm">
                           <p>• <span className="font-semibold">{tripsPerDay} {tripsPerDay === 1 ? "trip" : "trips"} per day per truck</span> (based on {operatingHours}-hour operating window)</p>
                         </div>
-                        {!hasOperatingHours && (
-                          <p className="text-sm text-muted-foreground mt-2">ℹ️ Collection site has no operating hours configured. Using default 24-hour window.</p>
+                        {!hasSite && (
+                          <p className="text-sm text-muted-foreground mt-2">ℹ️ No {siteType} selected. Using default 24-hour operating window for calculations.</p>
+                        )}
+                        {hasSite && !hasOperatingHours && (
+                          <p className="text-sm text-muted-foreground mt-2">ℹ️ {siteType.charAt(0).toUpperCase() + siteType.slice(1)} has no operating hours configured. Using default 24-hour window.</p>
                         )}
                         {exceedsOperatingHours && (
                           <p className="text-sm text-yellow-600 mt-2">⚠️ Trip duration ({tripDuration}h) exceeds operating hours ({operatingHours}h), but trucks can still complete 1 trip per day by starting within the operating window.</p>
@@ -1052,8 +1061,11 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                           <p>• Trip duration exceeds 24 hours</p>
                           <p>• <span className="font-semibold">{daysPerTrip} days required per trip per truck</span></p>
                           <p>• <span className="font-semibold">{tripsPerDay} trips per day per truck</span> (based on {operatingHours}-hour operating window)</p>
-                          {!hasOperatingHours && (
-                            <p className="text-xs text-muted-foreground mt-2">ℹ️ Collection site has no operating hours configured. Using default 24-hour window.</p>
+                          {!hasSite && (
+                            <p className="text-xs text-muted-foreground mt-2">ℹ️ No {siteType} selected. Using default 24-hour operating window for calculations.</p>
+                          )}
+                          {hasSite && !hasOperatingHours && (
+                            <p className="text-xs text-muted-foreground mt-2">ℹ️ {siteType.charAt(0).toUpperCase() + siteType.slice(1)} has no operating hours configured. Using default 24-hour window.</p>
                           )}
                           <p className="text-xs text-muted-foreground mt-2">Each truck&apos;s trip will span multiple days. Consider reducing trip duration or adjusting order timeline.</p>
                         </div>
