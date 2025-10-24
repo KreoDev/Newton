@@ -2,7 +2,8 @@ import { signal, Signal } from "@preact/signals-react"
 import { log } from "@/services/console.service"
 import type { User, Company, Role, Product, Group, Site, Client, Asset, Order } from "@/types"
 import { createCollectionListener } from "@/lib/firebase-utils"
-import { where } from "firebase/firestore"
+import { where, query, collection, onSnapshot, or, and } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 
 class Data {
   private static instance: Data
@@ -102,14 +103,50 @@ class Data {
       onFirstLoad: () => this.markCollectionLoaded("assets"),
     })
 
-    // Orders: Company-scoped with date filtering (last N days only)
+    // Orders: Custom listener with multi-condition visibility
+    // Different company types see different orders:
+    // - Mine companies: orders they created (companyId)
+    // - LC companies: orders assigned to them (assignedToLCId)
+    // - Transporter companies: orders allocated to them (allocatedCompanyIds array)
     // Use createdAt (client timestamp) instead of dbCreatedAt (server timestamp)
     // because dbCreatedAt uses serverTimestamp() which is resolved asynchronously
-    const ordersListener = createCollectionListener<Order>("orders", this.orders, {
-      companyScoped: true,
-      additionalConstraints: [where("createdAt", ">=", cutoffMillis)],
-      onFirstLoad: () => this.markCollectionLoaded("orders"),
-    })
+    const ordersListener = () => {
+      let isFirstLoad = true
+
+      // Create compound query: (visibility conditions OR) AND date filter
+      const q = query(
+        collection(db, "orders"),
+        and(
+          or(
+            where("companyId", "==", companyId), // Mine companies - orders they created
+            where("assignedToLCId", "==", companyId), // LC companies - orders assigned to them
+            where("allocatedCompanyIds", "array-contains", companyId) // Transporter companies - orders allocated to them
+          ),
+          where("createdAt", ">=", cutoffMillis) // Date filter
+        )
+      )
+
+      return onSnapshot(
+        q,
+        snapshot => {
+          const data = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Order[]
+
+          this.orders.value = data
+
+          if (isFirstLoad) {
+            this.markCollectionLoaded("orders")
+            isFirstLoad = false
+          }
+        },
+        error => {
+          console.error("Error loading orders:", error)
+          log.i("Data Service", "Failed to load orders")
+        }
+      )
+    }
 
     // Start all listeners
     const unsubCompanies = companiesListener()
@@ -120,7 +157,7 @@ class Data {
     const unsubSites = sitesListener(companyId)
     const unsubClients = clientsListener(companyId)
     const unsubAssets = assetsListener(companyId)
-    const unsubOrders = ordersListener(companyId)
+    const unsubOrders = ordersListener()
 
     this.unsubscribers = [unsubCompanies, unsubRoles, unsubUsers, unsubProducts, unsubGroups, unsubSites, unsubClients, unsubAssets, unsubOrders]
 
