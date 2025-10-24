@@ -832,7 +832,12 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             </div>
 
             <div>
-              <Label>Monthly Limit (kg, optional)</Label>
+              <div className="flex items-center gap-2">
+                <Label>Monthly Limit (kg, optional)</Label>
+                <span className="text-xs text-yellow-600 font-medium px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded">
+                  Not currently used in calculations
+                </span>
+              </div>
               <Input type="number" value={formData.monthlyLimit} onChange={e => setFormData(prev => ({ ...prev, monthlyLimit: parseFloat(e.target.value) || 0 }))} className="mt-2" placeholder="0" />
             </div>
           </div>
