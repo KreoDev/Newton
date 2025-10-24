@@ -82,6 +82,8 @@ export function createCollectionListener<T>(
     return onSnapshot(
       q,
       snapshot => {
+        console.log(`[${collectionName}] Snapshot received:`, snapshot.size, 'documents')
+
         let data = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
@@ -91,6 +93,7 @@ export function createCollectionListener<T>(
           data = data.filter(options.filter)
         }
 
+        console.log(`[${collectionName}] After filtering:`, data.length, 'documents')
         signal.value = data
 
         if (isFirstLoad && options?.onFirstLoad) {
@@ -99,6 +102,9 @@ export function createCollectionListener<T>(
         }
       },
       error => {
+        console.error(`Error in ${collectionName} listener:`, error)
+        console.error('Error code:', error.code)
+        console.error('Error message:', error.message)
         signal.value = []
         if (isFirstLoad && options?.onFirstLoad) {
           options.onFirstLoad()
