@@ -107,7 +107,6 @@ class Data {
     // Different company types see different orders:
     // - Mine companies: orders they created (companyId)
     // - LC companies: orders assigned to them (assignedToLCId)
-    // - Transporter companies: orders allocated to them (allocatedCompanyIds array)
     // Use createdAt (client timestamp) instead of dbCreatedAt (server timestamp)
     // because dbCreatedAt uses serverTimestamp() which is resolved asynchronously
     const ordersListener = () => {
@@ -122,8 +121,7 @@ class Data {
         collection(db, "orders"),
         or(
           and(where("companyId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // Mine companies
-          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // LC companies
-          and(where("allocatedCompanyIds", "array-contains", companyId), where("createdAt", ">=", cutoffMillis)) // Transporters
+          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)) // LC companies
         )
       )
 

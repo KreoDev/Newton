@@ -528,9 +528,6 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         allocations = formData.allocations
       }
 
-      // Extract transporter company IDs for querying
-      const allocatedCompanyIds = allocations.map(a => a.companyId)
-
       const orderData: Omit<Order, "id" | "createdAt" | "updatedAt" | "dbCreatedAt" | "dbUpdatedAt"> = {
         companyId: company.id,
         orderNumber: formData.orderNumber,
@@ -551,7 +548,6 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         tripDuration: formData.tripConfigMode === "duration" ? formData.tripDuration : undefined,
         assignedToLCId, // Set if assigned to LC
         allocations, // Empty if LC mode, populated if direct transporter mode
-        allocatedCompanyIds, // Flat array for querying by transporter
         status: "pending", // Will be set automatically by service
         createdById: user.id,
       }
