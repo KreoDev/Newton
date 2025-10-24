@@ -364,13 +364,10 @@ The `data.service.ts` uses a compound Firestore query with OR logic to load rele
 ```typescript
 query(
   collection(db, "orders"),
-  and(
-    or(
-      where("companyId", "==", companyId),
-      where("assignedToLCId", "==", companyId),
-      where("allocatedCompanyIds", "array-contains", companyId)
-    ),
-    where("createdAt", ">=", cutoffMillis)
+  or(
+    and(where("companyId", "==", companyId), where("createdAt", ">=", cutoffMillis)),
+    and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)),
+    and(where("allocatedCompanyIds", "array-contains", companyId), where("createdAt", ">=", cutoffMillis))
   )
 )
 ```
