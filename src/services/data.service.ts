@@ -113,16 +113,14 @@ class Data {
     const ordersListener = () => {
       let isFirstLoad = true
 
-      // Create compound query: (visibility conditions OR) AND date filter
+      // Create compound query: Each visibility condition must include the date filter
+      // Firestore requires composite filters (or/and) to include all constraints
       const q = query(
         collection(db, "orders"),
-        and(
-          or(
-            where("companyId", "==", companyId), // Mine companies - orders they created
-            where("assignedToLCId", "==", companyId), // LC companies - orders assigned to them
-            where("allocatedCompanyIds", "array-contains", companyId) // Transporter companies - orders allocated to them
-          ),
-          where("createdAt", ">=", cutoffMillis) // Date filter
+        or(
+          and(where("companyId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // Mine companies
+          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // LC companies
+          and(where("allocatedCompanyIds", "array-contains", companyId), where("createdAt", ">=", cutoffMillis)) // Transporters
         )
       )
 
