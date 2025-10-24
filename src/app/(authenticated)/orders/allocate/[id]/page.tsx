@@ -38,7 +38,6 @@ export default function OrderAllocationPage() {
   const [loading, setLoading] = useState(false)
   const [selectedTransporterId, setSelectedTransporterId] = useState<string>("")
 
-  const sites = globalData.sites.value.filter(s => s.isActive)
   const transporterCompanies = useMemo(() =>
     globalData.companies.value.filter(c =>
       c.isActive && (
@@ -79,11 +78,12 @@ export default function OrderAllocationPage() {
     let tripsPerDay = 1
     if (order.tripLimit) {
       tripsPerDay = order.tripLimit
-    } else if (order.tripDuration && order.collectionSiteId) {
-      const collectionSite = sites.find(s => s.id === order.collectionSiteId)
-      if (collectionSite?.operatingHours) {
+    } else if (order.tripDuration) {
+      // Use denormalized operating hours (no cross-company lookup!)
+      const operatingHours = order.collectionSiteOperatingHours
+      if (operatingHours) {
         const calculateDailyOperatingHours = () => {
-          const hours = collectionSite.operatingHours
+          const hours = operatingHours
           if (!hours || typeof hours !== "object") return 12
           const today = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
           const daySchedule = hours[today as keyof typeof hours]
@@ -95,15 +95,22 @@ export default function OrderAllocationPage() {
           return closeHour - openHour
         }
 
-        const operatingHours = calculateDailyOperatingHours()
+        const dailyOperatingHours = calculateDailyOperatingHours()
         const tripDuration = order.tripDuration
+
+        // CRITICAL CALCULATION: Trip capacity logic
         if (tripDuration <= 24) {
-          if (tripDuration <= operatingHours) {
-            tripsPerDay = Math.floor(operatingHours / tripDuration)
+          if (tripDuration <= dailyOperatingHours) {
+            // Multiple trips possible (e.g., 4h trip, 12h window = 3 trips)
+            tripsPerDay = Math.floor(dailyOperatingHours / tripDuration)
           } else {
+            // Trip exceeds operating hours but ≤24 hours
+            // Can still do 1 trip per day (truck starts within operating window)
             tripsPerDay = 1
           }
         } else {
+          // Multi-day trip (>24 hours)
+          // E.g., 30h trip = 0.5 trips per day
           tripsPerDay = 1 / Math.ceil(tripDuration / 24)
         }
       }
