@@ -477,6 +477,19 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             )
             return false
           }
+
+          // Validate daily truck limit constraint
+          const totalTrucks = formData.allocations.reduce((sum, a) => sum + a.numberOfTrucks, 0)
+          const dailyTruckLimit = formData.dailyTruckLimit
+
+          if (totalTrucks > dailyTruckLimit) {
+            const excess = totalTrucks - dailyTruckLimit
+            showError(
+              "Daily Truck Limit Exceeded",
+              `Total trucks allocated (${totalTrucks}) exceeds daily truck limit (${dailyTruckLimit}) by ${excess} truck${excess > 1 ? 's' : ''}. Please reduce the number of trucks allocated to transporters.`
+            )
+            return false
+          }
         }
         return true
 

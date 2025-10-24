@@ -278,6 +278,19 @@ export default function OrderAllocationPage() {
       return
     }
 
+    // Validate daily truck limit constraint
+    const totalTrucks = allocations.reduce((sum, a) => sum + a.numberOfTrucks, 0)
+    const dailyTruckLimit = order.dailyTruckLimit
+
+    if (totalTrucks > dailyTruckLimit) {
+      const excess = totalTrucks - dailyTruckLimit
+      showError(
+        "Daily Truck Limit Exceeded",
+        `Total trucks allocated (${totalTrucks}) exceeds daily truck limit (${dailyTruckLimit}) by ${excess} truck${excess > 1 ? 's' : ''}. Please reduce the number of trucks allocated to transporters.`
+      )
+      return
+    }
+
     setLoading(true)
     try {
       await OrderService.allocate(orderId, allocations, "Order allocated successfully")
