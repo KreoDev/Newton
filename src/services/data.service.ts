@@ -120,8 +120,8 @@ class Data {
       const q = query(
         collection(db, "orders"),
         or(
-          and(where("companyId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // Mine companies
-          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)) // LC companies
+          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // LC companies
+          and(where("companyId", "==", companyId), where("createdAt", ">=", cutoffMillis)) // Mine companies
         )
       )
 
@@ -133,6 +133,16 @@ class Data {
             ...doc.data(),
           })) as Order[]
 
+          console.log("✅ Orders loaded:", data.length, "orders")
+          if (data.length > 0) {
+            console.log("📋 First order:", {
+              id: data[0].id,
+              companyId: data[0].companyId,
+              assignedToLCId: data[0].assignedToLCId,
+              orderNumber: data[0].orderNumber
+            })
+          }
+
           this.orders.value = data
 
           if (isFirstLoad) {
@@ -141,7 +151,9 @@ class Data {
           }
         },
         error => {
-          console.error("Error loading orders:", error)
+          console.error("❌ ERROR loading orders:", error)
+          console.error("Error code:", error.code)
+          console.error("Error message:", error.message)
           log.i("Data Service", "Failed to load orders")
         }
       )
