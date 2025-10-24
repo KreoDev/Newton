@@ -26,6 +26,12 @@ export default function OrderDetailsPage() {
   const orderId = params.id as string
   const order = useMemo(() => OrderService.getById(orderId), [orderId, globalData.orders.value])
 
+  // Look up the actual LC company from globalData (companies are always loaded)
+  const lcCompany = useMemo(() => {
+    if (!order?.assignedToLCId) return null
+    return globalData.companies.value.find(c => c.id === order.assignedToLCId)
+  }, [order?.assignedToLCId, globalData.companies.value])
+
   // All data now comes from denormalized fields on the order object!
   // No more cross-company lookups needed
 
@@ -116,14 +122,14 @@ export default function OrderDetailsPage() {
           <p className="text-muted-foreground mb-4">
             This order has been assigned to a logistics coordinator and is awaiting allocation to transporter companies.
           </p>
-          {order.assignedToLCId && (
+          {order.assignedToLCId && lcCompany && (
             <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
               <p className="text-sm text-muted-foreground mb-1">Assigned to Logistics Coordinator:</p>
               <p className="font-semibold text-lg text-blue-600 dark:text-blue-400">
-                {order.assignedToLCName || "Logistics Coordinator"}
+                {lcCompany.name}
               </p>
-              {order.assignedToLCPhysicalAddress && (
-                <p className="text-sm text-muted-foreground mt-2">{order.assignedToLCPhysicalAddress}</p>
+              {lcCompany.physicalAddress && (
+                <p className="text-sm text-muted-foreground mt-2">{lcCompany.physicalAddress}</p>
               )}
             </div>
           )}
@@ -220,11 +226,11 @@ export default function OrderDetailsPage() {
               {order.sealRequired ? `Required (${order.sealQuantity})` : "Not Required"}
             </p>
           </div>
-          {order.assignedToLCId && (
+          {order.assignedToLCId && lcCompany && (
             <div>
               <p className="text-sm text-muted-foreground">Assigned Logistics Coordinator</p>
               <p className="font-medium text-blue-600 dark:text-blue-400">
-                {order.assignedToLCName || "Logistics Coordinator"}
+                {lcCompany.name}
               </p>
             </div>
           )}
