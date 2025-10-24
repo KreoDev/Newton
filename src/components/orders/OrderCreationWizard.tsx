@@ -14,7 +14,7 @@ import { utilityService } from "@/services/utility.service"
 import { useSignals } from "@preact/signals-react/runtime"
 import { useAlert } from "@/hooks/useAlert"
 import { toast } from "sonner"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Loader2, Plus, Minus } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -178,57 +178,80 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
     setSelectedTransporterId("")
   }
 
-  const handleUpdateTrucks = (index: number, trucks: number) => {
-    // Calculate comprehensive truck capacity over order duration
-    const calculateTruckCapacityOverDuration = () => {
-      const truckCapacity = company.orderConfig?.defaultWeightPerTruck ?? 0
+  // Helper function to calculate truck capacity over order duration
+  const calculateTruckCapacityOverDuration = () => {
+    const truckCapacity = company.orderConfig?.defaultWeightPerTruck ?? 0
 
-      // Calculate trips per day
-      let tripsPerDay = 1
-      if (formData.tripConfigMode === "trips") {
-        tripsPerDay = formData.tripLimit
-      } else if (formData.tripConfigMode === "duration" && formData.collectionSiteId) {
-        const collectionSite = sites.find(s => s.id === formData.collectionSiteId)
-        if (collectionSite?.operatingHours) {
-          const calculateDailyOperatingHours = () => {
-            const hours = collectionSite.operatingHours
-            if (!hours || typeof hours !== "object") return 12
-            const today = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
-            const daySchedule = hours[today as keyof typeof hours]
-            if (!daySchedule || typeof daySchedule !== "object" || !("open" in daySchedule)) return 12
-            const { open, close } = daySchedule as { open: string; close: string }
-            if (open === "closed" || close === "closed") return 0
-            const openHour = parseInt(open.split(":")[0])
-            const closeHour = parseInt(close.split(":")[0])
-            return closeHour - openHour
-          }
+    // Calculate trips per day
+    let tripsPerDay = 1
+    if (formData.tripConfigMode === "trips") {
+      tripsPerDay = formData.tripLimit
+    } else if (formData.tripConfigMode === "duration" && formData.collectionSiteId) {
+      const collectionSite = sites.find(s => s.id === formData.collectionSiteId)
+      if (collectionSite?.operatingHours) {
+        const calculateDailyOperatingHours = () => {
+          const hours = collectionSite.operatingHours
+          if (!hours || typeof hours !== "object") return 12
+          const today = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
+          const daySchedule = hours[today as keyof typeof hours]
+          if (!daySchedule || typeof daySchedule !== "object" || !("open" in daySchedule)) return 12
+          const { open, close } = daySchedule as { open: string; close: string }
+          if (open === "closed" || close === "closed") return 0
+          const openHour = parseInt(open.split(":")[0])
+          const closeHour = parseInt(close.split(":")[0])
+          return closeHour - openHour
+        }
 
-          const operatingHours = calculateDailyOperatingHours()
-          const { tripDuration } = formData
-          if (tripDuration <= 24) {
-            tripsPerDay = Math.floor(operatingHours / tripDuration)
-          } else {
-            tripsPerDay = 1 / Math.ceil(tripDuration / 24)
-          }
+        const operatingHours = calculateDailyOperatingHours()
+        const { tripDuration } = formData
+        if (tripDuration <= 24) {
+          tripsPerDay = Math.floor(operatingHours / tripDuration)
+        } else {
+          tripsPerDay = 1 / Math.ceil(tripDuration / 24)
         }
       }
-
-      // Calculate order duration in days
-      const orderDurationDays = Math.max(
-        1,
-        Math.ceil((new Date(formData.dispatchEndDate).getTime() - new Date(formData.dispatchStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
-      )
-
-      const weightPerDayPerTruck = tripsPerDay * truckCapacity
-      return weightPerDayPerTruck * orderDurationDays
     }
 
-    const capacityPerTruck = calculateTruckCapacityOverDuration()
-    const allocatedWeight = trucks * capacityPerTruck
+    // Calculate order duration in days
+    const orderDurationDays = Math.max(
+      1,
+      Math.ceil((new Date(formData.dispatchEndDate).getTime() - new Date(formData.dispatchStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
+    )
+
+    const weightPerDayPerTruck = tripsPerDay * truckCapacity
+    return weightPerDayPerTruck * orderDurationDays
+  }
+
+  // Helper function to calculate minimum trucks needed for a given weight
+  const calculateMinimumTrucks = (allocatedWeight: number): number => {
+    const weightPerTruckOverDuration = calculateTruckCapacityOverDuration()
+    if (weightPerTruckOverDuration === 0) return 0
+    return Math.ceil(allocatedWeight / weightPerTruckOverDuration)
+  }
+
+  // Handler for updating allocated weight (PRIMARY INPUT)
+  const handleUpdateWeight = (index: number, weight: number) => {
+    const minimumTrucks = calculateMinimumTrucks(weight)
 
     setFormData(prev => ({
       ...prev,
-      allocations: prev.allocations.map((a, i) => (i === index ? { ...a, numberOfTrucks: trucks, allocatedWeight } : a)),
+      allocations: prev.allocations.map((a, i) =>
+        i === index
+          ? {
+              ...a,
+              allocatedWeight: weight,
+              numberOfTrucks: minimumTrucks, // Auto-set to minimum required
+            }
+          : a
+      ),
+    }))
+  }
+
+  // Handler for updating truck count (SECONDARY - can only increase from minimum)
+  const handleUpdateTrucks = (index: number, trucks: number) => {
+    setFormData(prev => ({
+      ...prev,
+      allocations: prev.allocations.map((a, i) => (i === index ? { ...a, numberOfTrucks: trucks } : a)),
     }))
   }
 
@@ -372,28 +395,60 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
             return false
           }
 
-          // Validate each allocation's truck count
+          // Validate each allocation
           for (const allocation of formData.allocations) {
-            const available = getAvailableTrucks(allocation.companyId)
-            if (allocation.numberOfTrucks > available) {
-              const transporter = transporterCompanies.find(t => t.id === allocation.companyId)
-              showError("Insufficient Trucks", `${transporter?.name} only has ${available} trucks available, but ${allocation.numberOfTrucks} were allocated`)
+            const transporter = transporterCompanies.find(t => t.id === allocation.companyId)
+            const transporterName = transporter?.name || "Unknown Transporter"
+
+            // 1. Weight must be > 0
+            if (allocation.allocatedWeight <= 0) {
+              showError("Invalid Allocation", `${transporterName}: Please allocate weight to this transporter`)
               return false
             }
-            if (allocation.numberOfTrucks <= 0) {
-              const transporter = transporterCompanies.find(t => t.id === allocation.companyId)
-              showError("Invalid Allocation", `${transporter?.name} must have at least 1 truck allocated`)
+
+            // 2. Calculate minimum trucks needed
+            const minimumTrucks = calculateMinimumTrucks(allocation.allocatedWeight)
+            const availableTrucks = getAvailableTrucks(allocation.companyId)
+
+            // 3. Check sufficient trucks available
+            if (minimumTrucks > availableTrucks) {
+              showError(
+                "Insufficient Trucks",
+                `${transporterName} requires ${minimumTrucks} trucks for ${allocation.allocatedWeight.toLocaleString()} kg, but only has ${availableTrucks} trucks available. Please reduce weight or choose a different transporter.`
+              )
+              return false
+            }
+
+            // 4. Check trucks >= minimum
+            if (allocation.numberOfTrucks < minimumTrucks) {
+              showError("Insufficient Trucks", `${transporterName}: Minimum ${minimumTrucks} trucks required for ${allocation.allocatedWeight.toLocaleString()} kg`)
+              return false
+            }
+
+            // 5. Check trucks <= available
+            if (allocation.numberOfTrucks > availableTrucks) {
+              showError("Insufficient Trucks", `${transporterName} only has ${availableTrucks} trucks available, but ${allocation.numberOfTrucks} were allocated`)
               return false
             }
           }
 
-          // Validate total allocated weight
+          // Validate total allocated weight EXACTLY equals order weight
           const totalAllocated = formData.allocations.reduce((sum, a) => sum + a.allocatedWeight, 0)
+
           if (totalAllocated < formData.totalWeight) {
             const remaining = formData.totalWeight - totalAllocated
             showError(
               "Under-allocated",
-              `Total allocated weight (${totalAllocated.toLocaleString()} kg) is less than order weight (${formData.totalWeight.toLocaleString()} kg). ${remaining.toLocaleString()} kg remaining.`
+              `Total allocated weight (${totalAllocated.toLocaleString()} kg) is less than order weight (${formData.totalWeight.toLocaleString()} kg). Please allocate remaining ${remaining.toLocaleString()} kg.`
+            )
+            return false
+          }
+
+          if (totalAllocated > formData.totalWeight) {
+            const excess = totalAllocated - formData.totalWeight
+            showError(
+              "Over-allocated",
+              `Total allocated weight (${totalAllocated.toLocaleString()} kg) exceeds order weight (${formData.totalWeight.toLocaleString()} kg). Please reduce allocations by ${excess.toLocaleString()} kg.`
             )
             return false
           }
@@ -984,8 +1039,15 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                       const weightPerDayPerTruck = tripsPerDay * weightPerTripPerTruck
                       const weightPerTruckOverDuration = weightPerDayPerTruck * orderDurationDays
 
+                      // Calculate minimum trucks for allocated weight
+                      const minimumTrucks = calculateMinimumTrucks(allocation.allocatedWeight)
+                      const weightPercentage = formData.totalWeight > 0 ? ((allocation.allocatedWeight / formData.totalWeight) * 100).toFixed(1) : "0.0"
+                      const totalCapacity = allocation.numberOfTrucks * weightPerTruckOverDuration
+                      const insufficientTrucks = minimumTrucks > availableTrucks
+
                       return (
                         <div key={index} className="glass-surface rounded-lg p-4 space-y-3">
+                          {/* Header */}
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <h4 className="font-semibold">{transporter?.name || "Unknown Transporter"}</h4>
@@ -1014,31 +1076,105 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                             </p>
                           </div>
 
+                          {/* Allocated Weight Input (PRIMARY) */}
                           <div className="space-y-2">
-                            <Label>Number of Trucks</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              max={availableTrucks}
-                              value={allocation.numberOfTrucks || ""}
-                              onChange={e => {
-                                const value = parseInt(e.target.value) || 0
-                                handleUpdateTrucks(index, value)
-                              }}
-                              className={exceedsAvailable ? "border-destructive" : ""}
-                              disabled={isLoadingTrucks}
-                            />
-                            {exceedsAvailable && <p className="text-xs text-destructive">Exceeds available trucks ({availableTrucks})</p>}
+                            <Label>
+                              Allocated Weight (kg) <span className="text-destructive">*</span>
+                            </Label>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                min="0"
+                                max={formData.totalWeight}
+                                value={allocation.allocatedWeight || ""}
+                                onChange={e => {
+                                  const weight = parseInt(e.target.value) || 0
+                                  handleUpdateWeight(index, weight)
+                                }}
+                                placeholder="Enter weight to allocate..."
+                                className={allocation.allocatedWeight > formData.totalWeight ? "border-destructive" : ""}
+                                disabled={isLoadingTrucks}
+                              />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                                {weightPercentage}%
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {allocation.allocatedWeight.toLocaleString()} / {formData.totalWeight.toLocaleString()} kg
+                            </p>
+                            {allocation.allocatedWeight > formData.totalWeight && (
+                              <p className="text-xs text-destructive">Cannot exceed order total ({formData.totalWeight.toLocaleString()} kg)</p>
+                            )}
                           </div>
 
-                          <div className="bg-primary/5 rounded p-2">
-                            <p className="text-sm">
-                              <span className="text-muted-foreground">Total Capacity for This Allocation:</span>{" "}
-                              <span className="font-semibold">
-                                {allocation.numberOfTrucks} trucks × {weightPerTruckOverDuration.toLocaleString()} kg = {(allocation.numberOfTrucks * weightPerTruckOverDuration).toLocaleString()} kg
-                              </span>
-                            </p>
-                          </div>
+                          {/* Truck Requirements Info */}
+                          {allocation.allocatedWeight > 0 && (
+                            <div className={`rounded p-3 text-xs space-y-1 ${insufficientTrucks ? "bg-red-500/10 border border-red-500/20" : "bg-green-500/10 border border-green-500/20"}`}>
+                              <p className={`font-semibold ${insufficientTrucks ? "text-red-700 dark:text-red-300" : "text-green-700 dark:text-green-300"}`}>
+                                Truck Requirements:
+                              </p>
+                              <p className="text-muted-foreground">• Minimum Required: {minimumTrucks} trucks</p>
+                              <p className="text-muted-foreground">• Assigned: {allocation.numberOfTrucks} trucks</p>
+                              <p className="text-muted-foreground">
+                                • Total Capacity: {totalCapacity.toLocaleString()} kg
+                                {totalCapacity > allocation.allocatedWeight && <span className="text-blue-600"> (over-capacity OK)</span>}
+                              </p>
+                              {insufficientTrucks && (
+                                <p className="text-red-600 font-semibold mt-2">
+                                  ⚠️ Requires {minimumTrucks} trucks but only {availableTrucks} available. Reduce weight or choose different transporter.
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Truck Count Stepper (SECONDARY) */}
+                          {allocation.allocatedWeight > 0 && (
+                            <div className="space-y-2">
+                              <Label>Number of Trucks (minimum: {minimumTrucks})</Label>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => {
+                                    if (allocation.numberOfTrucks > minimumTrucks) {
+                                      handleUpdateTrucks(index, allocation.numberOfTrucks - 1)
+                                    } else {
+                                      toast.error(`Cannot reduce below minimum ${minimumTrucks} trucks required for ${allocation.allocatedWeight.toLocaleString()} kg`)
+                                    }
+                                  }}
+                                  disabled={isLoadingTrucks || allocation.numberOfTrucks <= minimumTrucks}
+                                  className="h-10 w-10"
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+                                <div className="flex-1 text-center">
+                                  <div className="text-2xl font-semibold">{allocation.numberOfTrucks}</div>
+                                  <div className="text-xs text-muted-foreground">of {availableTrucks} available</div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => {
+                                    if (allocation.numberOfTrucks < availableTrucks) {
+                                      handleUpdateTrucks(index, allocation.numberOfTrucks + 1)
+                                    } else {
+                                      toast.error(`Maximum ${availableTrucks} trucks available for this transporter`)
+                                    }
+                                  }}
+                                  disabled={isLoadingTrucks || allocation.numberOfTrucks >= availableTrucks}
+                                  className="h-10 w-10"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              {allocation.numberOfTrucks < minimumTrucks && (
+                                <p className="text-xs text-destructive">Minimum {minimumTrucks} trucks required for {allocation.allocatedWeight.toLocaleString()} kg</p>
+                              )}
+                              {exceedsAvailable && <p className="text-xs text-destructive">Exceeds available trucks ({availableTrucks})</p>}
+                            </div>
+                          )}
                         </div>
                       )
                     })}
@@ -1049,33 +1185,71 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 {formData.allocations.length > 0 && (
                   <div className="glass-surface rounded-lg p-4 space-y-3">
                     <h4 className="font-semibold">Allocation Summary</h4>
+
+                    {/* Per-Transporter Breakdown */}
+                    <div className="space-y-2 border-b pb-3">
+                      {formData.allocations.map((allocation, index) => {
+                        const transporter = transporterCompanies.find(t => t.id === allocation.companyId)
+                        const percentage = formData.totalWeight > 0 ? ((allocation.allocatedWeight / formData.totalWeight) * 100).toFixed(1) : "0.0"
+                        return (
+                          <div key={index} className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">{transporter?.name}:</span>
+                            <span className="font-medium">
+                              {allocation.allocatedWeight.toLocaleString()} kg ({percentage}%) - {allocation.numberOfTrucks} trucks
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Totals */}
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Total Allocated:</span>
-                        <span className={totalAllocated >= formData.totalWeight ? "text-green-600 font-semibold" : "font-semibold"}>
+                        <span className={totalAllocated === formData.totalWeight ? "text-green-600 font-semibold" : "font-semibold"}>
                           {totalAllocated.toLocaleString()} / {formData.totalWeight.toLocaleString()} kg
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Remaining:</span>
-                        <span className={remainingWeight > 0 ? "text-yellow-600 font-semibold" : "text-green-600 font-semibold"}>{remainingWeight.toLocaleString()} kg</span>
+                        <span
+                          className={
+                            remainingWeight === 0 ? "text-green-600 font-semibold" : remainingWeight > 0 ? "text-yellow-600 font-semibold" : "text-red-600 font-semibold"
+                          }
+                        >
+                          {Math.abs(remainingWeight).toLocaleString()} kg{remainingWeight < 0 && " (over)"}
+                        </span>
                       </div>
 
                       {/* Progress Bar */}
                       <div className="space-y-1">
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
                           <div
-                            className={`h-full transition-all ${allocationPercent >= 100 ? "bg-green-500" : "bg-primary"}`}
+                            className={`h-full transition-all ${allocationPercent === 100 ? "bg-green-500" : allocationPercent > 100 ? "bg-red-500" : "bg-primary"}`}
                             style={{ width: `${Math.min(allocationPercent, 100)}%` }}
                           />
                         </div>
                         <p className="text-xs text-right text-muted-foreground">{allocationPercent.toFixed(1)}%</p>
                       </div>
 
+                      {/* Status Messages */}
                       {remainingWeight > 0 && (
-                        <p className="text-xs text-yellow-600 mt-2">⚠️ Order is under-allocated. Please allocate more trucks to meet the total weight requirement.</p>
+                        <p className="text-xs text-yellow-600 mt-2">⚠️ Under-allocated by {remainingWeight.toLocaleString()} kg. Please allocate remaining weight.</p>
                       )}
-                      {totalAllocated >= formData.totalWeight && <p className="text-xs text-green-600 mt-2">✓ Order is fully allocated</p>}
+                      {remainingWeight < 0 && (
+                        <p className="text-xs text-red-600 mt-2">
+                          ⚠️ Over-allocated by {Math.abs(remainingWeight).toLocaleString()} kg. Total cannot exceed order weight.
+                        </p>
+                      )}
+                      {totalAllocated === formData.totalWeight && <p className="text-xs text-green-600 mt-2">✓ Order is fully allocated</p>}
+                    </div>
+
+                    {/* Total Trucks */}
+                    <div className="border-t pt-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Total Trucks:</span>
+                        <span className="font-semibold">{formData.allocations.reduce((sum, a) => sum + a.numberOfTrucks, 0)} trucks</span>
+                      </div>
                     </div>
                   </div>
                 )}
