@@ -205,8 +205,16 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         const operatingHours = calculateDailyOperatingHours()
         const { tripDuration } = formData
         if (tripDuration <= 24) {
-          tripsPerDay = Math.floor(operatingHours / tripDuration)
+          // If trip fits within operating hours, calculate multiple trips per day
+          if (tripDuration <= operatingHours) {
+            tripsPerDay = Math.floor(operatingHours / tripDuration)
+          } else {
+            // Trip exceeds operating hours but ≤24 hours
+            // Can still do 1 trip per day (truck starts within operating window)
+            tripsPerDay = 1
+          }
         } else {
+          // Multi-day trip (>24 hours)
           tripsPerDay = 1 / Math.ceil(tripDuration / 24)
         }
       }
@@ -896,7 +904,18 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
                   if (tripDuration <= 24) {
                     // Trip can be completed within a day
-                    const tripsPerDay = Math.floor(operatingHours / tripDuration)
+                    let tripsPerDay: number
+                    let exceedsOperatingHours = false
+
+                    if (tripDuration <= operatingHours) {
+                      // Multiple trips possible
+                      tripsPerDay = Math.floor(operatingHours / tripDuration)
+                    } else {
+                      // Trip exceeds operating hours but ≤24 hours
+                      // Can still do 1 trip per day (truck starts within operating window)
+                      tripsPerDay = 1
+                      exceedsOperatingHours = true
+                    }
 
                     return (
                       <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg space-y-2">
@@ -904,10 +923,10 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                           <span className="text-sm font-medium">Per Truck Trip Capacity:</span>
                         </div>
                         <div className="text-sm">
-                          <p>• <span className="font-semibold">{tripsPerDay} trips per day per truck</span> (based on {operatingHours}-hour operating window)</p>
+                          <p>• <span className="font-semibold">{tripsPerDay} {tripsPerDay === 1 ? "trip" : "trips"} per day per truck</span> (based on {operatingHours}-hour operating window)</p>
                         </div>
-                        {tripsPerDay === 0 && (
-                          <p className="text-sm text-yellow-600 mt-2">⚠️ Trip duration exceeds daily operating hours. Only 1 trip can be started per truck per day.</p>
+                        {exceedsOperatingHours && (
+                          <p className="text-sm text-yellow-600 mt-2">⚠️ Trip duration ({tripDuration}h) exceeds operating hours ({operatingHours}h), but trucks can still complete 1 trip per day by starting within the operating window.</p>
                         )}
                       </div>
                     )
@@ -1037,9 +1056,17 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                           const operatingHours = calculateDailyOperatingHours()
                           const { tripDuration } = formData
                           if (tripDuration <= 24) {
-                            return Math.floor(operatingHours / tripDuration)
+                            // If trip fits within operating hours, calculate multiple trips per day
+                            if (tripDuration <= operatingHours) {
+                              return Math.floor(operatingHours / tripDuration)
+                            } else {
+                              // Trip exceeds operating hours but ≤24 hours
+                              // Can still do 1 trip per day (truck starts within operating window)
+                              return 1
+                            }
                           } else {
-                            return 1 / Math.ceil(tripDuration / 24) // Fraction for multi-day trips
+                            // Multi-day trip (>24 hours)
+                            return 1 / Math.ceil(tripDuration / 24)
                           }
                         }
                         return 1
