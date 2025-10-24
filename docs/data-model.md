@@ -311,6 +311,7 @@ securityAlerts: {
 | tripDuration      | number          | no       | Trip duration in hours                    | 4               |
 | assignedToLCId    | string          | no       | Logistics Coordinator company ID (if order assigned to LC for allocation) | c_789 |
 | allocations       | array           | no       | Array of allocations to transporters (empty if assigned to LC and not yet allocated) | See below       |
+| allocatedCompanyIds | array         | yes      | Flat array of transporter company IDs from allocations (for querying) | ["c_456", "c_789"] |
 | status            | enum            | yes      | pending\|allocated\|completed\|cancelled  | allocated       |
 | createdById       | string          | yes      | User who created order                    | u_123           |
 | createdAt         | number          | yes      | Client event time (ms)                    | Date.now()      |
@@ -348,6 +349,36 @@ securityAlerts: {
 - When order is assigned to LC (`assignedToLCId` is set), the `allocations` array is empty until the LC allocates to transporters
 - When LC completes allocation, `allocations` array is populated and `status` changes from "pending" to "allocated"
 - Direct allocation to transporters (skipping LC) populates `allocations` immediately with status "allocated"
+- `allocatedCompanyIds` is populated whenever `allocations` is populated, extracting all `companyId` values for efficient querying
+
+#### Order Visibility (Multi-Company Query)
+
+Different company types see different orders based on their role:
+
+- **Mine Companies**: See orders they created (`companyId == currentCompanyId`)
+- **Logistics Coordinator Companies**: See orders assigned to them for allocation (`assignedToLCId == currentCompanyId`)
+- **Transporter Companies**: See orders allocated to them (`allocatedCompanyIds contains currentCompanyId`)
+
+The `data.service.ts` uses a compound Firestore query with OR logic to load relevant orders:
+
+```typescript
+query(
+  collection(db, "orders"),
+  and(
+    or(
+      where("companyId", "==", companyId),
+      where("assignedToLCId", "==", companyId),
+      where("allocatedCompanyIds", "array-contains", companyId)
+    ),
+    where("createdAt", ">=", cutoffMillis)
+  )
+)
+```
+
+**Required Firestore Composite Indexes:**
+- `orders` collection: `companyId` (ASC), `createdAt` (ASC)
+- `orders` collection: `assignedToLCId` (ASC), `createdAt` (ASC)
+- `orders` collection: `allocatedCompanyIds` (ARRAY), `createdAt` (ASC)
 
 ### pre_bookings (documents)
 
