@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+import { toast } from "sonner"
 
 /**
  * Custom hook to fetch and cache truck counts for transporter companies
@@ -14,31 +15,24 @@ export function useTransporterTrucks() {
    * Fetch trucks for a specific transporter from Firestore
    * Results are cached to avoid redundant queries
    */
-  const fetchTrucksForTransporter = async (transporterId: string): Promise<number> => {
-    // If already fetched, return cached value
-    if (transporterId in transporterTrucks) {
-      return transporterTrucks[transporterId]
-    }
+  const fetchTrucksForTransporter = async (transporterId: string) => {
+    // If already fetched, don't fetch again
+    if (transporterId in transporterTrucks) return
 
     setLoadingTrucksFor(transporterId)
     try {
       const assetsRef = collection(db, "assets")
-      const q = query(
-        assetsRef,
-        where("companyId", "==", transporterId),
-        where("type", "==", "truck"),
-        where("isActive", "==", true)
-      )
+      const q = query(assetsRef, where("companyId", "==", transporterId), where("type", "==", "truck"), where("isActive", "==", true))
 
       const snapshot = await getDocs(q)
-      const truckCount = snapshot.size
 
       setTransporterTrucks(prev => ({
         ...prev,
-        [transporterId]: truckCount,
+        [transporterId]: snapshot.size,
       }))
-
-      return truckCount
+    } catch (error) {
+      console.error("Error fetching transporter trucks:", error)
+      toast.error("Failed to load truck count for transporter")
     } finally {
       setLoadingTrucksFor(null)
     }

@@ -13,14 +13,13 @@ import { data as globalData } from "@/services/data.service"
 import { utilityService } from "@/services/utility.service"
 import { useSignals } from "@preact/signals-react/runtime"
 import { useAlert } from "@/hooks/useAlert"
+import { useTransporterTrucks } from "@/hooks/useTransporterTrucks"
 import { toast } from "sonner"
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Loader2, Plus, Minus } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
-import { db } from "@/lib/firebase"
-import { collection, query, where, getDocs } from "firebase/firestore"
 
 interface OrderCreationWizardProps {
   company: Company
@@ -116,37 +115,9 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
 
   // State for transporter selection in Step 8
   const [selectedTransporterId, setSelectedTransporterId] = useState<string>("")
-  const [transporterTrucks, setTransporterTrucks] = useState<Record<string, number>>({})
-  const [loadingTrucksFor, setLoadingTrucksFor] = useState<string | null>(null)
 
-  // Helper function to get available trucks for a transporter
-  const getAvailableTrucks = (transporterId: string): number => {
-    return transporterTrucks[transporterId] ?? 0
-  }
-
-  // Fetch trucks for a specific transporter
-  const fetchTrucksForTransporter = async (transporterId: string) => {
-    // If already fetched, don't fetch again
-    if (transporterId in transporterTrucks) return
-
-    setLoadingTrucksFor(transporterId)
-    try {
-      const assetsRef = collection(db, "assets")
-      const q = query(assetsRef, where("companyId", "==", transporterId), where("type", "==", "truck"), where("isActive", "==", true))
-
-      const snapshot = await getDocs(q)
-
-      setTransporterTrucks(prev => ({
-        ...prev,
-        [transporterId]: snapshot.size,
-      }))
-    } catch (error) {
-      console.error("Error fetching transporter trucks:", error)
-      toast.error("Failed to load truck count for transporter")
-    } finally {
-      setLoadingTrucksFor(null)
-    }
-  }
+  // Use custom truck fetching hook
+  const { fetchTrucksForTransporter, getAvailableTrucks, isLoadingTrucks, isAnyLoading } = useTransporterTrucks()
 
   // Helper functions for allocation management
   const handleAddTransporter = async () => {
@@ -1046,7 +1017,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                 {/* Transporter Selection */}
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <Select value={selectedTransporterId} onValueChange={setSelectedTransporterId} disabled={loadingTrucksFor !== null}>
+                    <Select value={selectedTransporterId} onValueChange={setSelectedTransporterId} disabled={isAnyLoading()}>
                       <SelectTrigger className="w-full glass-surface border-[var(--glass-border-soft)] shadow-[var(--glass-shadow-xs)] bg-[oklch(1_0_0_/_0.72)] backdrop-blur-[18px]">
                         <SelectValue placeholder="Select transporter to add..." />
                       </SelectTrigger>
@@ -1061,8 +1032,8 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={handleAddTransporter} disabled={!selectedTransporterId || loadingTrucksFor !== null}>
-                    {loadingTrucksFor !== null ? (
+                  <Button onClick={handleAddTransporter} disabled={!selectedTransporterId || isAnyLoading()}>
+                    {isAnyLoading() ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         Loading...
@@ -1079,7 +1050,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                     {formData.allocations.map((allocation, index) => {
                       const transporter = transporterCompanies.find(t => t.id === allocation.companyId)
                       const availableTrucks = getAvailableTrucks(allocation.companyId)
-                      const isLoadingTrucks = loadingTrucksFor === allocation.companyId
+                      const isLoading = isLoadingTrucks(allocation.companyId)
                       const truckCapacity = company.orderConfig?.defaultWeightPerTruck ?? 0
                       const exceedsAvailable = allocation.numberOfTrucks > availableTrucks
 
@@ -1146,7 +1117,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <h4 className="font-semibold">{transporter?.name || "Unknown Transporter"}</h4>
-                              {isLoadingTrucks ? (
+                              {isLoading ? (
                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                   <Loader2 className="h-3 w-3 animate-spin" />
                                   <span>Loading truck count...</span>
@@ -1188,7 +1159,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                                 }}
                                 placeholder="Enter weight to allocate..."
                                 className={allocation.allocatedWeight > formData.totalWeight ? "border-destructive" : ""}
-                                disabled={isLoadingTrucks}
+                                disabled={isLoading}
                               />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
                                 {weightPercentage}%
@@ -1238,7 +1209,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                                       toast.error(`Cannot reduce below minimum ${minimumTrucks} trucks required for ${allocation.allocatedWeight.toLocaleString()} kg`)
                                     }
                                   }}
-                                  disabled={isLoadingTrucks || allocation.numberOfTrucks <= minimumTrucks}
+                                  disabled={isLoading || allocation.numberOfTrucks <= minimumTrucks}
                                   className="h-10 w-10"
                                 >
                                   <Minus className="h-4 w-4" />
@@ -1258,7 +1229,7 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
                                       toast.error(`Maximum ${availableTrucks} trucks available for this transporter`)
                                     }
                                   }}
-                                  disabled={isLoadingTrucks || allocation.numberOfTrucks >= availableTrucks}
+                                  disabled={isLoading || allocation.numberOfTrucks >= availableTrucks}
                                   className="h-10 w-10"
                                 >
                                   <Plus className="h-4 w-4" />
