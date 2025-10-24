@@ -132,12 +132,17 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
     // Fetch trucks for this transporter
     await fetchTrucksForTransporter(selectedTransporterId)
 
+    // Get transporter company name
+    const transporterCompany = transporterCompanies.find(c => c.id === selectedTransporterId)
+    const companyName = transporterCompany?.name ?? "Unknown"
+
     setFormData(prev => ({
       ...prev,
       allocations: [
         ...prev.allocations,
         {
           companyId: selectedTransporterId,
+          companyName, // Add denormalized company name
           numberOfTrucks: 0,
           allocatedWeight: 0,
           loadingDates: [],
@@ -495,24 +500,54 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         assignedToLCId = formData.lcCompanyId
         allocations = [] // Empty - LC hasn't allocated to transporters yet
       } else if (formData.allocationMode === "transporters") {
-        // Direct allocation to transporters
-        allocations = formData.allocations
+        // Direct allocation to transporters - add denormalized company names
+        allocations = formData.allocations.map(alloc => {
+          const transporterCompany = transporterCompanies.find(c => c.id === alloc.companyId)
+          return {
+            ...alloc,
+            companyName: transporterCompany?.name ?? "Unknown",
+          }
+        })
       }
 
       // Extract transporter company IDs for Firestore querying (empty array if no allocations)
       const allocatedCompanyIds = allocations.map(a => a.companyId)
 
+      // Get denormalized data for order
+      const product = products.find(p => p.id === formData.productId)
+      const client = clients.find(c => c.id === formData.clientCompanyId)
+      const collectionSite = sites.find(s => s.id === formData.collectionSiteId)
+      const destinationSite = sites.find(s => s.id === formData.destinationSiteId)
+      const lcCompany = assignedToLCId ? transporterCompanies.find(c => c.id === assignedToLCId) : null
+
       const orderData: Omit<Order, "id" | "createdAt" | "updatedAt" | "dbCreatedAt" | "dbUpdatedAt"> = {
         companyId: company.id,
         orderNumber: formData.orderNumber,
         orderType: formData.orderType,
+
+        // Foreign key IDs
         clientCompanyId: formData.clientCompanyId,
-        dispatchStartDate: formData.dispatchStartDate,
-        dispatchEndDate: formData.dispatchEndDate,
-        totalWeight: formData.totalWeight,
         collectionSiteId: formData.collectionSiteId,
         destinationSiteId: formData.destinationSiteId,
         productId: formData.productId,
+        assignedToLCId,
+
+        // DENORMALIZED DATA - for cross-company access
+        productName: product?.name ?? "Unknown",
+        productCode: product?.code ?? "",
+        clientName: client?.name ?? "Unknown",
+        collectionSiteName: collectionSite?.name ?? "Unknown",
+        collectionSiteAddress: collectionSite?.physicalAddress,
+        destinationSiteName: destinationSite?.name ?? "Unknown",
+        destinationSiteAddress: destinationSite?.physicalAddress,
+        companyName: company.name,
+        defaultWeightPerTruck: company.orderConfig?.defaultWeightPerTruck ?? 0,
+        assignedToLCName: lcCompany?.name,
+
+        // Order details
+        dispatchStartDate: formData.dispatchStartDate,
+        dispatchEndDate: formData.dispatchEndDate,
+        totalWeight: formData.totalWeight,
         sealRequired: formData.sealRequired,
         sealQuantity: formData.sealQuantity,
         dailyTruckLimit: formData.dailyTruckLimit,
@@ -520,8 +555,9 @@ export function OrderCreationWizard({ company, user }: OrderCreationWizardProps)
         monthlyLimit: formData.monthlyLimit,
         tripLimit: formData.tripLimit,
         tripDuration: formData.tripConfigMode === "duration" ? formData.tripDuration : undefined,
-        assignedToLCId, // Set if assigned to LC
-        allocations, // Empty if LC mode, populated if direct transporter mode
+
+        // Allocations and status
+        allocations, // With denormalized company names
         allocatedCompanyIds, // Flat array for Firestore querying
         status: "pending", // Will be set automatically by service
         createdById: user.id,

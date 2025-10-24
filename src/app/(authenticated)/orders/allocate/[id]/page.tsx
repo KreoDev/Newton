@@ -70,9 +70,10 @@ export default function OrderAllocationPage() {
 
   // Helper function to calculate truck capacity over order duration (LC-specific)
   const calculateTruckCapacityOverDuration = () => {
-    if (!order || !company) return 0
+    if (!order) return 0
 
-    const truckCapacity = company.orderConfig?.defaultWeightPerTruck ?? 0
+    // Use denormalized truck capacity from order (no cross-company lookup!)
+    const truckCapacity = order.defaultWeightPerTruck ?? 0
 
     // Calculate trips per day
     let tripsPerDay = 1
@@ -138,10 +139,15 @@ export default function OrderAllocationPage() {
     // Fetch trucks for this transporter
     await fetchTrucksForTransporter(selectedTransporterId)
 
+    // Get transporter company name
+    const transporterCompany = transporterCompanies.find(c => c.id === selectedTransporterId)
+    const companyName = transporterCompany?.name ?? "Unknown"
+
     setAllocations([
       ...allocations,
       {
         companyId: selectedTransporterId,
+        companyName, // Add denormalized company name
         numberOfTrucks: 0,
         allocatedWeight: 0,
         loadingDates: [order!.dispatchStartDate],

@@ -43,9 +43,7 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
   const [endDate, setEndDate] = useState("")
   const [showDatePicker, setShowDatePicker] = useState(false)
 
-  // Get related data from globalData
-  const clients = globalData.clients.value
-  const products = globalData.products.value
+  // Get related data from globalData (sites still needed for filters if used)
   const sites = globalData.sites.value
 
   // Handle historical load with enhanced validation
@@ -112,21 +110,15 @@ export function OrdersTableView({ orders, company, onLoadHistorical, onLoadMore,
     },
     {
       id: "client",
-      accessorFn: row => row.clientCompanyId,
+      accessorFn: row => row.clientName,
       header: "Client",
-      cell: ({ row }) => {
-        const client = clients.find(c => c.id === row.original.clientCompanyId)
-        return <span>{client?.name || "Unknown"}</span>
-      },
+      cell: ({ row }) => <span>{row.original.clientName}</span>,
     },
     {
       id: "product",
-      accessorFn: row => row.productId,
+      accessorFn: row => row.productName,
       header: "Product",
-      cell: ({ row }) => {
-        const product = products.find(p => p.id === row.original.productId)
-        return <span>{product?.name || "Unknown"}</span>
-      },
+      cell: ({ row }) => <span>{row.original.productName}</span>,
     },
     {
       id: "totalWeight",

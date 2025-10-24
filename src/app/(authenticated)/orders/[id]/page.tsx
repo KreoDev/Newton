@@ -26,31 +26,8 @@ export default function OrderDetailsPage() {
   const orderId = params.id as string
   const order = useMemo(() => OrderService.getById(orderId), [orderId, globalData.orders.value])
 
-  // Get related data
-  const client = useMemo(() =>
-    globalData.clients.value.find(c => c.id === order?.clientCompanyId),
-    [order, globalData.clients.value]
-  )
-
-  const product = useMemo(() =>
-    globalData.products.value.find(p => p.id === order?.productId),
-    [order, globalData.products.value]
-  )
-
-  const collectionSite = useMemo(() =>
-    globalData.sites.value.find(s => s.id === order?.collectionSiteId),
-    [order, globalData.sites.value]
-  )
-
-  const destinationSite = useMemo(() =>
-    globalData.sites.value.find(s => s.id === order?.destinationSiteId),
-    [order, globalData.sites.value]
-  )
-
-  const assignedLC = useMemo(() =>
-    order?.assignedToLCId ? globalData.companies.value.find(c => c.id === order.assignedToLCId) : null,
-    [order, globalData.companies.value]
-  )
+  // All data now comes from denormalized fields on the order object!
+  // No more cross-company lookups needed
 
   const progress = useMemo(() =>
     order ? OrderService.getProgress(order.id) : null,
@@ -139,10 +116,10 @@ export default function OrderDetailsPage() {
           <p className="text-muted-foreground mb-4">
             This order has been assigned to a logistics coordinator and is awaiting allocation to transporter companies.
           </p>
-          {assignedLC && (
+          {order.assignedToLCName && (
             <div className="mb-4">
               <p className="text-sm text-muted-foreground">Assigned to:</p>
-              <p className="font-medium text-lg">{assignedLC.name}</p>
+              <p className="font-medium text-lg">{order.assignedToLCName}</p>
             </div>
           )}
           {canAllocate && (
@@ -205,11 +182,11 @@ export default function OrderDetailsPage() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Client</p>
-            <p className="font-medium">{client?.name || "Unknown"}</p>
+            <p className="font-medium">{order.clientName}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Product</p>
-            <p className="font-medium">{product?.name || "Unknown"}</p>
+            <p className="font-medium">{order.productName}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Total Weight</p>
@@ -224,12 +201,12 @@ export default function OrderDetailsPage() {
           {order.orderType === "dispatching" ? (
             <div>
               <p className="text-sm text-muted-foreground">Collection Site</p>
-              <p className="font-medium">{collectionSite?.name || "Unknown"}</p>
+              <p className="font-medium">{order.collectionSiteName}</p>
             </div>
           ) : (
             <div>
               <p className="text-sm text-muted-foreground">Destination Site</p>
-              <p className="font-medium">{destinationSite?.name || "Unknown"}</p>
+              <p className="font-medium">{order.destinationSiteName}</p>
             </div>
           )}
           <div>
@@ -259,7 +236,6 @@ export default function OrderDetailsPage() {
           <h2 className="text-xl font-bold mb-4">Allocations</h2>
           <div className="space-y-4">
             {order.allocations.map((allocation, index) => {
-              const allocatedCompany = globalData.companies.value.find(c => c.id === allocation.companyId)
               const allocationProgress = allocation.allocatedWeight > 0
                 ? Math.round((allocation.completedWeight / allocation.allocatedWeight) * 100)
                 : 0
@@ -268,7 +244,7 @@ export default function OrderDetailsPage() {
                 <div key={index} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <p className="font-medium">{allocatedCompany?.name || "Unknown Company"}</p>
+                      <p className="font-medium">{allocation.companyName}</p>
                       <p className="text-sm text-muted-foreground">
                         {allocation.completedWeight}/{allocation.allocatedWeight} kg
                       </p>

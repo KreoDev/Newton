@@ -245,6 +245,7 @@ export interface Asset extends Timestamped, CompanyScoped {
 // Order allocation structure
 export interface Allocation {
   companyId: string // Transporter company receiving allocation
+  companyName: string // DENORMALIZED: Transporter company name (saved at allocation time)
   numberOfTrucks: number // Number of trucks assigned to this allocation
   allocatedWeight: number // Weight allocated to this transporter
   loadingDates: string[] // ISO date strings for loading dates
@@ -256,13 +257,41 @@ export interface Order extends Timestamped, CompanyScoped {
   id: string
   orderNumber: string
   orderType: "receiving" | "dispatching"
+
+  // Foreign key IDs (relationships)
   clientCompanyId: string
-  dispatchStartDate: string
-  dispatchEndDate: string
-  totalWeight: number
   collectionSiteId: string
   destinationSiteId: string
   productId: string
+  assignedToLCId?: string // Logistics Coordinator company ID (if order assigned to LC for allocation)
+
+  // DENORMALIZED DATA - Saved at order creation time for cross-company access
+  // Product data (from productId)
+  productName: string
+  productCode: string
+
+  // Client data (from clientCompanyId)
+  clientName: string
+
+  // Site data
+  collectionSiteName: string
+  collectionSiteAddress?: string
+  destinationSiteName: string
+  destinationSiteAddress?: string
+
+  // Mine company data (order creator)
+  companyName: string // Mine company name
+
+  // Truck capacity config (CRITICAL for LC/Transporter calculations)
+  defaultWeightPerTruck: number // From mine's orderConfig
+
+  // LC data (if assigned to LC)
+  assignedToLCName?: string // From assignedToLCId
+
+  // Order details
+  dispatchStartDate: string
+  dispatchEndDate: string
+  totalWeight: number
   sealRequired: boolean
   sealQuantity?: number
   dailyTruckLimit: number
@@ -270,7 +299,8 @@ export interface Order extends Timestamped, CompanyScoped {
   monthlyLimit?: number
   tripLimit: number
   tripDuration?: number
-  assignedToLCId?: string // Logistics Coordinator company ID (if order assigned to LC for allocation)
+
+  // Allocations and status
   allocations: Allocation[] // Array of allocations to transporters (empty if assigned to LC and not yet allocated)
   allocatedCompanyIds: string[] // Flat array of transporter company IDs from allocations (for Firestore querying)
   status: "pending" | "allocated" | "completed" | "cancelled"
