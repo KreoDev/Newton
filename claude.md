@@ -108,6 +108,7 @@ export default function MyComponent() {
 6. **For validation:** check in-memory globalData, not Firebase queries
 7. Apply glass morphism design • Use `sonner` toast • Add error handling
 8. **Use Bun** (`bun`, not `npm`) • **Use Preact Signals** (`useSignals()`)
+9. **NEVER HARDCODE VALUES** - use centralized constants (see Anti-Hardcoding Rules below)
 
 ### Build & Dev Server Protocol
 
@@ -141,14 +142,209 @@ git push
 
 ---
 
+## Anti-Hardcoding Rules (CRITICAL)
+
+**NEVER hardcode values in the codebase.** All constants, configuration values, and repeated strings MUST be centralized in configuration files.
+
+### What Constitutes Hardcoding?
+
+❌ **Magic Numbers**: `setTimeout(3000)`, `width: 500`, `1000 * 60 * 60 * 24`
+❌ **Hardcoded Strings**: `"orders"`, `"users"`, `"pending"`, `"/api/users/create"`
+❌ **Hardcoded IDs**: `"r_admin"`, `"c_dev"`, `"tpl_order_created"`
+❌ **Configuration Values**: `60` (days), `10 * 1024 * 1024` (file size), `24` (hours)
+❌ **Repeated Values**: Same value used in multiple files without a constant
+
+### Configuration File Structure
+
+All constants MUST be defined in centralized files in `src/lib/`:
+
+```
+src/lib/
+├── constants/
+│   ├── collections.ts          # Firestore collection names
+│   ├── api-routes.ts           # All API endpoint paths
+│   ├── time.ts                 # Time conversion constants
+│   ├── defaults.ts             # Default configuration values
+│   ├── roles.ts                # Role IDs and constants
+│   ├── templates.ts            # Notification template IDs
+│   ├── upload.ts               # File upload limits and config
+│   └── index.ts                # Re-export all constants
+```
+
+### Required Constants Files
+
+#### 1. Collection Names (`src/lib/constants/collections.ts`)
+
+```typescript
+export const COLLECTIONS = {
+  USERS: "users",
+  ORDERS: "orders",
+  ASSETS: "assets",
+  ROLES: "roles",
+  PRODUCTS: "products",
+  CLIENTS: "clients",
+  SITES: "sites",
+  GROUPS: "groups",
+  COMPANIES: "companies",
+  WEIGHING_RECORDS: "weighing_records",
+  PRE_BOOKINGS: "pre_bookings",
+  NOTIFICATION_TEMPLATES: "notification_templates",
+} as const
+```
+
+**Usage:**
+```typescript
+// ✅ CORRECT
+import { COLLECTIONS } from "@/lib/constants"
+collection(db, COLLECTIONS.ORDERS)
+
+// ❌ WRONG
+collection(db, "orders")
+```
+
+#### 2. Time Constants (`src/lib/constants/time.ts`)
+
+```typescript
+export const TIME = {
+  MS_PER_SECOND: 1000,
+  SECONDS_PER_MINUTE: 60,
+  MINUTES_PER_HOUR: 60,
+  HOURS_PER_DAY: 24,
+  MS_PER_MINUTE: 1000 * 60,
+  MS_PER_HOUR: 1000 * 60 * 60,
+  MS_PER_DAY: 1000 * 60 * 60 * 24,
+} as const
+```
+
+**Usage:**
+```typescript
+// ✅ CORRECT
+import { TIME } from "@/lib/constants"
+const days = Math.ceil((end - start) / TIME.MS_PER_DAY) + 1
+
+// ❌ WRONG
+const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
+```
+
+#### 3. Default Values (`src/lib/constants/defaults.ts`)
+
+```typescript
+export const DEFAULTS = {
+  ORDER_HISTORY_DAYS: {
+    default: 60,
+    min: 1,
+    max: 120,
+  },
+  ADVANCE_BOOKING_HOURS: 24,
+  SEAL_QUANTITY: 2,
+  ESCALATION_MINUTES: 15,
+  RESPONSE_MINUTES: 5,
+  BATCH_SIZE: 500,
+  FLOATING_POINT_TOLERANCE: 0.01,
+  ORDER_NUMBER_PAD_WIDTH: 4,
+  ORDER_NUMBER_PAD_CHAR: "0",
+} as const
+```
+
+**Usage:**
+```typescript
+// ✅ CORRECT
+import { DEFAULTS } from "@/lib/constants"
+const days = company.orderHistoryDays || DEFAULTS.ORDER_HISTORY_DAYS.default
+
+// ❌ WRONG
+const days = company.orderHistoryDays || 60
+```
+
+#### 4. API Routes (`src/lib/constants/api-routes.ts`)
+
+```typescript
+export const API_ROUTES = {
+  USERS: {
+    CREATE: "/api/users/create",
+    DELETE: "/api/users/delete",
+    BULK_DELETE: "/api/users/bulk-delete",
+    UPDATE_EMAIL: "/api/users/update-email",
+    CHANGE_PASSWORD: "/api/users/change-password",
+    CONVERT_TO_LOGIN: "/api/users/convert-to-login",
+    CONVERT_TO_CONTACT: "/api/users/convert-to-contact",
+  },
+  SEED: "/api/seed",
+} as const
+```
+
+**Usage:**
+```typescript
+// ✅ CORRECT
+import { API_ROUTES } from "@/lib/constants"
+await fetch(API_ROUTES.USERS.CREATE, { ... })
+
+// ❌ WRONG
+await fetch("/api/users/create", { ... })
+```
+
+#### 5. Role Constants (`src/lib/constants/roles.ts`)
+
+```typescript
+export const ROLE_IDS = {
+  NEWTON_ADMIN: "r_newton_admin",
+  ALLOCATION_OFFICER: "r_allocation_officer",
+  SITE_ADMIN: "r_site_admin",
+  LOGISTICS_COORDINATOR: "r_logistics_coordinator",
+  TRANSPORTER: "r_transporter",
+  // ... etc
+} as const
+```
+
+#### 6. Upload Configuration (`src/lib/constants/upload.ts`)
+
+```typescript
+export const UPLOAD = {
+  MAX_PROFILE_IMAGE_SIZE: 10 * 1024 * 1024, // 10MB
+  MAX_DOCUMENT_SIZE: 50 * 1024 * 1024, // 50MB
+  ALLOWED_IMAGE_TYPES: ["image/jpeg", "image/png", "image/webp"],
+} as const
+```
+
+### Anti-Hardcoding Checklist
+
+Before writing ANY code:
+
+- [ ] Check if value exists in constants files
+- [ ] If new value needed, add to appropriate constants file FIRST
+- [ ] If value used >1 time, it MUST be a constant
+- [ ] If value might change, it MUST be a constant
+- [ ] If value has business meaning, it MUST be a constant
+
+### Common Violations and Fixes
+
+| ❌ WRONG | ✅ CORRECT |
+|----------|-----------|
+| `collection(db, "orders")` | `collection(db, COLLECTIONS.ORDERS)` |
+| `1000 * 60 * 60 * 24` | `TIME.MS_PER_DAY` |
+| `fetch("/api/users/create")` | `fetch(API_ROUTES.USERS.CREATE)` |
+| `orderHistoryDays \|\| 60` | `orderHistoryDays \|\| DEFAULTS.ORDER_HISTORY_DAYS.default` |
+| `file.size > 10 * 1024 * 1024` | `file.size > UPLOAD.MAX_PROFILE_IMAGE_SIZE` |
+| `if (role === "r_admin")` | `if (role === ROLE_IDS.NEWTON_ADMIN)` |
+
+### Why This Matters
+
+1. **Maintainability**: Change value once, applies everywhere
+2. **Type Safety**: TypeScript autocomplete and validation
+3. **Consistency**: No conflicting values across codebase
+4. **Discoverability**: Easy to find all configuration
+5. **Testing**: Mock constants for different test scenarios
+
+---
+
 ## Data Operations Patterns
 
 | Operation | Use | Example |
 |-----------|-----|---------|
-| **Create/Update/Delete** | firebase-utils.ts | `await createDocument("assets", data, "Created")` |
+| **Create/Update/Delete** | firebase-utils.ts | `await createDocument(COLLECTIONS.ASSETS, data, "Created")` |
 | **Centralized data** | data.service.ts | `globalData.products.value` |
-| **Complex query** | firebase.ts | `getDocs(query(collection(db, "orders"), where(...)))` |
-| **Server operations** | firebase-admin.ts (API only) | `adminDb.collection("companies").doc(id).set(...)` |
+| **Complex query** | firebase.ts | `getDocs(query(collection(db, COLLECTIONS.ORDERS), where(...)))` |
+| **Server operations** | firebase-admin.ts (API only) | `adminDb.collection(COLLECTIONS.COMPANIES).doc(id).set(...)` |
 
 ---
 
@@ -382,6 +578,7 @@ Export functions (CSV/Excel/PDF/Print) **automatically adapt:**
 - [ ] Use existing UI components
 - [ ] Follow glass morphism design
 - [ ] Add loading states, error handling
+- [ ] **NO HARDCODED VALUES** - use constants from `@/lib/constants`
 - [ ] Test on mobile
 - [ ] `bun run build` before completion
 - [ ] Commit & push changes
@@ -392,3 +589,4 @@ Export functions (CSV/Excel/PDF/Print) **automatically adapt:**
 - ALWAYS use firebase-utils for CRUD (automatic dbUpdatedAt)
 - Validate with in-memory globalData, not queries
 - Only use firebase-admin.ts in API routes
+- **NEVER hardcode** - use centralized constants
