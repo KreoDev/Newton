@@ -114,13 +114,12 @@ class Data {
 
       // Create compound query: Each visibility condition must include the date filter
       // Firestore requires composite filters (or/and) to include all constraints
-      // Note: Mine and LC orders are loaded via query, transporter orders are filtered client-side
-      // because allocations is an array of objects and can't be queried with array-contains
       const q = query(
         collection(db, "orders"),
         or(
           and(where("companyId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // Mine companies
-          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)) // LC companies
+          and(where("assignedToLCId", "==", companyId), where("createdAt", ">=", cutoffMillis)), // LC companies
+          and(where("allocatedCompanyIds", "array-contains", companyId), where("createdAt", ">=", cutoffMillis)) // Transporter companies
         )
       )
 

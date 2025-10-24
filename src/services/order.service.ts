@@ -424,8 +424,12 @@ export class OrderService {
    * @param toastMessage Success message
    */
   static async allocate(orderId: string, allocations: Allocation[], toastMessage = "Order allocated successfully"): Promise<void> {
+    // Extract transporter company IDs for Firestore querying
+    const allocatedCompanyIds = allocations.map(a => a.companyId)
+
     await updateDocument("orders", orderId, {
       allocations,
+      allocatedCompanyIds,
       status: "allocated"
     }, toastMessage)
   }
